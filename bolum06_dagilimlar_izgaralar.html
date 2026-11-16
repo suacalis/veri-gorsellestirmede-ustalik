@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bölüm 6: Dağılımlar ve Değer Izgaraları</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+<script src="https://cdn.jsdelivr.net/pyodide/v0.27.7/full/pyodide.js"></script>
+<style>
+:root{
+  --teal:#0b3a47; --amber:#b26a00; --lteal:#6fb3c2; --sand:#f0c987;
+  --bg:#f7f6f2; --paper:#ffffff; --ink:#1f2a30; --muted:#5f6b72; --line:#e2e0d8;
+  --code-bg:#fbfaf6;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:80px}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.65 "Segoe UI",system-ui,-apple-system,Roboto,sans-serif}
+header.top{position:sticky;top:0;z-index:50;background:var(--teal);color:#fff;display:flex;align-items:center;gap:16px;padding:10px 20px;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+header.top .brand{font-weight:600;white-space:nowrap}
+header.top .brand small{opacity:.7;font-weight:400;margin-left:6px}
+.search-wrap{position:relative;flex:1;max-width:560px;margin-left:auto}
+#search{width:100%;padding:9px 14px 9px 36px;border-radius:8px;border:none;font-size:15px;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235f6b72' stroke-width='2.5'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E") no-repeat 11px center}
+#search:focus{outline:3px solid var(--sand)}
+#results{position:absolute;top:44px;left:0;right:0;background:#fff;color:var(--ink);border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,.2);max-height:70vh;overflow:auto;display:none}
+#results.open{display:block}
+#results .r{padding:10px 14px;border-bottom:1px solid var(--line);cursor:pointer}
+#results .r:hover,#results .r.act{background:#eef5f6}
+#results .r .sec{font-size:12px;color:var(--amber);font-weight:600;text-transform:uppercase;letter-spacing:.03em}
+#results .r .kind{font-size:11px;background:var(--line);border-radius:4px;padding:0 5px;margin-left:6px;color:var(--muted);text-transform:none;letter-spacing:0}
+#results .r .snip{font-size:14px}
+#results .empty,#results .count{padding:10px 14px;color:var(--muted);font-size:13px}
+mark{background:#ffe08a;color:inherit;border-radius:2px;padding:0 1px}
+#status{font-size:13px;white-space:nowrap;display:flex;align-items:center;gap:8px}
+#status .dot{width:10px;height:10px;border-radius:50%;background:#f0c987;box-shadow:0 0 0 0 rgba(240,201,135,.7);animation:pulse 1.4s infinite}
+#status.ready .dot{background:#7bd88f;animation:none}
+#status.err .dot{background:#ff6b6b;animation:none}
+@keyframes pulse{70%{box-shadow:0 0 0 8px rgba(240,201,135,0)}100%{box-shadow:0 0 0 0 rgba(240,201,135,0)}}
+.layout{display:grid;grid-template-columns:260px minmax(0,1fr);gap:28px;max-width:1240px;margin:0 auto;padding:24px 20px 80px}
+nav.toc{position:sticky;top:76px;align-self:start;max-height:calc(100vh - 96px);overflow:auto;font-size:14px}
+nav.toc h4{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+nav.toc a{display:block;color:var(--ink);text-decoration:none;padding:4px 10px;border-left:3px solid transparent;border-radius:0 4px 4px 0}
+nav.toc a.sub{padding-left:24px;font-size:13px;color:var(--muted)}
+nav.toc a:hover{background:#ece9df}
+nav.toc a.active{border-left-color:var(--amber);background:#fff;font-weight:600;color:var(--teal)}
+nav.toc .tools{margin-top:16px;display:flex;flex-direction:column;gap:6px}
+main{background:var(--paper);border-radius:12px;padding:36px 48px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+h1{font-size:2rem;color:var(--teal);margin:0 0 4px;line-height:1.25}
+.subtitle{color:var(--muted);margin:0 0 24px}
+h2{font-size:1.45rem;color:var(--teal);border-bottom:2px solid var(--sand);padding-bottom:6px;margin:48px 0 16px}
+h2 .num{color:var(--amber);margin-right:8px}
+h3{font-size:1.12rem;margin:30px 0 10px;color:var(--ink)}
+code{font-family:"JetBrains Mono",Consolas,Menlo,monospace;font-size:.88em;background:#f1efe8;padding:1px 5px;border-radius:4px;color:#7a3e00}
+.lead{font-size:1.08rem;border-left:4px solid var(--amber);padding:4px 0 4px 16px;color:#33424a}
+.goals{background:#eef5f6;border-radius:10px;padding:16px 22px}
+.goals ul{margin:6px 0 0;padding-left:20px}
+.callout{border-radius:10px;padding:12px 18px;margin:18px 0;border-left:5px solid}
+.callout .t{font-weight:700;display:block;margin-bottom:2px}
+.callout.warn{background:#fff4e5;border-color:var(--amber)}
+.callout.warn .t{color:var(--amber)}
+.callout.tip{background:#eaf6f1;border-color:#2f8f6b}
+.callout.tip .t{color:#2f8f6b}
+.callout.note{background:#eef2f7;border-color:#4b6a8a}
+.callout.note .t{color:#4b6a8a}
+pre.data{background:var(--code-bg);border:1px dashed var(--line);border-radius:8px;padding:10px 14px;font-size:13px;overflow:auto}
+/* code cells */
+.cell{border:1px solid var(--line);border-radius:10px;margin:18px 0;overflow:hidden;background:var(--code-bg)}
+.cell .bar{display:flex;align-items:center;gap:8px;padding:6px 10px;background:#f1efe8;border-bottom:1px solid var(--line);font-size:12px;color:var(--muted)}
+.cell .bar .lbl{font-family:Consolas,monospace}
+.cell .bar .sp{flex:1}
+button{font:inherit;cursor:pointer;border-radius:6px;border:1px solid transparent}
+.btn{background:var(--teal);color:#fff;padding:4px 12px;font-size:13px}
+.btn:hover{filter:brightness(1.2)}
+.btn:disabled{opacity:.5;cursor:wait}
+.btn.ghost{background:transparent;color:var(--teal);border-color:#c9d3d6}
+.btn.ghost:hover{background:#fff}
+.btn.amber{background:var(--amber)}
+.CodeMirror{height:auto;font-size:14px;background:var(--code-bg);font-family:"JetBrains Mono",Consolas,Menlo,monospace}
+.CodeMirror-scroll{min-height:30px}
+.cm-s-default .cm-keyword{color:#8a3ffc}.cm-s-default .cm-string{color:#0b7a4b}.cm-s-default .cm-number{color:#b26a00}.cm-s-default .cm-comment{color:#8a9296;font-style:italic}.cm-s-default .cm-builtin{color:#0b5f7a}
+.out{border-top:1px solid var(--line);background:#fff;padding:0;display:none}
+.out.show{display:block}
+.out .txt{margin:0;padding:10px 14px;font:13px/1.5 Consolas,Menlo,monospace;white-space:pre-wrap;color:#333}
+.out .txt.err{color:#b00020;background:#fff5f5}
+.out .plot{padding:6px;overflow-x:auto}
+.out table{border-collapse:collapse;margin:10px 14px;font-size:13px}
+.out th,.out td{border:1px solid var(--line);padding:4px 10px;text-align:right}
+.out th{background:#f1efe8}
+.out .dl{margin:10px 14px}
+.out .dl a{display:inline-block;background:var(--amber);color:#fff;text-decoration:none;padding:5px 12px;border-radius:6px;font-size:13px}
+.figdesc{font-size:14px;color:var(--muted);background:#f6f5f0;border-radius:8px;padding:8px 14px;margin:-8px 0 14px;border:1px solid var(--line)}
+.figdesc::before{content:"🖼 Beklenen grafik: ";font-weight:600;color:var(--teal)}
+.flash{animation:flash 2.2s ease}
+@keyframes flash{0%,40%{background:#fff1bf;box-shadow:0 0 0 6px #fff1bf}100%{background:transparent;box-shadow:none}}
+details.data{border:1px solid var(--line);border-radius:8px;margin:8px 0;background:#fff}
+details.data summary{cursor:pointer;padding:8px 14px;font-weight:600;color:var(--teal)}
+details.data .tbl{max-height:260px;overflow:auto;padding:0 14px 10px}
+details.data table{border-collapse:collapse;font-size:13px}
+details.data td,details.data th{border:1px solid var(--line);padding:3px 8px}
+details.data th{background:#f1efe8;position:sticky;top:0}
+/* quiz */
+.q{border:1px solid var(--line);border-radius:10px;padding:14px 18px;margin:14px 0}
+.q .qt{font-weight:600;margin-bottom:8px}
+.q label{display:block;padding:6px 10px;border-radius:6px;cursor:pointer;border:1px solid transparent}
+.q label:hover{background:#f4f2ea}
+.q label.ok{background:#e3f4ea;border-color:#2f8f6b}
+.q label.no{background:#fde8e8;border-color:#d05353}
+.q input{margin-right:8px}
+.q .fb{font-size:14px;margin-top:6px;display:none}
+.q .fb.show{display:block}
+#score{font-weight:700;color:var(--teal)}
+.out img{max-width:100%;height:auto;display:block;margin:6px auto}
+table.choose{border-collapse:collapse;width:100%;font-size:14px;margin:10px 0}table.choose th,table.choose td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}table.choose th{background:#eef5f6;color:var(--teal)}
+.chnav{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:14px;margin:0 0 18px}.chnav a{color:var(--teal);text-decoration:none;border:1px solid var(--line);border-radius:6px;padding:4px 10px}.chnav a:hover{background:#eef5f6}.chnav .all{display:flex;gap:4px;flex-wrap:wrap}.chnav .all a.cur{background:var(--teal);color:#fff}
+.summary li{margin-bottom:6px}
+footer{text-align:center;color:var(--muted);font-size:13px;padding:30px}
+kbd{border:1px solid #bbb;border-bottom-width:2px;border-radius:4px;padding:0 5px;font-size:12px;background:#fff;color:#333}
+@media (max-width:900px){.layout{grid-template-columns:1fr}nav.toc{display:none}main{padding:22px 18px}header.top .brand small{display:none}#status span{display:none}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">Bölüm 6 <small>Dağılımlar ve Değer Izgaraları</small></div>
+  <div class="search-wrap">
+    <input id="search" type="search" placeholder="Bölümde ara… (ör. hist, boxplot, imshow)   Ctrl+K" autocomplete="off">
+    <div id="results"></div>
+  </div>
+  <div id="status"><div class="dot"></div><span id="statusText">Python yükleniyor…</span></div>
+</header>
+
+<div class="layout">
+<nav class="toc" id="toc">
+  <h4>İçindekiler</h4>
+  <div id="tocLinks"></div>
+  <div class="tools">
+    <button class="btn" id="runAll">▶ Tüm hücreleri çalıştır</button>
+    <button class="btn ghost" id="resetNs">↺ Python ortamını sıfırla</button>
+  </div>
+</nav>
+
+<main id="content">
+<div class="chnav"><a href="bolum05_cubuklar_pastalar_tablolar.html">← Bölüm 5</a><div class="all">Bölümler: <a href="bolum01_ortami_kurmak.html" class="" title="Görselleştirme Ortamını Kurmak">1</a><a href="bolum02_cizmeden_once_dusunmek.html" class="" title="Çizmeden Önce Düşünmek">2</a><a href="bolum03_matplotlib_temelleri.html" class="" title="matplotlib Temelleri">3</a><a href="bolum04_cizgiler_noktalar.html" class="" title="Çizgiler ve Noktalar">4</a><a href="bolum05_cubuklar_pastalar_tablolar.html" class="" title="Çubuklar, Pastalar ve Tablolar">5</a><a href="bolum06_dagilimlar_izgaralar.html" class="cur" title="Dağılımlar ve Değer Izgaraları">6</a><a href="bolum07_ozellestirme.html" class="" title="Bir Grafiğin Her Parçasını Özelleştirmek">7</a><a href="bolum08_yerlesimler.html" class="" title="Yerleşimler: Bir Figürde Birçok Grafik">8</a><a href="bolum09_iletisim_kuran_tasarim.html" class="" title="İletişim Kuran Tasarım">9</a><a href="bolum10_yalan_soyleyen_grafikler.html" class="" title="Yalan Söyleyen Grafikler">10</a><a href="bolum11_seaborn_temelleri.html" class="" title="seaborn Temelleri">11</a><a href="bolum12_iliskiler_regresyon.html" class="" title="İlişkiler ve Regresyon">12</a><a href="bolum13_kategoriler.html" class="" title="Kategoriler">13</a><a href="bolum14_dagilimlar.html" class="" title="Dağılımlar">14</a><a href="bolum15_izgaralar_matrisler.html" class="" title="Izgaralar ve Matrisler">15</a><a href="bolum16_plotly_express.html" class="" title="plotly express ile Etkileşimli Grafikler">16</a><a href="bolum17_haritalar_is_grafikleri.html" class="" title="Haritalar ve İş Grafikleri">17</a></div><a href="bolum07_ozellestirme.html">Bölüm 7 →</a></div>
+<h1>Bölüm 6: Dağılımlar ve Değer Izgaraları</h1>
+<p class="subtitle">Kod hücreleri tarayıcınızda <strong>Pyodide</strong> ile çalışır; Python kurmanıza gerek yok. Kodu değiştirip yeniden çalıştırabilirsiniz (<kbd>Shift</kbd>+<kbd>Enter</kbd>). Grafikler matplotlib ile resim olarak çizilir.</p>
+
+<p class="lead">Bir yönetici soruyor: “Tipik bir sipariş ne kadar büyük?” Ortalamayı hesaplıyorsunuz: 264 $. Ama bu gerçekten tipik mi? Siparişlerin çoğu 50 $ ve birkaçı 1.400 $ ise ortalama neredeyse hiç kimseyi tarif etmez. Teslimat süreleri için de aynısı geçerli: “yaklaşık beş gün”, bir bölgenin diğerlerinden çok daha uzun sürdüğü gerçeğini gizler.</p>
+
+<p>Bu soruları yanıtlamak için tek bir özet sayıyı değil, değerlerin tüm yayılımını görmeniz gerekir. Bu bölüm bunun için iki standart aracı, histogramı ve kutu grafiğini ele alıyor. Bir sayı ızgarasını (hafta günü ve saate göre siparişler gibi) renkli bir resme çeviren <code>imshow()</code> ile bitiyor.</p>
+
+<div class="goals">
+<strong>Bu bölümün sonunda şunları yapabileceksiniz:</strong>
+<ul>
+<li><code>ax.hist()</code> ile bir histogram çizmek ve kutularının sayısını ve sınırlarını seçmek</li>
+<li><code>density=True</code> ile sayımlar yerine paylar, <code>cumulative=True</code> ile birikimli toplamlar göstermek</li>
+<li><code>ax.boxplot()</code> ile grupları karşılaştırmak ve bir kutu grafiğini doğru okumak</li>
+<li>İki grafik türünü de <code>df.plot.hist()</code> ve <code>df.plot.box()</code> ile doğrudan bir DataFrame’den çizmek</li>
+<li>Bir pivot tabloyu <code>ax.imshow()</code> ile ısı haritasına çevirmek ve satır ile sütunlarını etiketlemek</li>
+</ul>
+</div>
+
+<details class="data" id="datasets">
+<summary>📁 Bu bölümün veri dosyaları (sayfaya gömülü — Python’da doğrudan <code>pd.read_csv()</code> ile okunur)</summary>
+<div id="dataList" style="padding:0 14px 10px"></div>
+</details>
+
+<section>
+<h2 id="s6-1"><span class="num">6.1</span>Histogramlar</h2>
+<p>Bir histogram “bu değerler nasıl yayılmış?” sorusunu yanıtlar. Sayı doğrusunu <em>kutu</em> (bin) denen eşit aralıklara keser, her kutuya kaç değerin düştüğünü sayar ve kutu başına bir çubuk çizer. Uzun çubuklar, orada çok değer olduğu anlamına gelir.</p>
+<p>İçe aktarmalarla ve kitabın stiliyle başlayın (Bölüm 3 stil satırını açıklıyor):</p>
+<div class="cell"><textarea>import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+
+plt.style.use('book.mplstyle')</textarea></div>
+<p><code>orders.csv</code> dosyasında geçen yıldan 400 sipariş var. Her satırda müşterinin sipariş verdiği hafta günü ve saat, satış bölgesi, dolar cinsinden sipariş değeri ve teslimatın aldığı gün sayısı yer alıyor. İlk satırlar bir metin düzenleyicide şöyle görünür:</p>
+<pre class="data">order_id,weekday,hour,region,order_value,delivery_days
+1001,Thu,20,East,88,7
+1002,Wed,15,East,93,4
+1003,Wed,18,South,246,6
+1004,Wed,20,West,259,6
+1005,Sun,14,East,165,4</pre>
+<div class="cell"><textarea>orders = pd.read_csv('orders.csv')
+orders.head()</textarea></div>
+
+<h3 id="s6-1-hist"><code>ax.hist()</code></h3>
+<p><code>hist()</code> değerleri alır ve saymayı sizin için yapar:</p>
+<div class="cell"><textarea>fig, ax = plt.subplots()
+ax.hist(orders['order_value'])
+ax.set_title('Order values')
+ax.set_xlabel('Order value ($)')
+ax.set_ylabel('Number of orders')
+plt.show()</textarea></div>
+<p class="figdesc">Sipariş değerlerinin histogramı. Yaklaşık 150 siparişle en uzun çubuk soldan ilki, ikinci çubuk hemen arkasından geliyor; çubuklar sonra 1.500 $’a doğru kısalıyor.</p>
+<p>matplotlib varsayılan olarak 10 kutu kullanır. Resim açık: siparişlerin çoğu küçük ve çubuklar sağda büyük siparişlerden oluşan ince bir kuyruğa doğru düşüyor. Özet sayılar ortalamanın neden yanılttığını gösteriyor:</p>
+<div class="cell"><textarea>orders['order_value'].describe()</textarea></div>
+<p>Ortalama 264 $, ama tüm siparişlerin yarısı 191 $’lık medyanın altında ve 1.000 $’ın üstündeki bir avuç sipariş ortalamayı yukarı çekiyor. Bir yanında uzun bir kuyruğu olan dağılıma <em>çarpık</em> (skewed) denir; bu kuyruk sağda olduğu için veri <em>sağa çarpıktır</em>. Çarpık veri için “tipik olan ne?” sorusunun genellikle daha iyi yanıtı medyandır.</p>
+
+<h3 id="s6-1-bins"><code>bins=</code></h3>
+<p>Ne gördüğünüze kutular karar verir. Çok az olursa şekil bulanıklaşır; çok fazla olursa grafik pürüzlü hâle gelir, çünkü her çubuk yalnızca birkaç sipariş tutar. Kaç tane olacağını değiştirmek için <code>bins=</code>’e bir sayı verin:</p>
+<div class="cell"><textarea>fig, ax = plt.subplots()
+ax.hist(orders['order_value'], bins=30)
+ax.set_title('Order values, 30 bins')
+ax.set_xlabel('Order value ($)')
+ax.set_ylabel('Number of orders')
+plt.show()</textarea></div>
+<p class="figdesc">30 dar çubuklu aynı histogram. En uzun çubuklar şimdi yaklaşık 65 $’dan 210 $’a düz bir tepe oluşturuyor ve 1.000 $’ın ötesinde birkaç tek sipariş görünüyor.</p>
+<p>En uzun çubuklar şimdi yaklaşık 65 $’dan 210 $’a düz bir tepe oluşturuyor; 10 kutulu sürüm bunu iki geniş çubukta birleştirmişti. Doğru bir kutu sayısı yoktur. Üç dört değer deneyin ve şekli gürültüsüz gösteren birini seçin. Birkaç yüz değer için 15 ile 40 arası bir yer işe yarar.</p>
+<p><code>bins=</code>’e bir sınır listesi de verebilirsiniz. <code>np.arange(start, stop, step)</code> bir tane kurar: <code>start</code>’tan <code>step</code> adımlarla yukarı sayar ve <code>stop</code>’tan hemen önce durur. Yani <code>np.arange(0, 1550, 50)</code> 0, 50, 100 ve böyle 1.500’e kadar verir; her çubuk tam 50 $ genişliğindedir:</p>
+<div class="cell"><textarea>fig, ax = plt.subplots()
+ax.hist(orders['order_value'], bins=np.arange(0, 1550, 50))
+ax.set_title('Order values, $50 bins')
+ax.set_xlabel('Order value ($)')
+ax.set_ylabel('Number of orders')
+plt.show()</textarea></div>
+<p class="figdesc">0 $’dan 1.500 $’a, çubukları tam 50 $ genişliğinde histogram. En uzun çubuklar 100 $ ile 200 $ arasında.</p>
+<p>Tam olarak bir sınırın üzerinde duran değerler onun sağındaki kutuya gider; yalnızca son sınır son kutuya aittir. En büyük sipariş 1.470 $ olduğu için 1.500’lük son sınır onu hâlâ kapsar ve hiçbir şey kaybolmaz.</p>
+<div class="callout warn"><span class="t">⚠ Dikkat</span>Sınırlarınız her değeri kapsamıyorsa <code>hist()</code> dışarıda kalanları hiçbir mesaj vermeden atar. Sınırları elle ayarladığınızda çubukların toplam sayısını <code>len(orders)</code> ile karşılaştırın.</div>
+
+<h3 id="s6-1-density"><code>density=True</code></h3>
+<p>Varsayılan olarak çubuk yüksekliği bir sayımdır. Tek bir grup için bu iyidir, ama gruplar farklı büyüklükte olduğunda sayımları karşılaştırmak zordur. <code>density=True</code> çubukları tüm histogramın alanı 1 olacak şekilde yeniden ölçekler. O zaman bir çubuğun yüksekliği çarpı genişliği, o kutudaki değerlerin payıdır. Bir birim genişliğindeki kutularla, 0,3 yüksekliğindeki bir çubuk grubun %30’u demektir.</p>
+<p>Dolar gibi geniş kutularla yükseklikler, okuyucu için pek bir şey ifade etmeyen 0,004 gibi küçük ondalıklar olur. Yoğunluğu eşit olmayan büyüklükteki grupları karşılaştırırken kullanın. North’un 130, West’in yalnızca 71 siparişi var; bu yüzden bu kısmın sonundaki karşılaştırma onu kullanıyor.</p>
+
+<h3 id="s6-1-cumulative"><code>cumulative=True</code></h3>
+<p>Birikimli bir histogram farklı bir soruyu yanıtlar: kaç sipariş bir değerde <em>ya da altında</em>? Her çubuk solundaki her şeyi içerir. <code>density=True</code> ile birlikte son çubuk 1’e, yani siparişlerin %100’üne ulaşır:</p>
+<div class="cell"><textarea>fig, ax = plt.subplots()
+ax.hist(orders['order_value'], bins=30, density=True,
+        cumulative=True)
+ax.set_title('Share of orders at or below each value')
+ax.set_xlabel('Order value ($)')
+ax.set_ylabel('Share of orders')
+plt.show()</textarea></div>
+<p class="figdesc">Solda 0’dan sağda 1,0’a yükselen bir çubuk merdiveni. Tırmanış 300 $’ın altında en dik, sonrasında yataylaşıyor.</p>
+<p>x eksenindeki bir dolar miktarından çubuğun tepesine çıkarak okuyun. 300 $’da merdiven yaklaşık 0,7’de; yani siparişlerin kabaca %70’i 300 $ ya da daha az. “Siparişlerin ne kadarı 300 $’ın altında?” sorusunu yanıtlamanın, düz histogramda çubuk saymaktan çok daha kolay bir yolu.</p>
+
+<h3 id="s6-1-dfhist"><code>df.plot.hist()</code></h3>
+<p>Bölüm 5’teki çubuk grafikler gibi histogramın da bir pandas kısayolu var. Bir sütunda <code>plot.hist()</code>’i çağırın; y ekseni etiketi zaten <em>Frequency</em> olarak doldurulmuş aynı grafiği çizer:</p>
+<div class="cell"><textarea>ax = orders['order_value'].plot.hist(bins=30)
+ax.set_title('Order values')
+ax.set_xlabel('Order value ($)')
+ax.set_ylabel('Number of orders')
+plt.show()</textarea></div>
+<p class="figdesc">pandas’ın çizdiği, sipariş değerlerinin aynı 30 kutulu histogramı.</p>
+<p>Kısayol grupları karşılaştırdığınızda işe yarar. Ona grup başına bir sütunu olan bir DataFrame verirseniz aynı eksenlere sütun başına bir histogram çizer. Bu biçimi <code>orders</code>’tan almak için her bölgeyi kendi teslimat günü sütununa çeviren <code>pivot()</code>’u (Bölüm 1.4) kullanın. <code>index=</code> verilmediği için her satır özgün satır numarasını korur:</p>
+<div class="cell"><textarea>delivery = orders.pivot(columns='region', values='delivery_days')
+delivery.head()</textarea></div>
+<p>Her sipariş bir bölgeye ait; bu yüzden her satırda bir sayı ve üç boşluk var. Boşluklar <code>NaN</code>’dır ve histogram onları yok sayar. North ile West’i karşılaştırın:</p>
+<div class="cell"><textarea>ax = delivery[['North', 'West']].plot.hist(
+    bins=np.arange(0.5, 17), alpha=0.6, density=True)
+ax.set_title('Delivery time: North vs West')
+ax.set_xlabel('Delivery time (days)')
+ax.set_ylabel("Share of the region's orders")
+plt.show()</textarea></div>
+<p class="figdesc">Örtüşen iki histogram. North 4 günde zirve yapıyor ve çoğunlukla 7 günde bitiyor; West sağa kaymış, 7 günde zirve yapıyor (çubuk yükseklikleri her bölgenin payı) ve 14–16 günde birkaç siparişi var.</p>
+<p>İki ayrıntıyı bilmeye değer. <code>alpha=0.6</code> çubukları kısmen saydam yapar; böylece bir grubu diğerinin içinden görebilirsiniz. Ve <code>np.arange(0.5, 17)</code>’nin adımı yok; bu yüzden birer birer sayar: 0,5, 1,5, 2,5 ve böyle 16,5’e kadar. Her tam gün sayısı o zaman bir sınırın üzerinde değil, kendi çubuğunun ortasında durur. Küçük gösterge başlığı <code>region</code>, sütunların adıdır; pandas onu kopyalamıştır.</p>
+<p>Grafik West’in daha yavaş olduğunu gösteriyor; yalnızca bir iki gün değil, uzun bir geç teslimat kuyruğuyla. Örtüşen histogramların sınırını da açık hâle getiriyor: ikiden fazla grupla birbirlerini gömerler. Sonraki kısım olan kutu grafikleri çok grubu çok daha iyi ele alır.</p>
+<p>Çubuklar yerine daha düzgün eğriler için Bölüm 14.4 seaborn’un <code>kdeplot()</code>’unu gösteriyor. Yan yana panellerde grup başına bir histogram için matplotlib yerleşimlerine Bölüm 8’e, seaborn’un <code>col=</code>’una Bölüm 15.1’e bakın.</p>
+</section>
+
+<section>
+<h2 id="s6-2"><span class="num">6.2</span>Kutu Grafikleri</h2>
+<p>Bir kutu grafiği bir dağılımı beş sayıya sıkıştırır; böylece çok sayıda grup yan yana durabilir. Bir histogramdan daha az ayrıntılıdır, ama karşılaştırması çok daha kolaydır.</p>
+
+<h3 id="s6-2-read">Bir kutu grafiğini okumak</h3>
+<p>Her kutu grafiği bir grubun sıralanmış değerlerinden kurulur:</p>
+<ul>
+<li>Kutunun içindeki çizgi medyandır, ortadaki değer.</li>
+<li>Kutu değerlerin ortadaki yarısını kapsar: birinci çeyrekten (değerlerin %25’i onun altındadır) üçüncü çeyreğe (değerlerin %75’i onun altındadır). Yüksekliğine <em>çeyrekler açıklığı</em> (interquartile range, IQR) denir.</li>
+<li>Bıyıklar, kutudan IQR’nin 1,5 katı uzaklık içindeki en uzak değerlere uzanır.</li>
+<li>Bir bıyığın ötesindeki her değer kendi dairesi olarak çizilir. Bunlar <em>aykırı değerlerdir</em> (outliers), diğerlerinden uzak değerler.</li>
+</ul>
+<p>1,5’i hatırlamanız gerekmez. Önemli olan şu: uzun bir kutu geniş bir yayılım, kutuda merkezden kaymış bir medyan çizgisi yamuk bir dağılım demektir ve daireler ikinci kez bakmaya değer siparişlerdir.</p>
+
+<h3 id="s6-2-boxplot"><code>ax.boxplot()</code></h3>
+<p><code>boxplot()</code> kutu başına bir değer listesi alır. Tek bir kutuyla, sipariş değerleriyle başlayın:</p>
+<div class="callout note"><span class="t">📝 Bu sayfada</span>Kitaptaki <code>tick_labels=</code> (matplotlib 3.9+) ve <code>orientation=</code> (3.10+) parametreleri, Pyodide’in matplotlib 3.8’inde yok. Kod kitaptakiyle aynı kalsın diye sayfa bunları arka planda eski adlarına (<code>labels=</code>, <code>vert=</code>) çeviren küçük bir uyumluluk katmanı kullanıyor.</div>
+<div class="cell"><textarea>fig, ax = plt.subplots()
+ax.boxplot(orders['order_value'], orientation='horizontal')
+ax.set_yticks([])
+ax.set_title('Order values')
+ax.set_xlabel('Order value ($)')
+plt.show()</textarea></div>
+<p class="figdesc">Sipariş değerlerinin yatay kutu grafiği. Kutu yaklaşık 120 $’dan 335 $’a uzanıyor, medyan 190 $ civarında. Bıyık yaklaşık 650 $’a uzanıyor ve birçok daire sağa doğru yaklaşık 1.500 $’a kadar sürüklenip gidiyor.</p>
+<p><code>orientation='horizontal'</code> kutuyu yan yatırır; bu, soldan sağa okunan bir dolar eksenine uyar. <code>set_yticks([])</code>, burada hiçbir anlam taşımayan yalnız işaret etiketi <code>1</code>’i kaldırır. Kutu düşük uca doğru sıkışmış, sağa doğru bir daire izi var: histogramın gösterdiği aynı çarpıklık, ama tek satırda.</p>
+<p>Şimdi asıl kullanım: grup başına bir kutu. <code>boxplot()</code> kutu başına bir değer kümesi içeren bir liste ister ve <code>tick_labels=</code> onları adlandırır. Aşağıdaki liste üreteci listeyi kurar; bölge başına bir teslimat günü kümesi:</p>
+<div class="cell"><textarea>regions = ['North', 'East', 'South', 'West']
+groups = [orders.loc[orders['region'] == r, 'delivery_days']
+          for r in regions]
+
+fig, ax = plt.subplots()
+ax.boxplot(groups, tick_labels=regions)
+ax.set_title('Delivery time by region')
+ax.set_ylabel('Delivery time (days)')
+plt.show()</textarea></div>
+<p class="figdesc">Yan yana dört kutu grafiği. North ve East alçakta, South biraz daha yüksekte; West en yüksekte, en uzun kutuyla ve 14 gün ya da üzerinde üç daireyle.</p>
+<p>2. ve 3. satırlardaki liste üreteci sıkıştırılmış bir <code>for</code> döngüsüdür. Süzmeyi bölge başına bir kez tekrarlar: <code>region</code>’ın <code>r</code>’ye eşit olduğu satırları tut, sonra <code>delivery_days</code> sütununu tut. Sonuç, <code>regions</code> listesinin sırasında dört sayı kümesidir; böylece etiketler hizalanır. Düz bir döngü olarak yazılsaydı şöyle olurdu:</p>
+<pre class="data">groups = []
+for r in regions:
+    groups.append(orders.loc[orders['region'] == r, 'delivery_days'])</pre>
+<div class="callout warn"><span class="t">⚠ Dikkat</span>3.9’dan önceki matplotlib sürümlerinde argümanın adı <code>labels=</code> idi. <code>tick_labels=</code> olarak yeniden adlandırıldı ve eski ad matplotlib 3.11’de artık çalışmıyor. Eski kodu kopyalayıp <code>labels</code> hakkında bir uyarı ya da hata görürseniz adını değiştirin.</div>
+<p>Artık karşılaştırma kolay: West kutusu diğerlerinden daha yüksek ve daha uzun; yani oradaki teslimatlar hem daha yavaş hem daha az öngörülebilir. North ve East birbirine yakın. South’un kutusu neredeyse bir çizgiye küçülüyor, çünkü teslimatlarının çoğu aynı süreyi aldı: kutu bir günün yalnızca çeyreği kadar yer kaplıyor. Dört histogram aynı şeyi söylemek için dört kat yer kaplardı.</p>
+
+<h3 id="s6-2-dfbox"><code>df.plot.box()</code></h3>
+<p>Önceki kısımdaki geniş <code>delivery</code> tablosuyla pandas, sütun adlarını etiket olarak kullanarak sütun başına bir kutu çizer. Kurulacak liste yok:</p>
+<div class="cell"><textarea>ax = delivery[regions].plot.box()
+ax.set_title('Delivery time by region')
+ax.set_ylabel('Delivery time (days)')
+plt.show()</textarea></div>
+<p class="figdesc">pandas’ın North, East, South, West sırasıyla çizdiği aynı dört kutu grafiği.</p>
+<p><code>delivery[regions]</code> sütunları istediğiniz sırada seçer; onsuz pandas alfabetik sıra kullanırdı. pandas her sütundaki boşlukları (<code>NaN</code>) atlar; böylece her kutu yalnızca o bölgenin siparişlerini kullanır.</p>
+<p>Çok sayıda grupla, önce sütunları medyanlarına göre sıralayın: sıralı bir kutu dizisi sıralı bir çubuk grafik gibi okunur.</p>
+<div class="callout tip"><span class="t">💡 İpucu</span>Bir kutu grafiği kutunun içindeki şekli gizler. Çok farklı iki dağılımın kutusu aynı olabilir. Küçük gruplar için grup başına bir histogram ya da Bölüm 13.3 ve 13.4’teki şerit ve keman grafikleri daha fazlasını gösterir.</div>
+
+<h3 id="s6-2-means">Ortalamayı ve aykırı değerleri göstermek</h3>
+<p>Varsayılan olarak çizgi medyandır. <code>showmeans=True</code> ortalama için bir işaretçi ekler ve ikisini karşılaştırmak çarpıklığı görmenin başka bir yoludur:</p>
+<div class="cell"><textarea>fig, ax = plt.subplots()
+ax.boxplot(groups, tick_labels=regions, showmeans=True)
+ax.set_title('Delivery time by region, with means')
+ax.set_ylabel('Delivery time (days)')
+plt.show()</textarea></div>
+<p class="figdesc">Yine dört kutu grafiği; her birinde medyan çizgisine yakın, ortalamasını işaretleyen küçük bir üçgen var.</p>
+<p>West’te ortalama (8,4 gün) medyanın (8,0) biraz üstünde duruyor, çünkü geç teslimatlar onu yukarı çekiyor. Diğer bölgelerde ikisi yaklaşık bir günün üçte biri kadar yakın. Aykırı değer dairelerini gizlemeyi tercih ederseniz <code>showfliers=False</code> onları kaldırır. Bunu yalnızca grafikte söylerseniz yapın; çoğu zaman en ilginç kısım onlardır.</p>
+</section>
+
+<section>
+<h2 id="s6-3"><span class="num">6.3</span><code>imshow</code> ile Değer Izgaraları</h2>
+<p>Histogramlar ve kutu grafikleri veri satırı başına bir sayı gösterir. Bazen veri zaten bir ızgaradır: satırlar bir kategori, sütunlar başka bir kategori ve her hücre bir sayı tutar. Hafta günü ve saate göre siparişlerin tablosu bunlardan biridir. Bir tabloda 98 sayı okumak yavaştır. Her hücreyi değerine göre renklendirmek ızgarayı yoğun ve sakin alanların öne çıktığı bir resme dönüştürür; buna <em>ısı haritası</em> denir.</p>
+
+<h3 id="s6-3-pivot"><code>df.pivot_table()</code> ile ızgarayı kurmak</h3>
+<p>Önce ızgarayı yapın. <code>pivot_table()</code> (Bölüm 1.4) her hafta günü ve saat çifti için siparişleri sayar:</p>
+<div class="cell"><textarea>grid = orders.pivot_table(index='weekday', columns='hour',
+                          values='order_id', aggfunc='count',
+                          fill_value=0)
+grid</textarea></div>
+<p>Satırlar alfabetik sırada; Fri, Mon’dan önce geliyor ve bu kafa karıştırıcı bir grafik yapar. Onları <code>loc[]</code> ve istediğiniz sırada günlerden oluşan bir listeyle yeniden sıralayın:</p>
+<div class="cell"><textarea>days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+grid = grid.loc[days]
+grid.iloc[:, :6]</textarea></div>
+<p>İkinci satır, tablo sayfaya sığsın diye yalnızca ilk altı saat sütununu gösteriyor. <code>fill_value=0</code>, hiç siparişi olmayan her hafta günü ve saat için <code>NaN</code> yerine sıfır koydu.</p>
+
+<h3 id="s6-3-imshow"><code>ax.imshow()</code></h3>
+<p><code>imshow()</code> resim göstermek için yapılmıştı, ama bir sayı ızgarası da bir resimdir: her sayı renkli bir blok olur. Ona tablonun <code>.values</code>’ını, yani satır ve sütun etiketleri sıyrılmış düz bir ızgara olarak yalnızca sayıları ve bir renk haritası verin:</p>
+<div class="cell"><textarea>fig, ax = plt.subplots()
+im = ax.imshow(grid.values, cmap='Blues', aspect='auto')
+fig.colorbar(im, label='Orders')
+ax.set_title('Orders by weekday and hour')
+plt.show()</textarea></div>
+<p class="figdesc">Maviyle gölgelenmiş 7 satır ve 14 sütunlu bir ızgara. Eksenler gün ve saat adları yerine 0–6 ve 0–13 sayılarını gösteriyor.</p>
+<p>İki şeyin düzeltilmesi gerekiyor. Eksenler sıfırdan sayıyor, çünkü <code>imshow()</code> tablonun etiketlerine değil yalnızca sayılarına bakar. <code>aspect='auto'</code>’yu da merak edebilirsiniz: varsayılan olarak <code>imshow()</code> her bloğu mükemmel bir kare yapar; bu da bu geniş ızgarayı minik bırakırdı. <code>aspect='auto'</code> blokları grafiği dolduracak şekilde uzatır.</p>
+<p><code>fig.colorbar(im, label='Orders')</code> renklerden değerlere anahtar olan bir renk çubuğu ekler (Bölüm 4.5 onu saçılım grafikleri için kullanmıştı). <code>imshow()</code>’un döndürdüğü nesneye ihtiyaç duyar; kodun onu <code>im</code>’de saklamasının nedeni budur.</p>
+
+<h3 id="s6-3-labels">Satırları ve sütunları etiketlemek</h3>
+<p>Gerçek adları <code>set_xticks()</code> ve <code>set_yticks()</code> ile eksenlere koyun. Her biri önce konumları, sonra orada gösterilecek etiketleri alır. Konumlar yalnızca 0, 1, 2, ... olduğu için <code>range(len(...))</code> onları üretir:</p>
+<div class="cell"><textarea>fig, ax = plt.subplots()
+im = ax.imshow(grid.values, cmap='Blues', aspect='auto')
+ax.set_xticks(range(len(grid.columns)), grid.columns)
+ax.set_yticks(range(len(grid.index)), grid.index)
+fig.colorbar(im, label='Orders')
+ax.set_title('Orders by weekday and hour')
+ax.set_xlabel('Hour of the day (24-hour clock)')
+plt.show()</textarea></div>
+<p class="figdesc">Yanda Pazartesi’den Pazar’a hafta günleri, altta 9’dan 22’ye saatler olan gölgeli ızgara. 12–14 civarında ve 20’de dikey olarak uzanan iki koyu bant var.</p>
+<p>Isı haritası artık bir hikâye anlatıyor. Siparişler iki dalga hâlinde geliyor: öğle saatleri civarında ve yine akşam; 16 ile 18 arasında ya da sabah 11’den önce neredeyse hiçbir şey yok. Örüntü haftanın her günü tekrarlanıyor; bu yüzden personel ya da reklam planı hafta günlerini değil saatleri izleyebilir.</p>
+<p>Satır sırasına dikkat edin: <code>imshow()</code> ilk satırı en üste çizer; böylece Pazartesi ilk, Pazar son olur, bir takvimin okunduğu gibi. Bu, Bölüm 5.1’de alttan başlayan ve <code>invert_yaxis()</code>’e ihtiyaç duyan <code>barh()</code>’ın tersidir.</p>
+
+<h3 id="s6-3-cmap">Bir renk haritası seçmek</h3>
+<p><code>cmap=</code> ayarı renkleri seçer. Düşükten yükseğe giden sayımlar için <code>'Blues'</code>, <code>'Greens'</code> ya da <code>'GnBu'</code> gibi açıktan koyuya giden <em>sıralı</em> (sequential) bir renk haritası kullanın. Koyu daha fazla demektir ve grafik gri tonlamalı basılsa da çalışır.</p>
+<p><code>'jet'</code> gibi gökkuşağı renk haritalarından kaçının: doğal bir sıraları yoktur ve parlak sarı bantlar önemli olmadıkları hâlde önemli özellikler gibi görünür. Bölüm 7.4 renk haritalarını daha derinlemesine karşılaştırıyor, Bölüm 9.5 de siyah-beyazda ve renk körü okuyucular için çalışan renklerin nasıl seçileceğini açıklıyor.</p>
+<p>Hücre değerleri yalnızca renklerden okunamaz. Küçük bir ızgara için sayıları üstüne yazın. İşte yalnızca en yoğun dört saat (12, 13, 14 ve 20) için aynı ısı haritası. <code>grid[[12, 13, 14, 20]]</code> sütunları saat olan etiketlerine göre seçer; yani 12 13. sütun değil öğlen demektir. Her sayım kendi bloğuna yazılır:</p>
+<div class="cell"><textarea>busy = grid[[12, 13, 14, 20]]  # hours, not positions
+
+fig, ax = plt.subplots()
+im = ax.imshow(busy.values, cmap='Blues', aspect='auto')
+ax.set_xticks(range(len(busy.columns)), busy.columns)
+ax.set_yticks(range(len(busy.index)), busy.index)
+for row in range(len(busy.index)):
+    for col in range(len(busy.columns)):
+        value = busy.iloc[row, col]
+        ink = 'black'
+        if value &gt; busy.values.max() * 0.6:
+            ink = 'white'
+        ax.text(col, row, value, ha='center', va='center',
+                color=ink)
+ax.set_title('Orders at the busiest hours')
+ax.set_xlabel('Hour of the day (24-hour clock)')
+plt.show()</textarea></div>
+<p class="figdesc">Küçük bir ızgara, 7 hafta günü × 4 saat; her bloğun içinde, bloğun ne kadar koyu olduğuna bağlı olarak siyah ya da beyaz yazılmış sipariş sayısı.</p>
+<p>Yeni kısım, her bloğu ziyaret eden döngü çiftidir. <code>len(busy.index)</code> satır sayısı (7), <code>len(busy.columns)</code> sütun sayısıdır (4). <code>busy.iloc[row, col]</code> sıfırdan sayarak konumuna göre bir sayı seçer; bu, bloğun grafikteki konumuyla aynıdır.</p>
+<p><code>ax.text(x, y, text)</code>, Bölüm 5.5’teki halkadaki gibi bir konuma metin yazar. Burada x sütun numarası, y satır numarasıdır ve <code>ha='center'</code> ile <code>va='center'</code> sayıyı bloğunun ortasına koyar.</p>
+<p>Koyu bir bloktaki metin beyaz olmalıdır. <code>if</code> satırı şunu söyler: değer tablodaki en büyük değerin %60’ından fazlaysa beyaz kullan. Bu, kabaca <code>'Blues'</code>’un siyah metnin solacağı kadar koyulaştığı yerdir. Bölüm 5.1’deki <code>np.where()</code> aynı işi bütün bir sütun için tek seferde yapar, ama bir döngünün içinde düz bir <code>if</code> okuması daha kolaydır.</p>
+<p>Bölüm 7.3 <code>text()</code> ve <code>annotate()</code>’i ele alıyor, Bölüm 15.4 de seaborn’un <code>heatmap()</code>’inin etiketleri, sayıları ve renk çubuğunu tek çağrıda nasıl yaptığını gösteriyor.</p>
+</section>
+
+<section>
+<h2 id="ozet">Bölüm Özeti</h2>
+<ul class="summary">
+<li>Bir histogram değerleri kutulara sayar. Birkaç <code>bins=</code> değeri (bir sayı ya da <code>np.arange()</code>’ten sınırlar) deneyin ve şekli gürültüsüz göstereni seçin.</li>
+<li>Uzun bir büyük sipariş kuyruğu olan sipariş değerleri gibi çarpık veride medyan tipik bir değeri ortalamadan daha iyi tarif eder.</li>
+<li><code>density=True</code> çubukları göreli yapar; böylece farklı büyüklükteki gruplar adil karşılaştırılır. “Bu değerde ya da altında ne kadar pay var?” sorusunu yanıtlamak için <code>cumulative=True</code> ekleyin.</li>
+<li>Bir kutu grafiği medyanı, değerlerin ortadaki yarısını (kutu), bıyıkları ve aykırı değerleri gösterir. Uzun, yayılmış demektir; daireler kontrol etmeye değer değerlerdir.</li>
+<li>matplotlib için <code>ax.boxplot(list_of_groups, tick_labels=names)</code>, grup başına bir sütunu olan bir tabloda ise <code>df.plot.box()</code> kullanın.</li>
+<li>Örtüşen histogramlar (<code>alpha=0.6</code>) iki gruba, kutu grafikleri çok gruba uyar.</li>
+<li><code>ax.imshow(grid.values, cmap='Blues', aspect='auto')</code> bir pivot tabloyu ısı haritasına çevirir. Tablonun etiketlerini yok sayar; onları <code>set_xticks()</code> ve <code>set_yticks()</code> ile ekleyin.</li>
+<li>Sayımlar için açıktan koyuya sıralı bir renk haritası kullanın ve ızgara küçük olduğunda sayıları bloklara yazın.</li>
+</ul>
+<p>Dağılımlar ve ızgaralar temel grafik türleri kümesini tamamlıyor. Bölüm 7 şimdi çizdiğiniz her şeye geri dönüyor ve her işaretin, rengin ve etiketin nasıl denetleneceğini gösteriyor.</p>
+
+<h3 id="oyun">Kendi kodunuzu deneyin</h3>
+<p>Aşağıdaki hücre bir oyun alanı. Yukarıdaki tüm değişkenler (<code>orders</code>, <code>delivery</code>, <code>groups</code>, <code>grid</code>…) burada kullanılabilir (önceki hücreler otomatik çalıştırılır).</p>
+<div class="cell"><textarea># Örnek: medyana göre sıralanmış bölge kutuları, ortalamalarla
+order = orders.groupby('region')['order_value'].median().sort_values().index
+fig, ax = plt.subplots()
+ax.boxplot([orders.loc[orders['region'] == r, 'order_value'] for r in order],
+           tick_labels=list(order), showmeans=True, showfliers=False)
+ax.set_title('Order value by region (outliers hidden)')
+ax.set_ylabel('Order value ($)')
+plt.show()</textarea></div>
+</section>
+
+<section>
+<h2 id="quiz">Sınav</h2>
+<p>Bir seçeneğe tıklayın; doğru cevap ve açıklama hemen görünür. Puan: <span id="score">0 / 10</span> &nbsp;<button class="btn ghost" id="quizReset">Sıfırla</button></p>
+<div id="quizBox"></div>
+</section>
+
+<div class="chnav"><a href="bolum05_cubuklar_pastalar_tablolar.html">← Bölüm 5</a><div class="all">Bölümler: <a href="bolum01_ortami_kurmak.html" class="" title="Görselleştirme Ortamını Kurmak">1</a><a href="bolum02_cizmeden_once_dusunmek.html" class="" title="Çizmeden Önce Düşünmek">2</a><a href="bolum03_matplotlib_temelleri.html" class="" title="matplotlib Temelleri">3</a><a href="bolum04_cizgiler_noktalar.html" class="" title="Çizgiler ve Noktalar">4</a><a href="bolum05_cubuklar_pastalar_tablolar.html" class="" title="Çubuklar, Pastalar ve Tablolar">5</a><a href="bolum06_dagilimlar_izgaralar.html" class="cur" title="Dağılımlar ve Değer Izgaraları">6</a><a href="bolum07_ozellestirme.html" class="" title="Bir Grafiğin Her Parçasını Özelleştirmek">7</a><a href="bolum08_yerlesimler.html" class="" title="Yerleşimler: Bir Figürde Birçok Grafik">8</a><a href="bolum09_iletisim_kuran_tasarim.html" class="" title="İletişim Kuran Tasarım">9</a><a href="bolum10_yalan_soyleyen_grafikler.html" class="" title="Yalan Söyleyen Grafikler">10</a><a href="bolum11_seaborn_temelleri.html" class="" title="seaborn Temelleri">11</a><a href="bolum12_iliskiler_regresyon.html" class="" title="İlişkiler ve Regresyon">12</a><a href="bolum13_kategoriler.html" class="" title="Kategoriler">13</a><a href="bolum14_dagilimlar.html" class="" title="Dağılımlar">14</a><a href="bolum15_izgaralar_matrisler.html" class="" title="Izgaralar ve Matrisler">15</a><a href="bolum16_plotly_express.html" class="" title="plotly express ile Etkileşimli Grafikler">16</a><a href="bolum17_haritalar_is_grafikleri.html" class="" title="Haritalar ve İş Grafikleri">17</a></div><a href="bolum07_ozellestirme.html">Bölüm 7 →</a></div>
+</main>
+</div>
+<footer>Bölüm 6 · Dağılımlar ve Değer Izgaraları — Pyodide ile etkileşimli Türkçe sürüm</footer>
+
+<script>
+
+const DATA = {"orders.csv": "order_id,weekday,hour,region,order_value,delivery_days\n1001,Thu,20,East,88,7\n1002,Wed,15,East,93,4\n1003,Wed,18,South,246,6\n1004,Wed,20,West,259,6\n1005,Sun,14,East,165,4\n1006,Fri,20,North,82,3\n1007,Fri,21,South,115,5\n1008,Wed,14,East,827,4\n1009,Fri,15,East,64,7\n1010,Mon,21,North,215,4\n1011,Mon,21,South,365,5\n1012,Sat,11,East,318,6\n1013,Mon,20,East,1059,4\n1014,Sun,14,East,252,8\n1015,Sat,12,North,136,4\n1016,Sat,13,West,109,7\n1017,Mon,20,East,153,4\n1018,Tue,20,South,534,7\n1019,Sat,18,South,81,6\n1020,Thu,19,South,228,6\n1021,Fri,21,North,101,4\n1022,Mon,19,West,173,7\n1023,Tue,21,East,856,4\n1024,Thu,12,East,226,5\n1025,Sat,18,North,264,4\n1026,Thu,20,South,128,6\n1027,Mon,22,North,58,5\n1028,Sat,21,East,98,5\n1029,Mon,15,South,133,8\n1030,Thu,20,South,182,8\n1031,Fri,22,North,42,8\n1032,Wed,18,North,169,6\n1033,Thu,20,North,566,7\n1034,Sun,22,East,131,6\n1035,Thu,11,East,338,5\n1036,Thu,15,West,226,9\n1037,Sun,21,East,184,4\n1038,Wed,18,East,156,6\n1039,Sun,14,West,332,8\n1040,Wed,12,East,690,7\n1041,Wed,20,North,49,5\n1042,Sun,12,West,423,7\n1043,Mon,22,South,143,6\n1044,Sat,14,East,253,4\n1045,Sat,12,North,440,5\n1046,Sun,19,West,222,10\n1047,Mon,20,North,850,6\n1048,Tue,11,West,442,8\n1049,Sat,12,West,155,7\n1050,Thu,10,East,379,6\n1051,Mon,18,East,64,6\n1052,Fri,10,North,237,6\n1053,Sat,20,West,129,9\n1054,Sun,22,North,104,3\n1055,Tue,20,North,431,4\n1056,Tue,20,South,236,6\n1057,Sat,22,South,137,6\n1058,Mon,14,West,260,7\n1059,Wed,12,West,185,7\n1060,Thu,19,West,179,7\n1061,Thu,22,West,59,8\n1062,Fri,20,South,134,6\n1063,Sat,19,East,298,7\n1064,Fri,11,West,267,14\n1065,Fri,11,South,210,6\n1066,Fri,13,East,83,4\n1067,Tue,12,West,112,9\n1068,Thu,20,South,32,6\n1069,Sun,19,East,90,4\n1070,Sun,19,North,515,4\n1071,Sat,14,North,732,5\n1072,Thu,21,West,212,7\n1073,Sat,13,North,198,5\n1074,Fri,20,West,67,7\n1075,Wed,20,East,236,5\n1076,Thu,13,North,132,4\n1077,Tue,19,North,1018,4\n1078,Fri,12,East,295,4\n1079,Wed,13,East,187,8\n1080,Sat,18,East,62,5\n1081,Sat,20,South,615,6\n1082,Sun,21,North,214,4\n1083,Sat,20,South,989,5\n1084,Mon,20,North,336,7\n1085,Sat,13,South,182,5\n1086,Sat,15,East,358,6\n1087,Sun,13,North,377,4\n1088,Thu,12,North,134,6\n1089,Thu,19,West,581,8\n1090,Thu,14,East,903,6\n1091,Tue,13,East,123,6\n1092,Sun,19,East,34,5\n1093,Sun,12,North,364,5\n1094,Tue,20,East,227,7\n1095,Sun,14,East,210,9\n1096,Tue,12,North,103,4\n1097,Mon,14,North,668,5\n1098,Sat,13,North,41,4\n1099,Sat,19,North,537,3\n1100,Tue,20,East,142,4\n1101,Sun,13,North,41,4\n1102,Wed,20,West,109,9\n1103,Tue,14,North,197,3\n1104,Wed,20,West,940,9\n1105,Mon,20,East,495,5\n1106,Sat,12,East,179,6\n1107,Wed,20,South,208,6\n1108,Fri,19,North,561,4\n1109,Thu,20,East,377,8\n1110,Mon,17,North,1122,5\n1111,Fri,21,East,121,4\n1112,Sun,20,South,281,6\n1113,Tue,19,East,133,5\n1114,Sun,13,North,226,4\n1115,Mon,20,South,65,6\n1116,Fri,20,South,206,5\n1117,Tue,12,North,67,5\n1118,Sun,20,South,264,6\n1119,Fri,14,South,622,5\n1120,Sun,20,East,245,5\n1121,Sat,14,East,229,4\n1122,Thu,13,East,180,9\n1123,Tue,21,North,71,5\n1124,Sun,13,North,117,5\n1125,Sun,13,North,145,5\n1126,Sat,14,East,91,5\n1127,Sat,14,East,457,5\n1128,Mon,20,North,48,5\n1129,Tue,20,West,88,6\n1130,Fri,13,North,99,3\n1131,Mon,13,North,156,3\n1132,Fri,13,East,83,7\n1133,Sun,21,North,67,7\n1134,Wed,18,East,75,6\n1135,Fri,12,South,115,8\n1136,Tue,21,North,66,6\n1137,Sat,13,East,442,6\n1138,Sun,21,East,193,6\n1139,Sat,20,North,501,4\n1140,Thu,13,North,125,4\n1141,Wed,13,North,307,5\n1142,Mon,20,West,186,8\n1143,Sat,22,South,227,7\n1144,Sun,22,East,650,4\n1145,Fri,13,East,341,5\n1146,Sat,21,East,239,4\n1147,Tue,13,North,176,5\n1148,Sat,15,North,51,4\n1149,Tue,14,East,166,5\n1150,Sat,15,North,120,5\n1151,Mon,10,East,777,4\n1152,Wed,20,South,132,9\n1153,Tue,9,North,221,4\n1154,Mon,13,West,179,15\n1155,Tue,11,West,122,11\n1156,Sun,20,East,427,7\n1157,Wed,22,North,86,4\n1158,Mon,18,North,306,4\n1159,Fri,11,North,47,5\n1160,Sat,15,West,127,8\n1161,Wed,19,North,706,8\n1162,Sun,13,North,170,4\n1163,Fri,21,East,236,5\n1164,Thu,22,North,246,7\n1165,Sun,13,West,205,8\n1166,Sat,21,East,27,6\n1167,Fri,21,East,61,4\n1168,Tue,14,North,387,5\n1169,Thu,12,North,218,5\n1170,Fri,13,West,67,7\n1171,Sun,12,West,70,8\n1172,Sun,12,South,495,7\n1173,Mon,19,South,133,6\n1174,Thu,20,North,162,8\n1175,Sun,15,West,137,8\n1176,Thu,16,South,104,6\n1177,Sat,13,East,241,4\n1178,Tue,12,East,281,4\n1179,Sun,19,South,159,6\n1180,Tue,14,North,182,4\n1181,Tue,12,North,103,5\n1182,Tue,14,North,517,5\n1183,Tue,18,East,63,6\n1184,Fri,12,East,237,6\n1185,Sat,20,North,323,6\n1186,Tue,21,South,452,6\n1187,Tue,21,East,198,4\n1188,Wed,21,East,281,6\n1189,Wed,14,North,165,4\n1190,Fri,13,South,103,5\n1191,Mon,21,East,210,6\n1192,Fri,12,West,417,7\n1193,Thu,11,North,324,5\n1194,Mon,16,North,77,7\n1195,Thu,20,North,201,4\n1196,Wed,13,East,510,4\n1197,Mon,14,East,257,5\n1198,Wed,18,South,585,6\n1199,Fri,12,East,207,5\n1200,Sun,21,North,174,3\n1201,Sun,22,South,16,6\n1202,Sat,12,North,523,4\n1203,Thu,21,East,56,4\n1204,Tue,22,North,138,3\n1205,Fri,12,South,94,8\n1206,Fri,19,East,111,7\n1207,Sat,19,East,362,5\n1208,Tue,20,East,58,4\n1209,Fri,14,West,247,15\n1210,Mon,19,North,76,8\n1211,Wed,13,South,190,5\n1212,Thu,20,South,266,6\n1213,Sat,10,South,166,5\n1214,Wed,22,East,154,5\n1215,Fri,18,West,173,7\n1216,Sun,15,East,169,4\n1217,Sun,11,West,307,7\n1218,Thu,17,North,261,6\n1219,Tue,9,East,142,5\n1220,Fri,14,North,1046,4\n1221,Sat,20,West,116,7\n1222,Fri,20,North,759,4\n1223,Sat,22,South,170,6\n1224,Tue,20,East,525,4\n1225,Wed,19,North,435,5\n1226,Tue,14,East,153,4\n1227,Mon,20,East,360,6\n1228,Thu,11,North,917,5\n1229,Sat,21,South,60,6\n1230,Wed,20,West,74,8\n1231,Sun,13,West,107,9\n1232,Wed,10,South,775,5\n1233,Wed,18,East,291,4\n1234,Sat,19,South,118,6\n1235,Fri,19,South,173,5\n1236,Thu,18,West,245,7\n1237,Tue,20,West,106,9\n1238,Mon,12,South,164,6\n1239,Tue,15,East,217,4\n1240,Tue,11,East,290,4\n1241,Thu,14,West,413,8\n1242,Wed,22,East,140,5\n1243,Fri,19,East,173,5\n1244,Tue,12,North,77,6\n1245,Fri,20,East,183,5\n1246,Sun,12,North,218,5\n1247,Sat,20,South,191,5\n1248,Fri,13,West,281,9\n1249,Tue,12,East,90,6\n1250,Sat,16,East,464,4\n1251,Sat,11,South,227,6\n1252,Mon,13,North,492,4\n1253,Sat,20,North,98,3\n1254,Sun,22,North,174,4\n1255,Tue,14,South,218,5\n1256,Tue,19,North,124,7\n1257,Sat,21,South,452,5\n1258,Thu,18,North,200,5\n1259,Mon,13,North,71,7\n1260,Fri,22,South,413,6\n1261,Sat,15,North,125,7\n1262,Sat,20,South,249,6\n1263,Mon,14,South,369,7\n1264,Mon,22,East,93,5\n1265,Thu,21,South,557,5\n1266,Fri,22,North,362,4\n1267,Sun,20,South,63,5\n1268,Sat,11,West,482,8\n1269,Fri,21,South,107,6\n1270,Sun,12,North,114,4\n1271,Thu,12,North,675,5\n1272,Tue,12,North,70,4\n1273,Mon,18,West,29,6\n1274,Wed,14,East,227,4\n1275,Sat,21,North,169,5\n1276,Fri,12,North,100,5\n1277,Mon,12,North,418,5\n1278,Sun,9,West,64,7\n1279,Sat,21,West,96,8\n1280,Mon,17,North,355,5\n1281,Sat,20,North,118,6\n1282,Tue,14,North,97,3\n1283,Mon,20,East,149,6\n1284,Wed,20,South,78,5\n1285,Sat,13,East,75,4\n1286,Tue,12,West,180,15\n1287,Thu,14,East,134,8\n1288,Sat,14,West,174,8\n1289,Mon,9,South,104,6\n1290,Fri,10,East,227,5\n1291,Wed,12,South,265,7\n1292,Mon,20,East,344,4\n1293,Sat,14,West,123,6\n1294,Fri,22,West,118,6\n1295,Thu,19,North,80,4\n1296,Thu,22,West,237,16\n1297,Wed,19,South,372,6\n1298,Fri,14,North,380,5\n1299,Mon,13,East,340,5\n1300,Mon,14,West,460,8\n1301,Mon,12,West,701,7\n1302,Mon,11,North,230,3\n1303,Fri,13,South,312,6\n1304,Thu,15,West,111,9\n1305,Fri,15,North,272,6\n1306,Thu,13,East,384,4\n1307,Sat,14,East,128,4\n1308,Sat,11,East,879,7\n1309,Mon,15,West,305,8\n1310,Mon,13,South,371,6\n1311,Fri,13,North,253,4\n1312,Sat,12,East,888,5\n1313,Sat,22,East,245,7\n1314,Mon,20,North,406,4\n1315,Fri,19,South,253,5\n1316,Tue,20,South,154,6\n1317,Wed,11,North,191,5\n1318,Sat,14,South,141,8\n1319,Fri,12,North,165,4\n1320,Sat,13,East,393,8\n1321,Fri,15,West,119,10\n1322,Sun,13,North,168,3\n1323,Wed,19,North,376,4\n1324,Thu,19,North,505,3\n1325,Sun,13,West,221,7\n1326,Sat,22,South,167,6\n1327,Mon,20,West,81,9\n1328,Tue,20,East,336,6\n1329,Wed,13,North,117,4\n1330,Fri,12,North,137,5\n1331,Wed,20,South,353,6\n1332,Sat,21,West,144,8\n1333,Sat,12,East,304,5\n1334,Thu,21,South,301,6\n1335,Tue,13,West,124,7\n1336,Tue,20,North,186,5\n1337,Tue,22,West,516,7\n1338,Thu,22,South,268,6\n1339,Fri,13,South,243,6\n1340,Sun,13,South,77,6\n1341,Thu,20,West,190,8\n1342,Fri,20,East,515,5\n1343,Tue,13,East,168,4\n1344,Sun,19,South,274,8\n1345,Thu,21,North,417,4\n1346,Tue,18,North,1186,5\n1347,Wed,20,North,60,4\n1348,Sat,20,North,445,4\n1349,Tue,21,East,476,4\n1350,Sun,12,North,217,3\n1351,Fri,13,East,885,5\n1352,Sat,13,North,82,4\n1353,Fri,20,South,70,7\n1354,Fri,13,East,186,6\n1355,Wed,13,West,344,9\n1356,Sat,22,North,94,5\n1357,Sat,13,West,203,8\n1358,Sat,14,West,139,9\n1359,Fri,19,North,888,4\n1360,Sat,13,West,135,8\n1361,Sat,15,South,563,7\n1362,Tue,14,South,44,6\n1363,Mon,14,North,192,4\n1364,Sun,13,East,206,4\n1365,Wed,12,North,77,3\n1366,Mon,20,East,161,4\n1367,Sat,12,North,260,5\n1368,Sat,12,North,165,6\n1369,Fri,15,West,138,7\n1370,Mon,12,North,188,5\n1371,Sat,16,East,279,5\n1372,Thu,22,North,297,5\n1373,Mon,13,East,129,5\n1374,Tue,21,East,402,5\n1375,Tue,13,East,186,5\n1376,Sat,13,North,1262,3\n1377,Sun,13,West,197,7\n1378,Sun,12,West,238,7\n1379,Wed,13,North,92,4\n1380,Fri,14,East,619,5\n1381,Fri,22,East,172,6\n1382,Wed,20,West,262,8\n1383,Mon,15,East,408,7\n1384,Mon,19,East,154,4\n1385,Mon,11,East,241,5\n1386,Thu,14,East,149,4\n1387,Thu,10,East,112,4\n1388,Mon,20,East,78,5\n1389,Mon,22,North,45,5\n1390,Wed,18,East,91,4\n1391,Fri,22,North,48,5\n1392,Thu,20,West,346,8\n1393,Sat,21,North,85,4\n1394,Fri,20,South,1470,5\n1395,Mon,15,South,169,7\n1396,Mon,12,East,116,5\n1397,Wed,13,East,592,4\n1398,Fri,20,North,235,5\n1399,Sat,14,North,169,4\n1400,Sun,19,West,166,16\n", "book.mplstyle": "# Chart style for \"Master Data Visualization\".\n# Load it with plt.style.use('book.mplstyle') so your charts match the book.\n# Chapter 7 explains every line; delete one and see what changes.\n\n# Four colors that stay different when printed in black and white:\n# dark teal, amber, light teal, sand. Lines also change style\n# (solid, dashed, dotted, dash-dot) so they can be told apart in gray.\naxes.prop_cycle: cycler('color', ['0b3a47', 'b26a00', '6fb3c2', 'f0c987']) + cycler('linestyle', ['-', '--', ':', '-.'])\n\n# Size in inches (fits a printed book page) and text sizes in points\nfigure.figsize: 5.5, 3.4\nfont.size: 9.5\naxes.titlesize: 11\naxes.titlelocation: left\naxes.labelsize: 9.5\nlegend.fontsize: 9\n\n# Thicker lines; if you turn the grid on (ax.grid()), it is light and sits behind the data\nlines.linewidth: 2\naxes.axisbelow: True\ngrid.color: d9dde1\n"};
+</script>
+<script>
+// ---------------- Quiz -----------------
+const QUIZ = [
+ {q:"Ortalama sipariş 264 $ ama medyan 191 $. Bu neyi düşündürür?",
+  o:["Verinin önce temizlenmesi gereken hataları var","Siparişlerin çoğu ortalama olan 264 $’ın üstünde","Birkaç büyük sipariş ortalamayı yukarı çekiyor","Histogramın ortayı göstermek için daha çok kutuya ihtiyacı var"],a:2,
+  e:"Sağa çarpık veri; tipik değer için medyan daha iyidir (6.1)."},
+ {q:"<code>ax.hist(values, bins=30)</code> içinde <code>bins=30</code> neyi değiştirir?",
+  o:["Aralığı 30 eşit kutuya böler","Yalnızca en büyük 30 değeri tutar","Kutu başına bir tane, 30 ayrı grafik çizer","Hiçbir çubuk 30’u geçmesin diye y eksenini sınırlar"],a:0,
+  e:"Doğru bir sayı yoktur; birkaçını deneyin."},
+ {q:"<code>ax.hist(orders['order_value'], bins=np.arange(0, 1000, 50))</code> çalıştırıyorsunuz ama en büyük sipariş 1.470 $. Büyük siparişlere ne olur?",
+  o:["950 $’da biten son çubukta sayılırlar","Mesaj verilmeden grafiğin dışında bırakılırlar","matplotlib hata verir","Kutular kendiliğinden genişletilir"],a:1,
+  e:"Sınırlar her değeri kapsamıyorsa dışarıdakiler sessizce atılır."},
+ {q:"<code>density=True</code> ile birikimli bir histogram ne gösterir?",
+  o:["Kutu başına bir çubukla her kutudaki sipariş sayısını","Her kutunun içindeki ortalama sipariş değerini","Birikimli bir çizgi olarak her grubun medyanını","Her x değerinde ya da altında olan değerlerin payını"],a:3,
+  e:"Son çubuk 1’e (%100) ulaşır."},
+ {q:"Bir kutu grafiğinde kutunun içindeki çizgi neyi işaretler?",
+  o:["Medyanı","Ortalamayı","Aykırı olmayan en büyük değeri","Birinci çeyreği"],a:0,
+  e:"Ortalama için <code>showmeans=True</code> ekleyin."},
+ {q:"Bir kutu grafiği üst bıyığın çok üstünde birkaç daire gösteriyor. Bunlar nedir?",
+  o:["Verinin boşluk olduğu yerlerde çizilen eksik değerler","Her grubun daireyle işaretlenmiş ortalaması","Her grubun en büyük değeri","Aykırı değerler, kutunun çok ötesindeki değerler"],a:3,
+  e:"Kutudan IQR’nin 1,5 katından uzak değerler."},
+ {q:"<code>groups</code> bölge başına bir sipariş değeri kümesi içeren bir liste, <code>regions</code> onların adlarını tutuyor. Hangi çağrı bölge başına bir kutu çizer?",
+  o:["<code>ax.boxplot(orders['order_value'], by='region')</code>","<code>ax.boxplot(groups, tick_labels=regions)</code>","<code>ax.boxplot(orders['region'])</code>","<code>ax.boxplot(orders, labels='region')</code>"],a:1,
+  e:"Kutu başına bir liste ve adlar için <code>tick_labels=</code>."},
+ {q:"<code>ax.imshow(grid.values)</code> ile bir ısı haritası çiziyorsunuz ve eksenler gün adları yerine 0, 1, 2 gösteriyor. Neden?",
+  o:["<code>grid.values</code> yalnızca sayıları tutar, etiketleri değil","Pivot yapılırken DataFrame’in indeksi kayboldu","Etiketlerin görünmesi için önce <code>cmap=</code> ayarlanmalı","Izgara çizilmeden önce güne göre sıralanmalı"],a:0,
+  e:"Etiketleri <code>set_xticks()</code> ve <code>set_yticks()</code> ile ekleyin."},
+ {q:"<code>ax.imshow(grid.values, aspect='auto')</code> içinde <code>aspect='auto'</code> ne yapar?",
+  o:["Blokların kare kalmak yerine uzamasına izin verir","Veri için en iyi renk haritasını seçer","Satır ve sütun etiketlerini DataFrame’den sizin için okur","En büyükler üstte olsun diye satırları sıralar"],a:0,
+  e:"Varsayılan kare bloklar geniş bir ızgarayı minik bırakırdı."},
+ {q:"Sipariş sayımlarının ısı haritası için renk haritalarıyla ilgili hangi ifade doğrudur?",
+  o:["Daha çok renk daha çok ayrıntı gösterdiği için <code>'jet'</code> daha iyidir","Sayımlar bloklarda olduğu için her renk haritası çalışır","Renk çubuğu eklerseniz <code>'jet'</code> gibi bir gökkuşağı haritası sorun değildir","<code>'Blues'</code> gri tonlamada da çalışır: koyu daha fazla demektir"],a:3,
+  e:"Sayımlar için sıralı, açıktan koyuya bir harita kullanın."}
+];
+
+function buildQuiz(){
+  const box=document.getElementById('quizBox'); box.innerHTML='';
+  const L='ABCD';
+  QUIZ.forEach((it,i)=>{
+    const d=document.createElement('div'); d.className='q'; d.id='q'+(i+1);
+    d.innerHTML=`<div class="qt">${i+1}. ${it.q}</div>`+
+      it.o.map((o,j)=>`<label><input type="radio" name="q${i}" value="${j}"><strong>${L[j]}.</strong> ${o}</label>`).join('')+
+      `<div class="fb"></div>`;
+    d.querySelectorAll('input').forEach(inp=>inp.addEventListener('change',()=>{
+      if(d.dataset.done) return; d.dataset.done=1;
+      const j=+inp.value, labs=d.querySelectorAll('label');
+      labs[it.a].classList.add('ok'); if(j!==it.a) labs[j].classList.add('no');
+      d.querySelectorAll('input').forEach(x=>x.disabled=true);
+      const fb=d.querySelector('.fb'); fb.classList.add('show');
+      fb.innerHTML=(j===it.a?'✅ <strong>Doğru.</strong> ':'❌ <strong>Doğru cevap '+L[it.a]+'.</strong> ')+it.e;
+      if(j===it.a) d.dataset.ok=1; updateScore();
+    }));
+    box.appendChild(d);
+  });
+  updateScore();
+}
+function updateScore(){
+  const ok=document.querySelectorAll('.q[data-ok]').length, done=document.querySelectorAll('.q[data-done]').length;
+  document.getElementById('score').textContent=`${ok} / ${QUIZ.length}`+(done?` (cevaplanan: ${done})`:'');
+}
+document.getElementById('quizReset').onclick=buildQuiz;
+buildQuiz();
+
+// ---------------- Data list -----------------
+function csvToTable(txt,max=200){
+  const rows=txt.trim().split(/\r?\n/).map(r=>r.split(','));
+  const h=rows.shift();
+  return '<table><thead><tr>'+h.map(x=>`<th>${x}</th>`).join('')+'</tr></thead><tbody>'+
+    rows.slice(0,max).map(r=>'<tr>'+r.map(x=>`<td>${x}</td>`).join('')+'</tr>').join('')+'</tbody></table>';
+}
+(function(){
+  const host=document.getElementById('dataList');
+  Object.entries(DATA).forEach(([name,txt])=>{
+    const n=txt.trim().split(/\r?\n/).length-1;
+    const url=URL.createObjectURL(new Blob([txt],{type:'text/csv'}));
+    const d=document.createElement('details'); d.className='data';
+    const isCsv=name.endsWith('.csv');
+    d.innerHTML=`<summary>${name} <span style="font-weight:400;color:#5f6b72">— ${isCsv?n+' satır':'stil dosyası'}</span> · <a href="${url}" download="${name}">indir</a></summary><div class="tbl">${isCsv?csvToTable(txt):'<pre style="font-size:12px;white-space:pre-wrap">'+txt.replace(/</g,'&lt;')+'</pre>'}</div>`;
+    host.appendChild(d);
+  });
+})();
+
+// ---------------- Code cells -----------------
+const cells=[];
+document.querySelectorAll('.cell').forEach((el,i)=>{
+  const ta=el.querySelector('textarea'); const src=ta.value;
+  const bar=document.createElement('div'); bar.className='bar';
+  bar.innerHTML=`<span class="lbl">In [<span class="cnt"> </span>]:</span><span class="sp"></span>
+    <button class="btn ghost reset" title="Orijinal koda dön">↺ Orijinal</button>
+    <button class="btn run" disabled>▶ Çalıştır</button>`;
+  el.insertBefore(bar,ta);
+  const cm=CodeMirror.fromTextArea(ta,{mode:'python',lineNumbers:false,indentUnit:4,viewportMargin:Infinity,
+     extraKeys:{'Shift-Enter':()=>runCell(i),'Ctrl-Enter':()=>runCell(i),Tab:c=>c.replaceSelection('    ')}});
+  const out=document.createElement('div'); out.className='out'; el.appendChild(out);
+  const c={el,cm,out,src,ran:false,idx:i,btn:bar.querySelector('.run'),cnt:bar.querySelector('.cnt')};
+  bar.querySelector('.run').onclick=()=>runCell(i);
+  bar.querySelector('.reset').onclick=()=>cm.setValue(src);
+  el.id='hucre-'+(i+1);
+  cells.push(c);
+});
+
+// ---------------- Pyodide -----------------
+let py=null, execCount=0, busy=false;
+const st=document.getElementById('status'), stT=document.getElementById('statusText');
+window.__currentOut=null;
+window.renderPlot=function(json){
+  const spec=JSON.parse(json); const div=document.createElement('div'); div.className='plot';
+  const inner=document.createElement('div'); div.appendChild(inner);
+  window.__currentOut.appendChild(div);
+  Plotly.newPlot(inner,spec.data,spec.layout||{},{responsive:true,displaylogo:false,locale:'tr'});
+};
+const PY_SETUP=`
+import os
+os.environ['MPLBACKEND'] = 'Agg'
+import matplotlib
+matplotlib.use('Agg')
+import sys, io, ast, contextlib, base64
+import pandas as pd
+import matplotlib.pyplot as plt
+_CAPTURED = []
+def _grab_figs():
+    for n in plt.get_fignums():
+        f = plt.figure(n); b = io.BytesIO()
+        f.savefig(b, format='png', dpi=120, bbox_inches='tight')
+        _CAPTURED.append(base64.b64encode(b.getvalue()).decode())
+    plt.close('all')
+plt.show = lambda *a, **k: _grab_figs()
+# matplotlib 3.8 (Pyodide) için kitap kodunun 3.10+ parametrelerine uyum katmanı
+from matplotlib.axes import Axes as _Axes
+_orig_boxplot = _Axes.boxplot
+def _boxplot(self, *a, tick_labels=None, orientation=None, **k):
+    if tick_labels is not None: k['labels'] = tick_labels
+    if orientation is not None: k['vert'] = (orientation == 'vertical')
+    return _orig_boxplot(self, *a, **k)
+_Axes.boxplot = _boxplot
+import warnings
+warnings.simplefilter('ignore', FutureWarning)
+pd.set_option('display.width', 120)
+SKIP = ('.csv', '.mplstyle')
+def _written(src):
+    import re
+    return re.findall(r"savefig\\(\\s*['\\"]([^'\\"]+)['\\"]", src)
+def __run_cell(src, ns):
+    buf = io.StringIO()
+    before = set(f for f in os.listdir('.') if not f.endswith(SKIP))
+    _CAPTURED.clear()
+    res = {'stdout':'', 'html':None, 'text':None, 'files':[], 'imgs':[]}
+    val = None
+    try:
+        with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(buf):
+            tree = ast.parse(src)
+            last = None
+            if tree.body and isinstance(tree.body[-1], ast.Expr):
+                last = ast.Expression(tree.body.pop().value)
+            exec(compile(tree, '<hücre>', 'exec'), ns)
+            val = eval(compile(last, '<hücre>', 'eval'), ns) if last is not None else None
+    finally:
+        _grab_figs()
+        res['imgs'] = list(_CAPTURED)
+        _CAPTURED.clear()
+    res['stdout'] = buf.getvalue()
+    if val is not None:
+        if isinstance(val, (pd.DataFrame, pd.Series)):
+            df = val.to_frame() if isinstance(val, pd.Series) else val
+            res['html'] = df.to_html(max_rows=30, border=0)
+        elif hasattr(val, '_repr_html_') and type(val).__name__ == 'Styler':
+            res['html'] = val._repr_html_()
+        else:
+            res['text'] = repr(val)
+    after = set(f for f in os.listdir('.') if not f.endswith(SKIP))
+    res['files'] = sorted((after - before) | (set(_written(src)) & after))
+    return res
+def __new_ns():
+    plt.close('all'); matplotlib.rcdefaults()
+    return {'__name__':'__main__'}
+`;
+async function initPy(){
+  try{
+    stT.textContent='Pyodide yükleniyor…';
+    py=await loadPyodide();
+    stT.textContent='pandas, matplotlib yükleniyor…';
+    await py.loadPackage(['pandas','matplotlib','scipy','jinja2','micropip']);
+    stT.textContent='seaborn yükleniyor…';
+    const mp=py.pyimport('micropip');
+    await mp.install(['seaborn'].concat(window.EXTRA_PKGS||[]));
+    for(const [n,t] of Object.entries(DATA)) py.FS.writeFile(n,t);
+    await py.runPythonAsync(PY_SETUP);
+    window.__ns=py.runPython('__new_ns()');
+    st.className='ready'; stT.textContent='Python hazır';
+    cells.forEach(c=>c.btn.disabled=false);
+  }catch(e){ st.className='err'; stT.textContent='Yükleme hatası'; console.error(e);
+    alert('Pyodide yüklenemedi. İnternet bağlantınızı kontrol edin.\n'+e); }
+}
+async function execOne(c){
+  c.out.innerHTML=''; c.out.classList.add('show'); window.__currentOut=c.out;
+  c.el.style.opacity=1;
+  try{
+    const fn=py.globals.get('__run_cell');
+    const r=fn(c.cm.getValue(), window.__ns).toJs({dict_converter:Object.fromEntries});
+    fn.destroy();
+    if(r.stdout){const p=document.createElement('pre');p.className='txt';p.textContent=r.stdout;c.out.prepend(p);}
+    if(r.html){const d=document.createElement('div');d.style.overflowX='auto';d.innerHTML=r.html;c.out.appendChild(d);}
+    if(r.text){const p=document.createElement('pre');p.className='txt';p.textContent=r.text;c.out.appendChild(p);}
+    for(const im of (r.imgs||[])){const d=document.createElement('div');d.className='plot';const g=document.createElement('img');g.src='data:image/png;base64,'+im;g.alt='Grafik';d.appendChild(g);c.out.appendChild(d);}
+    for(const f of (r.files||[])){
+      const bytes=py.FS.readFile(f); const url=URL.createObjectURL(new Blob([bytes],{type:f.endsWith('.html')?'text/html':'application/octet-stream'}));
+      const d=document.createElement('div');d.className='dl';
+      d.innerHTML=`<a href="${url}" download="${f}">⬇ ${f} dosyasını indir (${(bytes.length/1048576).toFixed(1)} MB)</a> &nbsp;<a href="${url}" target="_blank" style="background:#0b3a47">Yeni sekmede aç</a>`;
+      c.out.appendChild(d);
+    }
+    if(!c.out.children.length){const p=document.createElement('pre');p.className='txt';p.style.color='#8a9296';p.textContent='✓ Çalıştı (çıktı yok)';c.out.appendChild(p);}
+    c.ran=true; c.cnt.textContent=++execCount; return true;
+  }catch(e){
+    let msg=String(e.message||e); const k=msg.lastIndexOf('File "<hücre>"');
+    if(k>0) msg=msg.slice(k);
+    const p=document.createElement('pre');p.className='txt err';p.textContent=msg;c.out.appendChild(p);
+    c.cnt.textContent='!'; return false;
+  }
+}
+async function runCell(i){
+  if(!py||busy) return; busy=true;
+  const target=cells[i];
+  target.btn.disabled=true; target.btn.textContent='⏳';
+  await new Promise(r=>setTimeout(r,20));
+  for(let k=0;k<i;k++){ if(!cells[k].ran){ cells[k].btn.textContent='⏳'; await new Promise(r=>setTimeout(r,10)); await execOne(cells[k]); cells[k].btn.textContent='▶ Çalıştır'; } }
+  await execOne(target);
+  target.btn.disabled=false; target.btn.textContent='▶ Çalıştır'; busy=false;
+}
+document.getElementById('runAll').onclick=async()=>{ if(!py)return; for(let i=0;i<cells.length;i++){ cells[i].ran=false; } await runCell(cells.length-1); };
+document.getElementById('resetNs').onclick=()=>{ if(!py)return; window.__ns=py.runPython('__new_ns()'); execCount=0;
+  cells.forEach(c=>{c.ran=false;c.cnt.textContent=' ';c.out.innerHTML='';c.out.classList.remove('show');}); };
+initPy();
+
+// ---------------- TOC -----------------
+const toc=document.getElementById('tocLinks');
+const heads=[...document.querySelectorAll('main h2[id], main h3[id]')];
+heads.forEach(h=>{const a=document.createElement('a');a.href='#'+h.id;a.innerHTML=h.innerHTML.replace(/<span class="num">(.*?)<\/span>/,'$1 ');if(h.tagName==='H3')a.className='sub';toc.appendChild(a);});
+const tocLinks=[...toc.querySelectorAll('a')];
+const io2=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){tocLinks.forEach(a=>a.classList.toggle('active',a.getAttribute('href')==='#'+e.target.id));}})},{rootMargin:'-80px 0px -70% 0px'});
+heads.forEach(h=>io2.observe(h));
+
+// ---------------- Search -----------------
+const norm=s=>s.toLocaleLowerCase('tr').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/ı/g,'i');
+const index=[];
+(function buildIndex(){
+  let sec='Giriş';
+  document.querySelectorAll('main h1, main h2, main h3, main p, main li, main .callout, main .cell, main .q, main pre.data').forEach(el=>{
+    if(el.closest('.callout')&&el.tagName!=='DIV') return;
+    if(el.closest('#datasets')) return;
+    if(el.matches('.q')){ index.push({el,sec:'Sınav',kind:'soru',text:el.querySelector('.qt').textContent+' '+[...el.querySelectorAll('label')].map(l=>l.textContent).join(' ')}); return; }
+    if(el.closest('.q')) return;
+    if(el.matches('h2,h3')){ sec=el.textContent; }
+    let kind='metin', text=el.textContent;
+    if(el.matches('.cell')){ kind='kod'; const c=cells.find(c=>c.el===el); text=c?c.cm.getValue():text; }
+    else if(el.matches('h1,h2,h3')) kind='başlık';
+    else if(el.matches('.callout')) kind='kutu';
+    else if(el.matches('.figdesc')) kind='grafik';
+    else if(el.matches('pre.data')) kind='veri';
+    index.push({el,sec,kind,text:text.replace(/\s+/g,' ').trim()});
+  });
+  index.forEach(x=>x.n=norm(x.text));
+})();
+const si=document.getElementById('search'), res=document.getElementById('results');
+let hits=[], act=-1;
+function esc(s){return s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+function snippet(text,terms){
+  const n=norm(text); let pos=-1;
+  for(const t of terms){const p=n.indexOf(t);if(p>=0){pos=p;break;}}
+  let s=Math.max(0,pos-60), e=Math.min(text.length,(pos<0?0:pos)+140);
+  let out=(s>0?'…':'')+text.slice(s,e)+(e<text.length?'…':'');
+  // highlight (norm keeps length for Turkish chars after NFD strip mostly; do case-insensitive regex)
+  let h=esc(out);
+  terms.forEach(t=>{ if(!t) return;
+    const re=new RegExp(t.split('').map(ch=>{const m={'i':'[iıİI]','s':'[sşŞS]','c':'[cçÇC]','g':'[gğĞG]','o':'[oöÖO]','u':'[uüÜU]'}; return m[ch]||ch.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}).join(''),'gi');
+    h=h.replace(re,m=>`<mark>${m}</mark>`); });
+  return h;
+}
+function doSearch(){
+  const q=si.value.trim();
+  if(q.length<2){res.classList.remove('open');res.innerHTML='';return;}
+  const terms=norm(q).split(/\s+/).filter(Boolean);
+  hits=index.map(x=>{let sc=0;for(const t of terms){const c=x.n.split(t).length-1;if(!c)return null;sc+=c;} if(x.kind==='başlık')sc+=5; if(x.kind==='kod')sc+=1; return {x,sc};}).filter(Boolean).sort((a,b)=>b.sc-a.sc).slice(0,40);
+  act=-1;
+  res.innerHTML=hits.length?`<div class="count">${hits.length} sonuç · <kbd>↑</kbd><kbd>↓</kbd> ile gez, <kbd>Enter</kbd> ile git</div>`+hits.map((h,i)=>`<div class="r" data-i="${i}"><div class="sec">${esc(h.x.sec)}<span class="kind">${h.x.kind}</span></div><div class="snip">${snippet(h.x.text,terms)}</div></div>`).join('')
+    :'<div class="empty">Sonuç bulunamadı.</div>';
+  res.classList.add('open');
+  res.querySelectorAll('.r').forEach(r=>r.onclick=()=>go(+r.dataset.i));
+}
+function go(i){
+  const el=hits[i].x.el; res.classList.remove('open');
+  const det=el.closest('details'); if(det) det.open=true;
+  el.scrollIntoView({behavior:'smooth',block:'center'});
+  el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
+}
+si.addEventListener('input',doSearch);
+si.addEventListener('focus',()=>{if(si.value.trim().length>=2)doSearch();});
+si.addEventListener('keydown',e=>{
+  const rs=[...res.querySelectorAll('.r')];
+  if(e.key==='ArrowDown'){act=Math.min(rs.length-1,act+1);}
+  else if(e.key==='ArrowUp'){act=Math.max(0,act-1);}
+  else if(e.key==='Enter'){ if(hits.length) go(act<0?0:act); return; }
+  else if(e.key==='Escape'){res.classList.remove('open');si.blur();return;}
+  else return;
+  e.preventDefault(); rs.forEach((r,k)=>r.classList.toggle('act',k===act)); if(rs[act]) rs[act].scrollIntoView({block:'nearest'});
+});
+document.addEventListener('keydown',e=>{ if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();si.focus();si.select();}
+  else if(e.key==='/'&&document.activeElement.tagName!=='INPUT'&&!document.activeElement.closest('.CodeMirror')){e.preventDefault();si.focus();}});
+document.addEventListener('click',e=>{if(!e.target.closest('.search-wrap'))res.classList.remove('open');});
+</script>
+</body>
+</html>

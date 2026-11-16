@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bölüm 11: seaborn Temelleri</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+<script src="https://cdn.jsdelivr.net/pyodide/v0.27.7/full/pyodide.js"></script>
+<style>
+:root{
+  --teal:#0b3a47; --amber:#b26a00; --lteal:#6fb3c2; --sand:#f0c987;
+  --bg:#f7f6f2; --paper:#ffffff; --ink:#1f2a30; --muted:#5f6b72; --line:#e2e0d8;
+  --code-bg:#fbfaf6;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:80px}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.65 "Segoe UI",system-ui,-apple-system,Roboto,sans-serif}
+header.top{position:sticky;top:0;z-index:50;background:var(--teal);color:#fff;display:flex;align-items:center;gap:16px;padding:10px 20px;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+header.top .brand{font-weight:600;white-space:nowrap}
+header.top .brand small{opacity:.7;font-weight:400;margin-left:6px}
+.search-wrap{position:relative;flex:1;max-width:560px;margin-left:auto}
+#search{width:100%;padding:9px 14px 9px 36px;border-radius:8px;border:none;font-size:15px;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235f6b72' stroke-width='2.5'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E") no-repeat 11px center}
+#search:focus{outline:3px solid var(--sand)}
+#results{position:absolute;top:44px;left:0;right:0;background:#fff;color:var(--ink);border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,.2);max-height:70vh;overflow:auto;display:none}
+#results.open{display:block}
+#results .r{padding:10px 14px;border-bottom:1px solid var(--line);cursor:pointer}
+#results .r:hover,#results .r.act{background:#eef5f6}
+#results .r .sec{font-size:12px;color:var(--amber);font-weight:600;text-transform:uppercase;letter-spacing:.03em}
+#results .r .kind{font-size:11px;background:var(--line);border-radius:4px;padding:0 5px;margin-left:6px;color:var(--muted);text-transform:none;letter-spacing:0}
+#results .r .snip{font-size:14px}
+#results .empty,#results .count{padding:10px 14px;color:var(--muted);font-size:13px}
+mark{background:#ffe08a;color:inherit;border-radius:2px;padding:0 1px}
+#status{font-size:13px;white-space:nowrap;display:flex;align-items:center;gap:8px}
+#status .dot{width:10px;height:10px;border-radius:50%;background:#f0c987;box-shadow:0 0 0 0 rgba(240,201,135,.7);animation:pulse 1.4s infinite}
+#status.ready .dot{background:#7bd88f;animation:none}
+#status.err .dot{background:#ff6b6b;animation:none}
+@keyframes pulse{70%{box-shadow:0 0 0 8px rgba(240,201,135,0)}100%{box-shadow:0 0 0 0 rgba(240,201,135,0)}}
+.layout{display:grid;grid-template-columns:260px minmax(0,1fr);gap:28px;max-width:1240px;margin:0 auto;padding:24px 20px 80px}
+nav.toc{position:sticky;top:76px;align-self:start;max-height:calc(100vh - 96px);overflow:auto;font-size:14px}
+nav.toc h4{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+nav.toc a{display:block;color:var(--ink);text-decoration:none;padding:4px 10px;border-left:3px solid transparent;border-radius:0 4px 4px 0}
+nav.toc a.sub{padding-left:24px;font-size:13px;color:var(--muted)}
+nav.toc a:hover{background:#ece9df}
+nav.toc a.active{border-left-color:var(--amber);background:#fff;font-weight:600;color:var(--teal)}
+nav.toc .tools{margin-top:16px;display:flex;flex-direction:column;gap:6px}
+main{background:var(--paper);border-radius:12px;padding:36px 48px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+h1{font-size:2rem;color:var(--teal);margin:0 0 4px;line-height:1.25}
+.subtitle{color:var(--muted);margin:0 0 24px}
+h2{font-size:1.45rem;color:var(--teal);border-bottom:2px solid var(--sand);padding-bottom:6px;margin:48px 0 16px}
+h2 .num{color:var(--amber);margin-right:8px}
+h3{font-size:1.12rem;margin:30px 0 10px;color:var(--ink)}
+code{font-family:"JetBrains Mono",Consolas,Menlo,monospace;font-size:.88em;background:#f1efe8;padding:1px 5px;border-radius:4px;color:#7a3e00}
+.lead{font-size:1.08rem;border-left:4px solid var(--amber);padding:4px 0 4px 16px;color:#33424a}
+.goals{background:#eef5f6;border-radius:10px;padding:16px 22px}
+.goals ul{margin:6px 0 0;padding-left:20px}
+.callout{border-radius:10px;padding:12px 18px;margin:18px 0;border-left:5px solid}
+.callout .t{font-weight:700;display:block;margin-bottom:2px}
+.callout.warn{background:#fff4e5;border-color:var(--amber)}
+.callout.warn .t{color:var(--amber)}
+.callout.tip{background:#eaf6f1;border-color:#2f8f6b}
+.callout.tip .t{color:#2f8f6b}
+.callout.note{background:#eef2f7;border-color:#4b6a8a}
+.callout.note .t{color:#4b6a8a}
+pre.data{background:var(--code-bg);border:1px dashed var(--line);border-radius:8px;padding:10px 14px;font-size:13px;overflow:auto}
+/* code cells */
+.cell{border:1px solid var(--line);border-radius:10px;margin:18px 0;overflow:hidden;background:var(--code-bg)}
+.cell .bar{display:flex;align-items:center;gap:8px;padding:6px 10px;background:#f1efe8;border-bottom:1px solid var(--line);font-size:12px;color:var(--muted)}
+.cell .bar .lbl{font-family:Consolas,monospace}
+.cell .bar .sp{flex:1}
+button{font:inherit;cursor:pointer;border-radius:6px;border:1px solid transparent}
+.btn{background:var(--teal);color:#fff;padding:4px 12px;font-size:13px}
+.btn:hover{filter:brightness(1.2)}
+.btn:disabled{opacity:.5;cursor:wait}
+.btn.ghost{background:transparent;color:var(--teal);border-color:#c9d3d6}
+.btn.ghost:hover{background:#fff}
+.btn.amber{background:var(--amber)}
+.CodeMirror{height:auto;font-size:14px;background:var(--code-bg);font-family:"JetBrains Mono",Consolas,Menlo,monospace}
+.CodeMirror-scroll{min-height:30px}
+.cm-s-default .cm-keyword{color:#8a3ffc}.cm-s-default .cm-string{color:#0b7a4b}.cm-s-default .cm-number{color:#b26a00}.cm-s-default .cm-comment{color:#8a9296;font-style:italic}.cm-s-default .cm-builtin{color:#0b5f7a}
+.out{border-top:1px solid var(--line);background:#fff;padding:0;display:none}
+.out.show{display:block}
+.out .txt{margin:0;padding:10px 14px;font:13px/1.5 Consolas,Menlo,monospace;white-space:pre-wrap;color:#333}
+.out .txt.err{color:#b00020;background:#fff5f5}
+.out .plot{padding:6px;overflow-x:auto}
+.out table{border-collapse:collapse;margin:10px 14px;font-size:13px}
+.out th,.out td{border:1px solid var(--line);padding:4px 10px;text-align:right}
+.out th{background:#f1efe8}
+.out .dl{margin:10px 14px}
+.out .dl a{display:inline-block;background:var(--amber);color:#fff;text-decoration:none;padding:5px 12px;border-radius:6px;font-size:13px}
+.figdesc{font-size:14px;color:var(--muted);background:#f6f5f0;border-radius:8px;padding:8px 14px;margin:-8px 0 14px;border:1px solid var(--line)}
+.figdesc::before{content:"🖼 Beklenen grafik: ";font-weight:600;color:var(--teal)}
+.flash{animation:flash 2.2s ease}
+@keyframes flash{0%,40%{background:#fff1bf;box-shadow:0 0 0 6px #fff1bf}100%{background:transparent;box-shadow:none}}
+details.data{border:1px solid var(--line);border-radius:8px;margin:8px 0;background:#fff}
+details.data summary{cursor:pointer;padding:8px 14px;font-weight:600;color:var(--teal)}
+details.data .tbl{max-height:260px;overflow:auto;padding:0 14px 10px}
+details.data table{border-collapse:collapse;font-size:13px}
+details.data td,details.data th{border:1px solid var(--line);padding:3px 8px}
+details.data th{background:#f1efe8;position:sticky;top:0}
+/* quiz */
+.q{border:1px solid var(--line);border-radius:10px;padding:14px 18px;margin:14px 0}
+.q .qt{font-weight:600;margin-bottom:8px}
+.q label{display:block;padding:6px 10px;border-radius:6px;cursor:pointer;border:1px solid transparent}
+.q label:hover{background:#f4f2ea}
+.q label.ok{background:#e3f4ea;border-color:#2f8f6b}
+.q label.no{background:#fde8e8;border-color:#d05353}
+.q input{margin-right:8px}
+.q .fb{font-size:14px;margin-top:6px;display:none}
+.q .fb.show{display:block}
+#score{font-weight:700;color:var(--teal)}
+.out img{max-width:100%;height:auto;display:block;margin:6px auto}
+table.choose{border-collapse:collapse;width:100%;font-size:14px;margin:10px 0}table.choose th,table.choose td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}table.choose th{background:#eef5f6;color:var(--teal)}
+.chnav{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:14px;margin:0 0 18px}.chnav a{color:var(--teal);text-decoration:none;border:1px solid var(--line);border-radius:6px;padding:4px 10px}.chnav a:hover{background:#eef5f6}.chnav .all{display:flex;gap:4px;flex-wrap:wrap}.chnav .all a.cur{background:var(--teal);color:#fff}
+.summary li{margin-bottom:6px}
+footer{text-align:center;color:var(--muted);font-size:13px;padding:30px}
+kbd{border:1px solid #bbb;border-bottom-width:2px;border-radius:4px;padding:0 5px;font-size:12px;background:#fff;color:#333}
+@media (max-width:900px){.layout{grid-template-columns:1fr}nav.toc{display:none}main{padding:22px 18px}header.top .brand small{display:none}#status span{display:none}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">Bölüm 11 <small>seaborn Temelleri</small></div>
+  <div class="search-wrap">
+    <input id="search" type="search" placeholder="Bölümde ara… (ör. hue, set_theme, melt)   Ctrl+K" autocomplete="off">
+    <div id="results"></div>
+  </div>
+  <div id="status"><div class="dot"></div><span id="statusText">Python yükleniyor…</span></div>
+</header>
+
+<div class="layout">
+<nav class="toc" id="toc">
+  <h4>İçindekiler</h4>
+  <div id="tocLinks"></div>
+  <div class="tools">
+    <button class="btn" id="runAll">▶ Tüm hücreleri çalıştır</button>
+    <button class="btn ghost" id="resetNs">↺ Python ortamını sıfırla</button>
+  </div>
+</nav>
+
+<main id="content">
+<div class="chnav"><a href="bolum10_yalan_soyleyen_grafikler.html">← Bölüm 10</a><div class="all">Bölümler: <a href="bolum01_ortami_kurmak.html" class="" title="Görselleştirme Ortamını Kurmak">1</a><a href="bolum02_cizmeden_once_dusunmek.html" class="" title="Çizmeden Önce Düşünmek">2</a><a href="bolum03_matplotlib_temelleri.html" class="" title="matplotlib Temelleri">3</a><a href="bolum04_cizgiler_noktalar.html" class="" title="Çizgiler ve Noktalar">4</a><a href="bolum05_cubuklar_pastalar_tablolar.html" class="" title="Çubuklar, Pastalar ve Tablolar">5</a><a href="bolum06_dagilimlar_izgaralar.html" class="" title="Dağılımlar ve Değer Izgaraları">6</a><a href="bolum07_ozellestirme.html" class="" title="Bir Grafiğin Her Parçasını Özelleştirmek">7</a><a href="bolum08_yerlesimler.html" class="" title="Yerleşimler: Bir Figürde Birçok Grafik">8</a><a href="bolum09_iletisim_kuran_tasarim.html" class="" title="İletişim Kuran Tasarım">9</a><a href="bolum10_yalan_soyleyen_grafikler.html" class="" title="Yalan Söyleyen Grafikler">10</a><a href="bolum11_seaborn_temelleri.html" class="cur" title="seaborn Temelleri">11</a><a href="bolum12_iliskiler_regresyon.html" class="" title="İlişkiler ve Regresyon">12</a><a href="bolum13_kategoriler.html" class="" title="Kategoriler">13</a><a href="bolum14_dagilimlar.html" class="" title="Dağılımlar">14</a><a href="bolum15_izgaralar_matrisler.html" class="" title="Izgaralar ve Matrisler">15</a><a href="bolum16_plotly_express.html" class="" title="plotly express ile Etkileşimli Grafikler">16</a><a href="bolum17_haritalar_is_grafikleri.html" class="" title="Haritalar ve İş Grafikleri">17</a></div><a href="bolum12_iliskiler_regresyon.html">Bölüm 12 →</a></div>
+<h1>Bölüm 11: seaborn Temelleri</h1>
+<p class="subtitle">Kod hücreleri tarayıcınızda <strong>Pyodide</strong> ile çalışır; Python kurmanıza gerek yok. Kodu değiştirip yeniden çalıştırabilirsiniz (<kbd>Shift</kbd>+<kbd>Enter</kbd>). Grafikler matplotlib ile resim olarak çizilir.</p>
+
+<p class="lead">Yöneticiniz mağazanın şubelerini tek bir grafikte, Mountain şubeleri diğerlerinden farklı bir renkte görmek istiyor. matplotlib’de tabloyu bölgeye göre bölersiniz, her grubu bir döngüyle çizersiniz ve göstergeyi (legend) kendiniz kurarsınız. Çalışır, ama bunu her grafik için tekrarlarsınız.</p>
+
+<p>seaborn, matplotlib’in üzerine kurulmuş ve bunu tek çağrıda yapan bir kütüphanedir: sütunun adını verirsiniz; bölmeyi, renklendirmeyi ve göstergeyi o yapar. Bu bölüm, Kısım 4’ü her seaborn grafiğinin kullandığı fikirlerle açıyor. Tüm grafiklerinizin görünümünü tek seferde ayarlayacak, paletler seçecek, renk, boyut ya da işaretçiyle daha fazla sütun gösterecek ve bir tabloyu seaborn’un sevdiği biçime dönüştüreceksiniz. Son kısım, seaborn fonksiyonlarının iki ailesini ele alıyor; bunlar Bölüm 8’deki yerleşimlere nasıl oturduklarını belirler.</p>
+
+<div class="goals">
+<strong>Bu bölümün sonunda şunları yapabileceksiniz:</strong>
+<ul>
+<li><code>data=</code>, <code>x=</code>, <code>y=</code> ve <code>hue=</code> ile sütun adlarını vererek bir DataFrame’den grafik çizmek</li>
+<li><code>sns.set_theme()</code>, <code>sns.set_style()</code> ve <code>sns.set_context()</code> ile genel görünümü ayarlamak ve kitabın stil dosyasını çalışır tutmak</li>
+<li><code>sns.despine()</code> ile üst ve sağ çerçeve çizgilerini kaldırmak</li>
+<li><code>sns.color_palette()</code> ve <code>sns.set_palette()</code> ile renk seçmek ve seaborn’un varsayılan renklerinin siyah-beyazda neden başarısız olduğunu bilmek</li>
+<li><code>hue</code>, <code>style</code> ve <code>size</code> ile daha fazla sütun göstermek</li>
+<li><code>melt()</code> ile geniş bir tabloyu uzun bir tabloya çevirmek ve seaborn’un buna neden ihtiyaç duyduğunu söylemek</li>
+<li>Eksen düzeyi (axes-level) ve figür düzeyi (figure-level) fonksiyonları ayırt edip doğru olanı seçmek</li>
+</ul>
+</div>
+
+<details class="data" id="datasets">
+<summary>📁 Bu bölümün veri dosyaları (sayfaya gömülü — Python’da doğrudan <code>pd.read_csv()</code> ile okunur)</summary>
+<div id="dataList" style="padding:0 14px 10px"></div>
+</details>
+
+<section>
+<h2 id="s11-1"><span class="num">11.1</span>matplotlib’in Üzerinde seaborn</h2>
+<p>Her seaborn grafiği bir matplotlib grafiğidir. seaborn akıllı varsayılanlar ve “bu sütuna göre renklendir” demenin bir yolunu ekler. Bölüm 3–10’da öğrendiğiniz her şey sonuç üzerinde hâlâ çalışır.</p>
+<p>İçe aktarmalarla başlayın. Kitabın her seaborn bölümündeki ilk blokta içe aktarmalardan sonra iki satır vardır. Bölüm 11.2 neden bu sırayla geldiklerini açıklıyor; şimdilik olduğu gibi kopyalayın:</p>
+<div class="cell"><textarea>import matplotlib.pyplot as plt
+import pandas as pd
+import seaborn as sns
+
+sns.set_theme(style='ticks')
+plt.style.use('book.mplstyle')</textarea></div>
+<p><code>sns</code>, herkesin seaborn için kullandığı kısa addır. İlk tabloda on iki mağaza var:</p>
+<pre class="data">store,region,visitors,daily_revenue,conversion
+Seattle,Pacific,310,2100,0.021
+Oakland,Pacific,180,1650,0.027
+San Francisco,Pacific,420,3300,0.024
+...
+Albuquerque,Mountain,120,900,0.022</pre>
+<div class="cell"><textarea>stores = pd.read_csv('stores.csv')
+stores.head(4)</textarea></div>
+<p>Önce matplotlib yolu. Bir saçılım grafiği (Bölüm 4.5) her grup için bir çağrı ister; bu yüzden kod <code>groupby()</code> ile gruplar üzerinde döner:</p>
+<div class="cell"><textarea>fig, ax = plt.subplots()
+for region, group in stores.groupby('region'):
+    ax.scatter(group['visitors'], group['daily_revenue'],
+               label=region)
+ax.legend()
+ax.set(xlabel='Visitors per day', ylabel='Revenue per day ($)')
+plt.show()</textarea></div>
+<p class="figdesc">Mağazaların saçılım grafiği. Mountain mağazaları koyu camgöbeği, Pacific mağazaları kehribar noktalar; gösterge sol üstte. Günlük gelir, günlük ziyaretçiyle birlikte artıyor.</p>
+<p><code>groupby()</code> üzerindeki döngü her turda iki şey verir: bölge adını ve o bölgenin satırlarını küçük bir tablo olarak; burada adları <code>region</code> ve <code>group</code>. Grafik iyi, ama döngü ve gösterge elle yaptığınız işler. Şimdi seaborn sürümü:</p>
+
+<h3 id="s11-1-scatter"><code>sns.scatterplot()</code></h3>
+<p><code>sns.scatterplot()</code> bir tablodan saçılım grafiği çizer. Tabloyu <code>data=</code> olarak verir, sütunları metin olarak adlandırırsınız. <code>hue='region'</code> döngünün tamamıdır: her bölgeye kendi rengini verir ve göstergeyi ekler.</p>
+<div class="cell"><textarea>ax = sns.scatterplot(data=stores, x='visitors', y='daily_revenue',
+                     hue='region')
+ax.set(xlabel='Visitors per day', ylabel='Revenue per day ($)')
+plt.show()</textarea></div>
+<p class="figdesc">Aynı saçılım grafiği seaborn ile çizilmiş. Pacific mağazaları koyu camgöbeği, Mountain mağazaları kehribar noktalar, göstergeli; noktaların ince beyaz kenarları var.</p>
+<p>Grafik döngüdekiyle aynı noktalara sahip, iki farkla. İki renk yer değiştirdi, çünkü <code>groupby()</code> grupları alfabetik sıralar, seaborn ise tabloda ilk göründükleri sırayı kullanır. Ve seaborn göstergeye sütun adından alınan bir başlık ekledi. Fonksiyon sıradan bir matplotlib ekseni olan bir <code>ax</code> döndürdü. Kontrol edin:</p>
+<div class="cell"><textarea>type(ax)</textarea></div>
+<p><code>ax.set()</code>’in çalışmasının nedeni budur; <code>ax.annotate()</code> ve Bölüm 7’deki diğer tüm yöntemler de çalışacaktır. Grafiği seaborn yapar, matplotlib bitirir. Bölüm 12.1, <code>scatterplot()</code>’ın kendi seçeneklerini ele alıyor.</p>
+</section>
+
+<section>
+<h2 id="s11-2"><span class="num">11.2</span>Temalar: Tüm Görünüm İçin Tek Satır</h2>
+<p>Ayar yapılmadan bir seaborn grafiğinin gri bir arka planı, beyaz kılavuz çizgileri ve kendi renkleri ile yazı boyutları vardır. Bu görünüm bir <em>temadır</em>. Onu üç fonksiyon denetler ve Bölüm 7.5’teki <code>rcParams</code> gibi sonradan çizdiğiniz her grafiğe uygulanır.</p>
+
+<h3 id="s11-2-theme"><code>sns.set_theme()</code></h3>
+<p><code>sns.set_theme()</code> seaborn’un görünümünü açar: bir stil, yazı boyutları ve bir palet. Bunu, çoğunu <code>book.mplstyle</code>’ın da ayarladığı <code>plt.rcParams</code> (Bölüm 7.5) ayarlarını yeniden yazarak yapar. Yazı boyutu bunlardan biridir. Şu anda değeri:</p>
+<div class="cell"><textarea>plt.rcParams['font.size']</textarea></div>
+<p>Şimdi pek çok öğreticinin başladığı gibi <code>sns.set_theme()</code>’i argümansız çağırın ve tekrar sorun:</p>
+<div class="cell"><textarea>sns.set_theme()
+plt.rcParams['font.size']</textarea></div>
+<p>seaborn kitabın yazı boyutunu kendisininkiyle değiştirdi; çizgi kalınlığını ve renkleri de. Grafik şimdi şöyle:</p>
+<div class="cell"><textarea>ax = sns.scatterplot(data=stores, x='visitors', y='daily_revenue',
+                     hue='region')
+ax.set(xlabel='Visitors per day', ylabel='Revenue per day ($)')
+plt.show()</textarea></div>
+<p class="figdesc">seaborn’un kendi temasıyla saçılım grafiği: beyaz kılavuz çizgili gri arka plan, daha büyük yazı, mavi ve turuncu noktalar.</p>
+<p>Gri arka plan, kılavuz, mavi ve turuncu ile büyük yazı seaborn’un varsayılanlarıdır. Kitabın stili gitti. Nedeni iki satırın sırası. Bir stil dosyası ve <code>set_theme()</code> ikisi de <code>rcParams</code>’a yazar ve ortak ayarlarda <strong>en son çalışan kazanır</strong>. Kurulum bloğunda stil dosyası ikinci geldi, o kazandı. Burada ise <code>set_theme()</code> ikinci geldi.</p>
+<p>Çözüm, onları doğru sıraya geri koymaktır:</p>
+<div class="cell"><textarea>sns.set_theme(style='ticks')
+plt.style.use('book.mplstyle')
+plt.rcParams['font.size']</textarea></div>
+<p>Her satır bir iş yapar. <code>sns.set_theme(style='ticks')</code>, stil dosyasının hiçbir şey söylemediği kısımları ayarlar: beyaz arka plan, kılavuz yok ve küçük işaret çizgileri (tick). Ardından <code>plt.style.use('book.mplstyle')</code> kitabın yazı boyutlarını, çizgi kalınlıklarını ve dört renkli paletini geri koyar.</p>
+<p>Her seaborn bölümündeki yaklaşım budur: ilk kod bloğu bu iki satırla, bu sırayla biter.</p>
+<div class="callout tip"><span class="t">💡 İpucu</span>Grafikleriniz kitabınkilere benzemez olursa ya da çekirdeği yeniden başlattıktan sonra iki kurulum satırını tekrar çalıştırın. Jupyter’deki <em>Run All</em> yukarıdan aşağı çalışır ve bunu sizin için yapar (bu sayfada: “Tüm hücreleri çalıştır”). Bir seaborn öğreticisinden mi kopyalıyorsunuz? Onun <code>sns.set_theme()</code> satırını silin; stil dosyasından sonra çalışan her şey onu bozabilir.</div>
+
+<h3 id="s11-2-style"><code>sns.set_style()</code></h3>
+<p><code>sns.set_style()</code> yalnızca eksenlerin görünümünü değiştirir: arka plan, kılavuz ve işaret çizgileri. Yazı boyutlarına ya da renklere dokunmaz; bu yüzden kitabın stiliyle birlikte çalışır. Beş stil vardır. <code>'darkgrid'</code> seaborn’un varsayılanıdır (beyaz kılavuzlu gri); <code>'dark'</code> ve <code>'white'</code> işaret ve kılavuz olmadan aynısıdır. Bilinmeye değer ikisi kitabın kendi stilleridir:</p>
+<div style="overflow-x:auto"><table class="choose">
+<thead><tr><th>Stil</th><th>Arka plan</th><th>Kılavuz</th><th>İşaret çizgileri</th></tr></thead>
+<tbody><tr><td><code>'ticks'</code></td><td>beyaz</td><td>yok</td><td>var</td></tr>
+<tr><td><code>'whitegrid'</code></td><td>beyaz</td><td>açık gri</td><td>yok</td></tr></tbody></table></div>
+<p>Kitap kılavuzsuz olan <code>'ticks'</code>’i kullanır: Bölüm 9.1, veri taşımayan mürekkebin gitmesi gerektiğini söylemişti. Okuyucuların değerleri grafikten okuması gerektiğinde <code>'whitegrid'</code>’e geçin:</p>
+<div class="cell"><textarea>sns.set_style('whitegrid')
+ax = sns.scatterplot(data=stores, x='visitors', y='daily_revenue',
+                     hue='region')
+ax.set(xlabel='Visitors per day', ylabel='Revenue per day ($)')
+plt.show()</textarea></div>
+<p class="figdesc">İki yönde açık gri kılavuz çizgileri olan beyaz arka planlı saçılım grafiği. Renkler ve yazı boyutları kitabınki.</p>
+<p>Kılavuz geri geldi, ama kitabın renkleri ve yazı boyutları kaldı. Kitabın görünümüne dönmek için iki kurulum satırını yeniden çalıştırın:</p>
+<div class="cell"><textarea>sns.set_theme(style='ticks')
+plt.style.use('book.mplstyle')</textarea></div>
+
+<h3 id="s11-2-context"><code>sns.set_context()</code></h3>
+<p><code>sns.set_context()</code> yazıyı, çizgileri ve noktaları birlikte ölçekler. <code>'paper'</code>, <code>'notebook'</code> (varsayılan), <code>'talk'</code> ve <code>'poster'</code> küçükten büyüğe gider; slaytlar için olanı <code>'talk'</code>’tur. Kitabın yazısı zaten yaklaşık <code>'paper'</code> boyutunda olduğundan burada nadiren gerekir. Kitabın yazı boyutlarını geçersiz kılar; bu yüzden ardından iki kurulum satırını yeniden çalıştırın. Deneyin:</p>
+<div class="cell"><textarea># Deneme: slayt için büyütülmüş bağlam, sonra kitabın görünümüne dönüş
+sns.set_context('talk')
+ax = sns.scatterplot(data=stores, x='visitors', y='daily_revenue',
+                     hue='region')
+ax.set(xlabel='Visitors per day', ylabel='Revenue per day ($)')
+plt.show()
+sns.set_theme(style='ticks')
+plt.style.use('book.mplstyle')</textarea></div>
+
+<h3 id="s11-2-despine"><code>sns.despine()</code></h3>
+<p>Bölüm 7.2, üst ve sağ çerçeve çizgilerini <code>ax.spines[['top', 'right']].set_visible(False)</code> ile kaldırmıştı. <code>sns.despine()</code> bunu az önce çizdiğiniz grafik için tek çağrıda yapar. <code>'ticks'</code> stili yine de dört çizgiyi de çizer ve kitap bu çerçeveyi varsayılan olarak korur; bu yüzden Bölüm 9’un daha hafif görünümünü istediğiniz grafiklerde despine kullanın:</p>
+<div class="cell"><textarea>ax = sns.scatterplot(data=stores, x='visitors', y='daily_revenue',
+                     hue='region')
+ax.set(xlabel='Visitors per day', ylabel='Revenue per day ($)')
+sns.despine()
+plt.show()</textarea></div>
+<p class="figdesc">Yalnızca sol ve alt çerçeve çizgileri ve bu iki kenarda işaret çizgileri olan saçılım grafiği.</p>
+<p>Grafik, okuyucunun değerleri okumak için kullandığı sol ve alt çizgilerini korur. <code>sns.despine(left=True)</code> sol çizgiyi de kaldırır; <code>sns.despine(ax=axes[0])</code> ise Bölüm 8’deki bir ızgaranın tek bir grafiğini hedefler.</p>
+</section>
+
+<section>
+<h2 id="s11-3"><span class="num">11.3</span>Renk Paletleri</h2>
+<p>Bir <em>palet</em>, seaborn’un bir grafiğin gruplarına dağıttığı renk listesidir. Kurulum bloğundan sonra bu, kitabın dört rengidir:</p>
+
+<h3 id="s11-3-cp"><code>sns.color_palette()</code></h3>
+<p><code>sns.color_palette()</code>, seaborn’un şu anda kullanacağı renkleri döndürür. <code>.as_hex()</code> bunları Bölüm 7.4’teki onaltılık (hex) kodlar olarak yazar:</p>
+<div class="cell"><textarea>sns.color_palette().as_hex()</textarea></div>
+<p>Bunlar <code>book.mplstyle</code>’dan gelen koyu camgöbeği, kehribar, açık camgöbeği ve kum rengidir. Parantez içine bir ad yazmak bunun yerine seaborn’un paletlerinden birini ister. seaborn’un kendi varsayılanı, on rengi olan <code>'deep'</code>’tir. <code>sns.palplot()</code> yalnızca bir görüntüleme aracıdır: paleti bakabileceğiniz bir kare dizisi olarak çizer.</p>
+<div class="cell"><textarea>deep = sns.color_palette('deep')
+sns.palplot(deep, size=0.55)
+plt.show()</textarea></div>
+<p class="figdesc">On renkli karelerden oluşan bir sıra: mavi, turuncu, yeşil, kırmızı, mor, kahverengi, pembe, gri, sarı ve açık mavi.</p>
+<p>Şimdi bu sıranın siyah-beyaz basıldığını düşünün. Renk tonları çok farklı olsa da birkaç kare neredeyse aynı griye dönüşür. <code>'deep'</code>’in sorunu budur: on renk, okuyucunun bir göstergeyle eşleştirebileceğinden fazladır (kitabın sınırı dört) ve açıklıktan çok ton olarak farklılaşırlar. Kitabın dört rengi ise ikisinde de farklıdır. Daha çok grup için Bölüm 9.2’deki gibi gri artı bir vurgu rengi kullanın.</p>
+
+<h3 id="s11-3-sp"><code>sns.set_palette()</code></h3>
+<p><code>sns.set_palette()</code>, sonraki tüm grafiklerin paletini değiştirir. Ona bir renk listesi verin; burada Bölüm 9.2’deki gri artı vurgu. Tabloda önce Pacific mağazaları geldiği için gri onlara düşer:</p>
+<div class="cell"><textarea>sns.set_palette(['#c4c9ce', '#0b3a47'])
+ax = sns.scatterplot(data=stores, x='visitors', y='daily_revenue',
+                     hue='region')
+ax.set(xlabel='Visitors per day', ylabel='Revenue per day ($)')
+plt.show()</textarea></div>
+<p class="figdesc">Pacific mağazaları açık gri, Mountain mağazaları koyu camgöbeği noktalar olan saçılım grafiği. Dört Mountain noktasının üçü grafiğin sol altında, gri noktaların altında.</p>
+<p>Göz önce koyu noktalara gider ve hikâye de onlardır: dört Mountain mağazasından üçü en alt uçta, Denver ise grubun ortasında. Renkler gruplara tabloda ilk göründükleri sırayla verilir. Sırayı kendiniz seçmek için <code>hue_order=['Mountain', 'Pacific']</code> verin.</p>
+<p><code>set_palette()</code> ile yapılan bir değişiklik siz geri alana kadar sürer. Geri dönüş yolu, kitabın döngüsünü yeniden yazan <code>plt.style.use('book.mplstyle')</code>’dur. <code>set_palette()</code>’i atlayıp tek bir fonksiyona <code>palette=</code> de verebilirsiniz; aynı listeyi alır ve yalnızca o grafiği değiştirir.</p>
+<div class="cell"><textarea>plt.style.use('book.mplstyle')
+sns.color_palette().as_hex()</textarea></div>
+<div class="callout warn"><span class="t">⚠ Dikkat</span><code>sns.set_palette()</code>, <code>book.mplstyle</code>’ın her renkle eşleştirdiği çizgi stilleri (düz, kesikli, noktalı) dahil tüm döngüyü değiştirir. Ondan sonra çizgilerin hepsi düzdür. İşiniz bitince yukarıdaki gibi stil dosyasını yeniden yükleyin.</div>
+</section>
+
+<section>
+<h2 id="s11-4"><span class="num">11.4</span>Daha Fazla Sütun Göstermek</h2>
+<p>Bir saçılım grafiği zaten iki sütun kullanır: biri x, biri y için. seaborn’un bir sütunu göstermenin üç yolu daha vardır: renk, stil ve boyut. Bunlar neredeyse her fonksiyonda aynı adları taşır; seaborn’un çekiciliğinin büyük kısmı da budur.</p>
+<div style="overflow-x:auto"><table class="choose">
+<thead><tr><th>Parametre</th><th>Neyi değiştirir</th><th>En uygun olduğu</th></tr></thead>
+<tbody><tr><td><code>hue=</code></td><td>renk</td><td>gruplar (kategoriler)</td></tr>
+<tr><td><code>style=</code></td><td>işaretçi şekli ya da çizgi kesikleri</td><td>gruplar, ikinci bir ipucu olarak</td></tr>
+<tr><td><code>size=</code></td><td>noktaların boyutu ya da çizgilerin kalınlığı</td><td>bir sayı</td></tr></tbody></table></div>
+
+<h3 id="s11-4-hue"><code>hue=</code> ve <code>style=</code></h3>
+<p><code>hue=</code> ile Bölüm 11.1’de tanıştınız. <code>style=</code>, bir saçılım grafiğinin işaretçisini ya da bir çizginin kesiklerini değiştirir. Siyah-beyaz baskı için püf noktası şudur: ikisine de aynı sütunu verin. Böylece her grup hem renkte hem şekilde farklılaşır ve okuyucu hiçbir zaman yalnızca renge bağımlı kalmaz; Bölüm 9.5’teki kural budur.</p>
+<div class="cell"><textarea>ax = sns.scatterplot(data=stores, x='visitors', y='daily_revenue',
+                     hue='region', style='region')
+ax.set(xlabel='Visitors per day', ylabel='Revenue per day ($)')
+plt.show()</textarea></div>
+<p class="figdesc">Pacific mağazaları koyu camgöbeği daireler, Mountain mağazaları kehribar çarpılar olan saçılım grafiği. Gösterge her grubun hem rengini hem şeklini gösteriyor.</p>
+<p>Gösterge her grubu bir kez, rengi ve şekliyle listeler. Kitap birden fazla grup olduğunda <code>hue=</code> ile <code>style=</code>’ı hep birlikte kullanır.</p>
+
+<h3 id="s11-4-size"><code>size=</code></h3>
+<p><code>size=</code> büyük sayılar için noktaları büyütür. Bir sayı sütunu verin; burada dönüşüm oranı (siparişle biten ziyaretlerin payı). <code>hue='region'</code>’ı da koruyun; bu, tek grafikte dört sütun eder:</p>
+<div class="cell"><textarea>ax = sns.scatterplot(data=stores, x='visitors', y='daily_revenue',
+                     hue='region', size='conversion')
+ax.set(xlabel='Visitors per day', ylabel='Revenue per day ($)')
+ax.legend(loc='upper left', bbox_to_anchor=(1, 1))
+plt.show()</textarea></div>
+<p class="figdesc">Nokta boyutunun dönüşüm oranını gösterdiği saçılım grafiği. Gösterge dışarıda, sağda ve iki parçalı: bölge renkleri ve her biri için bir nokta boyutu olan dönüşüm değerleri listesi. En büyük nokta en üstteki mağaza, Los Angeles.</p>
+<p>En üstteki en büyük nokta, %3,4 dönüşümle Los Angeles. Göstergenin biri renk, biri boyut için iki parçası var ve noktaları örtecek kadar uzun. Bölüm 3.4’teki <code>ax.legend()</code> satırı onu dışarı taşır: <code>bbox_to_anchor=(1, 1)</code>, göstergenin köşesini eksenlerin sağ üstüne sabitler. Dönüşüm değerleri kesirdir; 0.03, %3 demektir. Boyut, tam okunması en zor olandır; onu yalnızca “daha büyük ya da daha küçük” için kullanın.</p>
+<p>Her ek sütun grafiği okumayı zorlaştırır. <code>hue=</code> soruyu yanıtlıyorsa orada durun.</p>
+</section>
+
+<section>
+<h2 id="s11-5"><span class="num">11.5</span>Uzun Veri ve Geniş Veri</h2>
+<p>seaborn tabloyu belirli bir biçimde bekler. Nedenini görmek için Bölüm 9.2’deki satış kanalına göre aylık geliri ele alın:</p>
+<pre class="data">month,Online,In store,Phone
+Jan,15100,8900,2600
+Feb,14600,8100,2500
+...</pre>
+<div class="cell"><textarea>channels = pd.read_csv('channel_monthly.csv')
+channels.head(3)</textarea></div>
+<p>Bu <em>geniş</em> (wide) veridir: ay başına bir satır ve kanal başına bir sütun. Geniş tablolar kolay okunur ve <code>df.plot()</code> onlardan memnundur. Ama seaborn’un <code>hue='channel'</code> demesinin bir yolu yoktur. Kanal adları başlıklardadır; <code>hue=</code> ise adları değer olarak tutan bir sütun ister.</p>
+<p>İşe yarayan biçim <em>uzun</em> (long) veridir: ay ve kanal başına bir satır; kanal adı için bir sütun ve gelir için bir sütun. pandas’ın bunun için bir aracı vardır: <code>df.melt()</code>.</p>
+
+<h3 id="s11-5-melt"><code>df.melt()</code></h3>
+<p><code>melt()</code> kanal sütunlarını satırlara yığar. <code>id_vars</code> olduğu gibi kalan sütunları adlandırır, <code>var_name</code> eski başlıklar için yeni sütun, <code>value_name</code> ise sayılar için yeni sütundur:</p>
+<div class="cell"><textarea>channels_long = channels.melt(id_vars='month', var_name='channel',
+                              value_name='revenue')
+channels_long.head(4)</textarea></div>
+<p>On iki ay ve üç kanal 36 satır eder ve <code>channel</code> artık bir sütundur. <code>hue=</code>’nun tek ihtiyacı budur. Siyah-beyazda da çalışsın diye <code>style=</code>’ı da kullanarak <code>sns.lineplot()</code> ile çizin:</p>
+<div class="cell"><textarea>ax = sns.lineplot(data=channels_long, x='month', y='revenue',
+                  hue='channel', style='channel')
+ax.set(xlabel='', ylabel='Revenue per month ($)')
+ax.yaxis.set_major_formatter('${x:,.0f}')
+plt.show()</textarea></div>
+<p class="figdesc">On iki ay boyunca üç çizgi. Online, yaklaşık 15.000 $’dan 38.000 $’a tırmanan düz koyu camgöbeği çizgi. In store ortada, yaklaşık 14.000 $’a yükselen kesikli kehribar çizgi. Phone altta, 2.000–2.700 $ civarında düz seyreden noktalı açık camgöbeği çizgi.</p>
+<p>Her kanalın döngü olmadan kendi rengi ve kesik deseni var. <code>'${x:,.0f}'</code> dizgesi, Bölüm 7.1’deki biçimlendiricinin kısa yazımıdır. Online en hızlı büyüyor ve yılı diğerlerinin çok üstünde bitiriyor; Phone ise neredeyse hiç değişmiyor. Bölüm 12.2, <code>lineplot()</code>’u tüm ayrıntısıyla açıklıyor.</p>
+<p><code>melt()</code>’in tersi <code>pivot()</code>’tur (Bölüm 1.4). Okumak için geniş bir tablo, seaborn’a vermek için uzun bir tablo tutun; seaborn geniş bir tabloda <code>hue=</code> ya da <code>style=</code> kullanamaz.</p>
+</section>
+
+<section>
+<h2 id="s11-6"><span class="num">11.6</span>Eksen Düzeyi ve Figür Düzeyi Fonksiyonlar</h2>
+<p>seaborn’un çizim fonksiyonları iki aileden gelir. Farkla, bir seaborn grafiğini Bölüm 8’deki bir ızgaraya koyduğunuzda karşılaşırsınız.</p>
+
+<h3 id="s11-6-axes">Eksen düzeyi fonksiyonlar</h3>
+<p>Bir <em>eksen düzeyi</em> (axes-level) fonksiyon tek bir eksen üzerine çizer. <code>scatterplot()</code>, <code>lineplot()</code> ve şimdiye kadar kullandığınız diğerleri bu ailedendir. Varsayılan olarak geçerli eksene çizerler. Grafiğin nereye gideceğini denetlemek için Bölüm 8.3’te söz verildiği gibi <code>ax=</code> ile bir eksen verin. Bu, bir saçılım grafiği ile bir çizgi grafiğini yan yana koyar:</p>
+<div class="cell"><textarea>fig, axes = plt.subplots(1, 2, figsize=(5.5, 2.8),
+                         layout='constrained')
+sns.scatterplot(data=stores, x='visitors', y='daily_revenue',
+                hue='region', style='region', ax=axes[0])
+sns.lineplot(data=channels_long, x='month', y='revenue',
+             hue='channel', style='channel', ax=axes[1])
+axes[1].set_xticks([0, 3, 6, 9])
+plt.show()</textarea></div>
+<p class="figdesc">Yan yana iki grafik. Solda camgöbeği daireler ve kehribar çarpılarla mağaza saçılım grafiği. Sağda üç kanal çizgisi; ay adları yalnızca Ocak, Nisan, Temmuz ve Ekim için gösteriliyor.</p>
+<p>Her fonksiyon kendisine verilen eksene çizdi; gerisi sıradan matplotlib. Ay ekseni 0’dan 11’e konumları sayar ve adları etiket olarak gösterir; bu yüzden <code>set_xticks([0, 3, 6, 9])</code> Ocak, Nisan, Temmuz ve Ekim’i tutar. <code>sharey</code>, <code>subplot_mosaic()</code> ve <code>fig.suptitle()</code> dahil Bölüm 8’deki her şey geçerlidir.</p>
+
+<h3 id="s11-6-figure">Figür düzeyi fonksiyonlar</h3>
+<p>Bir <em>figür düzeyi</em> (figure-level) fonksiyon, eksenler dahil tüm figürü sizin için yapar. Amacı, bir grafiği bir sütuna göre birkaç panele bölmektir. <code>sns.relplot()</code> (“ilişkisel grafik”), <code>scatterplot()</code> ve <code>lineplot()</code>’un figür düzeyi ortağıdır. Kendi figürünü oluşturur:</p>
+<div class="cell"><textarea>g = sns.relplot(data=stores, kind='scatter', x='visitors',
+                y='daily_revenue', hue='region', style='region',
+                height=3, aspect=1.4)
+g.ax.set(xlabel='Visitors per day', ylabel='Revenue per day ($)')
+plt.show()</textarea></div>
+<p class="figdesc">relplot ile yapılmış bir figürde mağaza saçılım grafiği. Gösterge artık grafiğin içinde değil, dışında, sağda.</p>
+<p>Gösterge grafiğin dışına, sağa taşındı. Boyut <code>height=3</code> ve <code>aspect=1.4</code>’ten geldi (grafik alanı yükseklik çarpı en-boy oranı, 4,2 inç genişliğindedir ve figür gösterge için yer açmak üzere genişler); <code>kind='scatter'</code> çizim fonksiyonunu seçti. Ne döndüğüne bakın:</p>
+<div class="cell"><textarea>type(g)</textarea></div>
+<p>Bu, tüm figürü tutan bir <code>FacetGrid</code>’dir. Bir <em>facet</em>, bir sütuna göre bölünmüş grafiğin bir panelidir. Tek panelde ızgaranın tek bir ekseni vardır, <code>g.ax</code>; <code>g.ax.set()</code>’in çalışmasının nedeni budur. <code>g.figure</code> matplotlib figürüdür; bu yüzden <code>g.figure.savefig('stores.png', bbox_inches='tight')</code> onu kaydeder. Bölüm 15.2, FacetGrid’in kendi yöntemlerini gösteriyor.</p>
+<p>Bölmek bu ailenin amacıdır: <code>col='region'</code> eklemek bölge başına bir panel yapar (Bölüm 15.1). Deneyin:</p>
+<div class="cell"><textarea># Deneme: bölge başına bir panel, ardından dosyaya kaydetme
+g = sns.relplot(data=stores, kind='scatter', x='visitors',
+                y='daily_revenue', col='region', height=2.6)
+g.set_axis_labels('Visitors per day', 'Revenue per day ($)')
+g.figure.savefig('stores.png', bbox_inches='tight')
+plt.show()</textarea></div>
+<p>Tablo farkları özetliyor:</p>
+<div style="overflow-x:auto"><table class="choose">
+<thead><tr><th></th><th>Eksen düzeyi</th><th>Figür düzeyi</th></tr></thead>
+<tbody>
+<tr><td>Örnekler</td><td><code>scatterplot()</code>, <code>lineplot()</code>, <code>barplot()</code>, <code>histplot()</code></td><td><code>relplot()</code>, <code>catplot()</code>, <code>displot()</code></td></tr>
+<tr><td>Çizdiği yer</td><td>tek eksen; <code>ax=</code> ile sizinki</td><td>kendi yeni figürü</td></tr>
+<tr><td>Döndürdüğü</td><td>bir matplotlib <code>Axes</code></td><td>bir <code>FacetGrid</code></td></tr>
+<tr><td>Boyut ayarı</td><td><code>plt.subplots()</code> içinde <code>figsize=</code></td><td><code>height=</code> ve <code>aspect=</code></td></tr>
+<tr><td>Gösterge</td><td>grafiğin içinde</td><td>dışarıda, sağda</td></tr>
+<tr><td><code>col=</code>, <code>row=</code> ile paneller</td><td>hayır</td><td>evet</td></tr>
+</tbody></table></div>
+<p><code>relplot()</code> saçılım ve çizgi grafiklerini (Bölüm 12.3), <code>catplot()</code> kategorileri (Bölüm 13.5) ve <code>displot()</code> dağılımları (Bölüm 14.5) karşılar.</p>
+<div class="callout warn"><span class="t">⚠ Dikkat</span>Bir figür düzeyi fonksiyona <code>ax=</code> vermeyin. <code>relplot()</code>, <code>catplot()</code> ve <code>displot()</code> bir uyarı gösterip onu yok sayar (Bölüm 12’deki <code>lmplot()</code> hatayla durur bile) ve grafik sizin ekseniniz yerine yeni bir figürde belirir. Kendi yerleşiminizde figür düzeyi bir grafik istiyorsanız, <code>relplot()</code> için <code>scatterplot()</code> gibi eşleşen eksen düzeyi fonksiyona geçin.</div>
+<p>Kitabın kuralı: varsayılan olarak eksen düzeyi fonksiyonu kullanın, çünkü onu bildiğiniz matplotlib araçlarıyla yerleştirip bitirebilirsiniz. Bir sütuna göre bölünmüş paneller istediğinizde figür düzeyi olana başvurun.</p>
+</section>
+
+<section>
+<h2 id="ozet">Bölüm Özeti</h2>
+<ul class="summary">
+<li>seaborn bir tablodan matplotlib grafikleri çizer. <code>data=</code> DataFrame’i, <code>x=</code>, <code>y=</code> ve <code>hue=</code> ise sütun adlarını metin olarak alır. Fonksiyon sıradan bir <code>Axes</code> döndürür.</li>
+<li><code>sns.set_theme()</code>, <code>rcParams</code>’taki yazı boyutlarını, çizgi kalınlıklarını, renkleri ve çerçeveyi yeniden yazar; en son çalışan çağrı kazanır. Her seaborn bölümüne <code>sns.set_theme(style='ticks')</code>, ardından <code>plt.style.use('book.mplstyle')</code> ile başlayın.</li>
+<li><code>sns.set_style()</code> arka planı, kılavuzu ve işaret çizgilerini değiştirir (kitap <code>'ticks'</code> kullanır). <code>sns.set_context()</code> her şeyi ölçekler ve kitabın yazı boyutlarını geçersiz kılar.</li>
+<li><code>sns.despine()</code> üst ve sağ çerçeve çizgilerini kaldırır; kitap siz istemedikçe onları korur.</li>
+<li><code>sns.color_palette()</code> bir paleti gösterir. seaborn’un varsayılanı <code>'deep'</code> siyah-beyazda birbirine karışır. <code>sns.set_palette()</code> sonraki grafiklerin renklerini değiştirir; <code>plt.style.use('book.mplstyle')</code> kitabınkileri geri getirir.</li>
+<li><code>hue=</code> bir sütunu renkle, <code>style=</code> işaretçi ya da kesikle, <code>size=</code> boyutla gösterir. Grafiğin griye dönüşünce de çalışması için <code>hue=</code> ve <code>style=</code>’a aynı sütunu verin.</li>
+<li>seaborn uzun veri ister: gözlem başına bir satır. <code>df.melt()</code> geniş bir tabloyu uzuna çevirir.</li>
+<li>Eksen düzeyi fonksiyonlar tek bir eksene çizer (<code>ax=</code>) ve bir <code>Axes</code> döndürür. Figür düzeyi fonksiyonlar (<code>relplot()</code>, <code>catplot()</code>, <code>displot()</code>) kendi figürlerini yapar, bir <code>FacetGrid</code> döndürür ve grafikleri panellere böler.</li>
+</ul>
+<p>Bölüm 12 bu fikirleri iki ölçünün birlikte nasıl hareket ettiğini gösteren grafikler için kullanıyor: <code>scatterplot()</code>, güven bantlarıyla <code>lineplot()</code>, korelasyon ve <code>regplot()</code>’un eğilim çizgileri.</p>
+
+<h3 id="oyun">Kendi kodunuzu deneyin</h3>
+<p>Aşağıdaki hücre bir oyun alanı. Yukarıdaki tüm değişkenler (<code>stores</code>, <code>channels</code>, <code>channels_long</code>…) burada kullanılabilir (önceki hücreler otomatik çalıştırılır).</p>
+<div class="cell"><textarea># Örnek: gri + vurgu paletini tek grafiğe palette= ile verin
+ax = sns.lineplot(data=channels_long, x='month', y='revenue',
+                  hue='channel', style='channel',
+                  palette=['#0b3a47', '#c4c9ce', '#c4c9ce'])
+ax.set(xlabel='', ylabel='Revenue per month ($)', title='Online grows fastest')
+ax.yaxis.set_major_formatter('${x:,.0f}')
+sns.despine()
+plt.show()</textarea></div>
+</section>
+
+<section>
+<h2 id="quiz">Sınav</h2>
+<p>Bir seçeneğe tıklayın; doğru cevap ve açıklama hemen görünür. Puan: <span id="score">0 / 10</span> &nbsp;<button class="btn ghost" id="quizReset">Sıfırla</button></p>
+<div id="quizBox"></div>
+</section>
+
+<div class="chnav"><a href="bolum10_yalan_soyleyen_grafikler.html">← Bölüm 10</a><div class="all">Bölümler: <a href="bolum01_ortami_kurmak.html" class="" title="Görselleştirme Ortamını Kurmak">1</a><a href="bolum02_cizmeden_once_dusunmek.html" class="" title="Çizmeden Önce Düşünmek">2</a><a href="bolum03_matplotlib_temelleri.html" class="" title="matplotlib Temelleri">3</a><a href="bolum04_cizgiler_noktalar.html" class="" title="Çizgiler ve Noktalar">4</a><a href="bolum05_cubuklar_pastalar_tablolar.html" class="" title="Çubuklar, Pastalar ve Tablolar">5</a><a href="bolum06_dagilimlar_izgaralar.html" class="" title="Dağılımlar ve Değer Izgaraları">6</a><a href="bolum07_ozellestirme.html" class="" title="Bir Grafiğin Her Parçasını Özelleştirmek">7</a><a href="bolum08_yerlesimler.html" class="" title="Yerleşimler: Bir Figürde Birçok Grafik">8</a><a href="bolum09_iletisim_kuran_tasarim.html" class="" title="İletişim Kuran Tasarım">9</a><a href="bolum10_yalan_soyleyen_grafikler.html" class="" title="Yalan Söyleyen Grafikler">10</a><a href="bolum11_seaborn_temelleri.html" class="cur" title="seaborn Temelleri">11</a><a href="bolum12_iliskiler_regresyon.html" class="" title="İlişkiler ve Regresyon">12</a><a href="bolum13_kategoriler.html" class="" title="Kategoriler">13</a><a href="bolum14_dagilimlar.html" class="" title="Dağılımlar">14</a><a href="bolum15_izgaralar_matrisler.html" class="" title="Izgaralar ve Matrisler">15</a><a href="bolum16_plotly_express.html" class="" title="plotly express ile Etkileşimli Grafikler">16</a><a href="bolum17_haritalar_is_grafikleri.html" class="" title="Haritalar ve İş Grafikleri">17</a></div><a href="bolum12_iliskiler_regresyon.html">Bölüm 12 →</a></div>
+</main>
+</div>
+<footer>Bölüm 11 · seaborn Temelleri — Pyodide ile etkileşimli Türkçe sürüm</footer>
+
+<script>
+
+const DATA = {"channel_monthly.csv": "month,Online,In store,Phone\nJan,15100,8900,2600\nFeb,14600,8100,2500\nMar,17800,9300,2700\nApr,18900,9600,2400\nMay,20700,10100,2300\nJun,20400,9700,2100\nJul,22300,9800,2200\nAug,20100,9400,2000\nSep,23500,10200,2200\nOct,25800,10500,2100\nNov,33900,12800,2300\nDec,37900,14300,2400\n", "stores.csv": "store,region,visitors,daily_revenue,conversion\nSeattle,Pacific,310,2100,0.021\nOakland,Pacific,180,1650,0.027\nSan Francisco,Pacific,420,3300,0.024\nPortland,Pacific,230,2250,0.032\nSacramento,Pacific,200,1900,0.03\nLos Angeles,Pacific,480,4600,0.034\nSan Jose,Pacific,350,2400,0.02\nSan Diego,Pacific,170,1500,0.028\nBoise,Mountain,150,980,0.019\nDenver,Mountain,260,2050,0.023\nSalt Lake City,Mountain,140,1100,0.026\nAlbuquerque,Mountain,120,900,0.022\n", "book.mplstyle": "# Chart style for \"Master Data Visualization\".\n# Load it with plt.style.use('book.mplstyle') so your charts match the book.\n# Chapter 7 explains every line; delete one and see what changes.\n\n# Four colors that stay different when printed in black and white:\n# dark teal, amber, light teal, sand. Lines also change style\n# (solid, dashed, dotted, dash-dot) so they can be told apart in gray.\naxes.prop_cycle: cycler('color', ['0b3a47', 'b26a00', '6fb3c2', 'f0c987']) + cycler('linestyle', ['-', '--', ':', '-.'])\n\n# Size in inches (fits a printed book page) and text sizes in points\nfigure.figsize: 5.5, 3.4\nfont.size: 9.5\naxes.titlesize: 11\naxes.titlelocation: left\naxes.labelsize: 9.5\nlegend.fontsize: 9\n\n# Thicker lines; if you turn the grid on (ax.grid()), it is light and sits behind the data\nlines.linewidth: 2\naxes.axisbelow: True\ngrid.color: d9dde1\n"};
+</script>
+<script>
+// ---------------- Quiz -----------------
+const QUIZ = [
+ {q:"<code>sns.scatterplot(data=stores, x='visitors', y='daily_revenue', hue='region')</code> içinde <code>hue='region'</code> ne yapar?",
+  o:["Noktaları bölgeye göre renklendirir ve gösterge ekler","Tabloyu yalnızca bir bölgenin satırları kalacak şekilde süzer","Noktaları soldan sağa bölgeye göre sıralar","Her bölge için ayrı bir grafik çizer"],a:0,
+  e:"<code>hue=</code>, matplotlib’deki groupby döngüsünün tamamını yapar: renk ve gösterge (11.1)."},
+ {q:"<code>ax = sns.scatterplot(...)</code> ne döndürür?",
+  o:["Dönüştürülmesi gereken bir seaborn <code>Chart</code> nesnesi","Yeni bir figür","Sıradan bir matplotlib <code>Axes</code>","Çizilen DataFrame"],a:2,
+  e:"<code>type(ax)</code> → <code>matplotlib.axes._axes.Axes</code>; bu yüzden <code>ax.set()</code> çalışır."},
+ {q:"<code>plt.style.use('book.mplstyle')</code> çalıştırıyor, sonraki hücrede <code>sns.set_theme()</code> çağırıyorsunuz. Sonraki grafiklere ne olur?",
+  o:["Hiçbir şey, son sözü her zaman stil dosyası söyler","İki stil yüklü olduğu için seaborn hata verir","seaborn kitabın yazı boyutlarını korur, yalnızca paleti değiştirir","seaborn’un ayarları kitabın yazı boyutlarının ve renklerinin yerini alır"],a:3,
+  e:"İkisi de <code>rcParams</code>’a yazar; en son çalışan kazanır (11.2)."},
+ {q:"Hangi stilin beyaz arka planı var, kılavuzu yok ama küçük işaret çizgileri var?",
+  o:["<code>'darkgrid'</code>","<code>'whitegrid'</code>","<code>'white'</code>","<code>'ticks'</code>"],a:3,
+  e:"Kitabın kullandığı <code>'ticks'</code>: beyaz, kılavuzsuz, işaret çizgili."},
+ {q:"Aynı grafiğin bir konferans slaytında okunabilmesini istiyorsunuz. Hangi çağrı yazıyı, çizgileri ve noktaları birlikte büyütür?",
+  o:["<code>sns.set_style('talk')</code>","<code>sns.set_context('talk')</code>","<code>sns.set_palette('talk')</code>","<code>sns.despine('talk')</code>"],a:1,
+  e:"<code>set_context()</code> paper → notebook → talk → poster sırasıyla ölçekler."},
+ {q:"Mağazalar grafiği <code>sns.color_palette('deep')</code> ile çiziliyor. Siyah-beyaz basılabilecek bir grafik için neden kötü bir seçimdir?",
+  o:["Yalnızca iki rengi vardır, üçüncü bölge renk alamaz","Renklerinin birçoğu birbirine benzeyen grilere dönüşür","<code>hue=</code> ile değil yalnızca <code>color=</code> ile kullanılabilir","Bir stil dosyası yüklenince seaborn onu yok sayar"],a:1,
+  e:"'deep' renkleri açıklıktan çok tonda farklıdır; griye çevrilince karışırlar (11.3)."},
+ {q:"<code>sns.despine()</code> ne yapar?",
+  o:["Üst ve sağ çerçeve çizgilerini kaldırır","Verinin arkasındaki kılavuzu kapatır","Gösterge kutusunu grafikten kaldırır","Başlığı ve eksen etiketlerini siler"],a:0,
+  e:"<code>ax.spines[['top','right']].set_visible(False)</code>’in tek çağrılık hâlidir."},
+ {q:"Hangi çağrı her gruba farklı bir renk ve farklı bir işaretçi şekli verir, böylece grafik siyah-beyazda okunur?",
+  o:["<code>sns.scatterplot(..., hue='region', size='region')</code>","<code>sns.scatterplot(..., hue='region', palette='gray')</code>","<code>sns.scatterplot(..., hue='region', style='region')</code>","<code>sns.scatterplot(..., style='visitors', size='region')</code>"],a:2,
+  e:"<code>hue=</code> ve <code>style=</code>’a aynı sütunu vermek her grubu renk ve şekille ayırır (11.4)."},
+ {q:"<code>sales</code> tablosunda ay başına bir satır ve <code>month</code>, <code>Online</code>, <code>Phone</code> sütunları var. Hangi çağrı onu <code>channel</code> ve <code>revenue</code> sütunlu uzun biçime getirir?",
+  o:["<code>sales.pivot(index='month', columns='channel')</code>","<code>sales.melt(id_vars='month', var_name='channel', value_name='revenue')</code>","<code>sales.melt(id_vars='month', var_name='revenue', value_name='channel')</code>","<code>sales.groupby('month').sum()</code>"],a:1,
+  e:"<code>var_name</code> eski başlıkların, <code>value_name</code> sayıların yeni sütunudur."},
+ {q:"Bir seaborn saçılım grafiğini <code>plt.subplots(1, 2)</code> figürünün sol yarısına koymak istiyorsunuz. Ne kullanmalısınız?",
+  o:["<code>sns.relplot(..., ax=axes[0])</code>","<code>sns.scatterplot(..., ax=axes[0])</code>","<code>sns.relplot(..., height=axes[0])</code>","<code>sns.scatterplot(..., col=axes[0])</code>"],a:1,
+  e:"Eksen düzeyi fonksiyonlar <code>ax=</code> kabul eder; figür düzeyi <code>relplot()</code> onu yok sayar (11.6)."}
+];
+
+function buildQuiz(){
+  const box=document.getElementById('quizBox'); box.innerHTML='';
+  const L='ABCD';
+  QUIZ.forEach((it,i)=>{
+    const d=document.createElement('div'); d.className='q'; d.id='q'+(i+1);
+    d.innerHTML=`<div class="qt">${i+1}. ${it.q}</div>`+
+      it.o.map((o,j)=>`<label><input type="radio" name="q${i}" value="${j}"><strong>${L[j]}.</strong> ${o}</label>`).join('')+
+      `<div class="fb"></div>`;
+    d.querySelectorAll('input').forEach(inp=>inp.addEventListener('change',()=>{
+      if(d.dataset.done) return; d.dataset.done=1;
+      const j=+inp.value, labs=d.querySelectorAll('label');
+      labs[it.a].classList.add('ok'); if(j!==it.a) labs[j].classList.add('no');
+      d.querySelectorAll('input').forEach(x=>x.disabled=true);
+      const fb=d.querySelector('.fb'); fb.classList.add('show');
+      fb.innerHTML=(j===it.a?'✅ <strong>Doğru.</strong> ':'❌ <strong>Doğru cevap '+L[it.a]+'.</strong> ')+it.e;
+      if(j===it.a) d.dataset.ok=1; updateScore();
+    }));
+    box.appendChild(d);
+  });
+  updateScore();
+}
+function updateScore(){
+  const ok=document.querySelectorAll('.q[data-ok]').length, done=document.querySelectorAll('.q[data-done]').length;
+  document.getElementById('score').textContent=`${ok} / ${QUIZ.length}`+(done?` (cevaplanan: ${done})`:'');
+}
+document.getElementById('quizReset').onclick=buildQuiz;
+buildQuiz();
+
+// ---------------- Data list -----------------
+function csvToTable(txt,max=200){
+  const rows=txt.trim().split(/\r?\n/).map(r=>r.split(','));
+  const h=rows.shift();
+  return '<table><thead><tr>'+h.map(x=>`<th>${x}</th>`).join('')+'</tr></thead><tbody>'+
+    rows.slice(0,max).map(r=>'<tr>'+r.map(x=>`<td>${x}</td>`).join('')+'</tr>').join('')+'</tbody></table>';
+}
+(function(){
+  const host=document.getElementById('dataList');
+  Object.entries(DATA).forEach(([name,txt])=>{
+    const n=txt.trim().split(/\r?\n/).length-1;
+    const url=URL.createObjectURL(new Blob([txt],{type:'text/csv'}));
+    const d=document.createElement('details'); d.className='data';
+    const isCsv=name.endsWith('.csv');
+    d.innerHTML=`<summary>${name} <span style="font-weight:400;color:#5f6b72">— ${isCsv?n+' satır':'stil dosyası'}</span> · <a href="${url}" download="${name}">indir</a></summary><div class="tbl">${isCsv?csvToTable(txt):'<pre style="font-size:12px;white-space:pre-wrap">'+txt.replace(/</g,'&lt;')+'</pre>'}</div>`;
+    host.appendChild(d);
+  });
+})();
+
+// ---------------- Code cells -----------------
+const cells=[];
+document.querySelectorAll('.cell').forEach((el,i)=>{
+  const ta=el.querySelector('textarea'); const src=ta.value;
+  const bar=document.createElement('div'); bar.className='bar';
+  bar.innerHTML=`<span class="lbl">In [<span class="cnt"> </span>]:</span><span class="sp"></span>
+    <button class="btn ghost reset" title="Orijinal koda dön">↺ Orijinal</button>
+    <button class="btn run" disabled>▶ Çalıştır</button>`;
+  el.insertBefore(bar,ta);
+  const cm=CodeMirror.fromTextArea(ta,{mode:'python',lineNumbers:false,indentUnit:4,viewportMargin:Infinity,
+     extraKeys:{'Shift-Enter':()=>runCell(i),'Ctrl-Enter':()=>runCell(i),Tab:c=>c.replaceSelection('    ')}});
+  const out=document.createElement('div'); out.className='out'; el.appendChild(out);
+  const c={el,cm,out,src,ran:false,idx:i,btn:bar.querySelector('.run'),cnt:bar.querySelector('.cnt')};
+  bar.querySelector('.run').onclick=()=>runCell(i);
+  bar.querySelector('.reset').onclick=()=>cm.setValue(src);
+  el.id='hucre-'+(i+1);
+  cells.push(c);
+});
+
+// ---------------- Pyodide -----------------
+let py=null, execCount=0, busy=false;
+const st=document.getElementById('status'), stT=document.getElementById('statusText');
+window.__currentOut=null;
+window.renderPlot=function(json){
+  const spec=JSON.parse(json); const div=document.createElement('div'); div.className='plot';
+  const inner=document.createElement('div'); div.appendChild(inner);
+  window.__currentOut.appendChild(div);
+  Plotly.newPlot(inner,spec.data,spec.layout||{},{responsive:true,displaylogo:false,locale:'tr'});
+};
+const PY_SETUP=`
+import os
+os.environ['MPLBACKEND'] = 'Agg'
+import matplotlib
+matplotlib.use('Agg')
+import sys, io, ast, contextlib, base64
+import pandas as pd
+import matplotlib.pyplot as plt
+_CAPTURED = []
+def _grab_figs():
+    for n in plt.get_fignums():
+        f = plt.figure(n); b = io.BytesIO()
+        f.savefig(b, format='png', dpi=120, bbox_inches='tight')
+        _CAPTURED.append(base64.b64encode(b.getvalue()).decode())
+    plt.close('all')
+plt.show = lambda *a, **k: _grab_figs()
+# matplotlib 3.8 (Pyodide) için kitap kodunun 3.10+ parametrelerine uyum katmanı
+from matplotlib.axes import Axes as _Axes
+_orig_boxplot = _Axes.boxplot
+def _boxplot(self, *a, tick_labels=None, orientation=None, **k):
+    if tick_labels is not None: k['labels'] = tick_labels
+    if orientation is not None: k['vert'] = (orientation == 'vertical')
+    return _orig_boxplot(self, *a, **k)
+_Axes.boxplot = _boxplot
+import warnings
+warnings.simplefilter('ignore', FutureWarning)
+pd.set_option('display.width', 120)
+SKIP = ('.csv', '.mplstyle')
+def _written(src):
+    import re
+    return re.findall(r"savefig\\(\\s*['\\"]([^'\\"]+)['\\"]", src)
+def __run_cell(src, ns):
+    buf = io.StringIO()
+    before = set(f for f in os.listdir('.') if not f.endswith(SKIP))
+    _CAPTURED.clear()
+    res = {'stdout':'', 'html':None, 'text':None, 'files':[], 'imgs':[]}
+    val = None
+    try:
+        with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(buf):
+            tree = ast.parse(src)
+            last = None
+            if tree.body and isinstance(tree.body[-1], ast.Expr):
+                last = ast.Expression(tree.body.pop().value)
+            exec(compile(tree, '<hücre>', 'exec'), ns)
+            val = eval(compile(last, '<hücre>', 'eval'), ns) if last is not None else None
+    finally:
+        _grab_figs()
+        res['imgs'] = list(_CAPTURED)
+        _CAPTURED.clear()
+    res['stdout'] = buf.getvalue()
+    if val is not None:
+        if isinstance(val, (pd.DataFrame, pd.Series)):
+            df = val.to_frame() if isinstance(val, pd.Series) else val
+            res['html'] = df.to_html(max_rows=30, border=0)
+        elif hasattr(val, '_repr_html_') and type(val).__name__ == 'Styler':
+            res['html'] = val._repr_html_()
+        else:
+            res['text'] = repr(val)
+    after = set(f for f in os.listdir('.') if not f.endswith(SKIP))
+    res['files'] = sorted((after - before) | (set(_written(src)) & after))
+    return res
+def __new_ns():
+    plt.close('all'); matplotlib.rcdefaults()
+    return {'__name__':'__main__'}
+`;
+async function initPy(){
+  try{
+    stT.textContent='Pyodide yükleniyor…';
+    py=await loadPyodide();
+    stT.textContent='pandas, matplotlib yükleniyor…';
+    await py.loadPackage(['pandas','matplotlib','scipy','jinja2','micropip']);
+    stT.textContent='seaborn yükleniyor…';
+    const mp=py.pyimport('micropip');
+    await mp.install(['seaborn'].concat(window.EXTRA_PKGS||[]));
+    for(const [n,t] of Object.entries(DATA)) py.FS.writeFile(n,t);
+    await py.runPythonAsync(PY_SETUP);
+    window.__ns=py.runPython('__new_ns()');
+    st.className='ready'; stT.textContent='Python hazır';
+    cells.forEach(c=>c.btn.disabled=false);
+  }catch(e){ st.className='err'; stT.textContent='Yükleme hatası'; console.error(e);
+    alert('Pyodide yüklenemedi. İnternet bağlantınızı kontrol edin.\n'+e); }
+}
+async function execOne(c){
+  c.out.innerHTML=''; c.out.classList.add('show'); window.__currentOut=c.out;
+  c.el.style.opacity=1;
+  try{
+    const fn=py.globals.get('__run_cell');
+    const r=fn(c.cm.getValue(), window.__ns).toJs({dict_converter:Object.fromEntries});
+    fn.destroy();
+    if(r.stdout){const p=document.createElement('pre');p.className='txt';p.textContent=r.stdout;c.out.prepend(p);}
+    if(r.html){const d=document.createElement('div');d.style.overflowX='auto';d.innerHTML=r.html;c.out.appendChild(d);}
+    if(r.text){const p=document.createElement('pre');p.className='txt';p.textContent=r.text;c.out.appendChild(p);}
+    for(const im of (r.imgs||[])){const d=document.createElement('div');d.className='plot';const g=document.createElement('img');g.src='data:image/png;base64,'+im;g.alt='Grafik';d.appendChild(g);c.out.appendChild(d);}
+    for(const f of (r.files||[])){
+      const bytes=py.FS.readFile(f); const url=URL.createObjectURL(new Blob([bytes],{type:f.endsWith('.html')?'text/html':'application/octet-stream'}));
+      const d=document.createElement('div');d.className='dl';
+      d.innerHTML=`<a href="${url}" download="${f}">⬇ ${f} dosyasını indir (${(bytes.length/1048576).toFixed(1)} MB)</a> &nbsp;<a href="${url}" target="_blank" style="background:#0b3a47">Yeni sekmede aç</a>`;
+      c.out.appendChild(d);
+    }
+    if(!c.out.children.length){const p=document.createElement('pre');p.className='txt';p.style.color='#8a9296';p.textContent='✓ Çalıştı (çıktı yok)';c.out.appendChild(p);}
+    c.ran=true; c.cnt.textContent=++execCount; return true;
+  }catch(e){
+    let msg=String(e.message||e); const k=msg.lastIndexOf('File "<hücre>"');
+    if(k>0) msg=msg.slice(k);
+    const p=document.createElement('pre');p.className='txt err';p.textContent=msg;c.out.appendChild(p);
+    c.cnt.textContent='!'; return false;
+  }
+}
+async function runCell(i){
+  if(!py||busy) return; busy=true;
+  const target=cells[i];
+  target.btn.disabled=true; target.btn.textContent='⏳';
+  await new Promise(r=>setTimeout(r,20));
+  for(let k=0;k<i;k++){ if(!cells[k].ran){ cells[k].btn.textContent='⏳'; await new Promise(r=>setTimeout(r,10)); await execOne(cells[k]); cells[k].btn.textContent='▶ Çalıştır'; } }
+  await execOne(target);
+  target.btn.disabled=false; target.btn.textContent='▶ Çalıştır'; busy=false;
+}
+document.getElementById('runAll').onclick=async()=>{ if(!py)return; for(let i=0;i<cells.length;i++){ cells[i].ran=false; } await runCell(cells.length-1); };
+document.getElementById('resetNs').onclick=()=>{ if(!py)return; window.__ns=py.runPython('__new_ns()'); execCount=0;
+  cells.forEach(c=>{c.ran=false;c.cnt.textContent=' ';c.out.innerHTML='';c.out.classList.remove('show');}); };
+initPy();
+
+// ---------------- TOC -----------------
+const toc=document.getElementById('tocLinks');
+const heads=[...document.querySelectorAll('main h2[id], main h3[id]')];
+heads.forEach(h=>{const a=document.createElement('a');a.href='#'+h.id;a.innerHTML=h.innerHTML.replace(/<span class="num">(.*?)<\/span>/,'$1 ');if(h.tagName==='H3')a.className='sub';toc.appendChild(a);});
+const tocLinks=[...toc.querySelectorAll('a')];
+const io2=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){tocLinks.forEach(a=>a.classList.toggle('active',a.getAttribute('href')==='#'+e.target.id));}})},{rootMargin:'-80px 0px -70% 0px'});
+heads.forEach(h=>io2.observe(h));
+
+// ---------------- Search -----------------
+const norm=s=>s.toLocaleLowerCase('tr').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/ı/g,'i');
+const index=[];
+(function buildIndex(){
+  let sec='Giriş';
+  document.querySelectorAll('main h1, main h2, main h3, main p, main li, main .callout, main .cell, main .q, main pre.data').forEach(el=>{
+    if(el.closest('.callout')&&el.tagName!=='DIV') return;
+    if(el.closest('#datasets')) return;
+    if(el.matches('.q')){ index.push({el,sec:'Sınav',kind:'soru',text:el.querySelector('.qt').textContent+' '+[...el.querySelectorAll('label')].map(l=>l.textContent).join(' ')}); return; }
+    if(el.closest('.q')) return;
+    if(el.matches('h2,h3')){ sec=el.textContent; }
+    let kind='metin', text=el.textContent;
+    if(el.matches('.cell')){ kind='kod'; const c=cells.find(c=>c.el===el); text=c?c.cm.getValue():text; }
+    else if(el.matches('h1,h2,h3')) kind='başlık';
+    else if(el.matches('.callout')) kind='kutu';
+    else if(el.matches('.figdesc')) kind='grafik';
+    else if(el.matches('pre.data')) kind='veri';
+    index.push({el,sec,kind,text:text.replace(/\s+/g,' ').trim()});
+  });
+  index.forEach(x=>x.n=norm(x.text));
+})();
+const si=document.getElementById('search'), res=document.getElementById('results');
+let hits=[], act=-1;
+function esc(s){return s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+function snippet(text,terms){
+  const n=norm(text); let pos=-1;
+  for(const t of terms){const p=n.indexOf(t);if(p>=0){pos=p;break;}}
+  let s=Math.max(0,pos-60), e=Math.min(text.length,(pos<0?0:pos)+140);
+  let out=(s>0?'…':'')+text.slice(s,e)+(e<text.length?'…':'');
+  // highlight (norm keeps length for Turkish chars after NFD strip mostly; do case-insensitive regex)
+  let h=esc(out);
+  terms.forEach(t=>{ if(!t) return;
+    const re=new RegExp(t.split('').map(ch=>{const m={'i':'[iıİI]','s':'[sşŞS]','c':'[cçÇC]','g':'[gğĞG]','o':'[oöÖO]','u':'[uüÜU]'}; return m[ch]||ch.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}).join(''),'gi');
+    h=h.replace(re,m=>`<mark>${m}</mark>`); });
+  return h;
+}
+function doSearch(){
+  const q=si.value.trim();
+  if(q.length<2){res.classList.remove('open');res.innerHTML='';return;}
+  const terms=norm(q).split(/\s+/).filter(Boolean);
+  hits=index.map(x=>{let sc=0;for(const t of terms){const c=x.n.split(t).length-1;if(!c)return null;sc+=c;} if(x.kind==='başlık')sc+=5; if(x.kind==='kod')sc+=1; return {x,sc};}).filter(Boolean).sort((a,b)=>b.sc-a.sc).slice(0,40);
+  act=-1;
+  res.innerHTML=hits.length?`<div class="count">${hits.length} sonuç · <kbd>↑</kbd><kbd>↓</kbd> ile gez, <kbd>Enter</kbd> ile git</div>`+hits.map((h,i)=>`<div class="r" data-i="${i}"><div class="sec">${esc(h.x.sec)}<span class="kind">${h.x.kind}</span></div><div class="snip">${snippet(h.x.text,terms)}</div></div>`).join('')
+    :'<div class="empty">Sonuç bulunamadı.</div>';
+  res.classList.add('open');
+  res.querySelectorAll('.r').forEach(r=>r.onclick=()=>go(+r.dataset.i));
+}
+function go(i){
+  const el=hits[i].x.el; res.classList.remove('open');
+  const det=el.closest('details'); if(det) det.open=true;
+  el.scrollIntoView({behavior:'smooth',block:'center'});
+  el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
+}
+si.addEventListener('input',doSearch);
+si.addEventListener('focus',()=>{if(si.value.trim().length>=2)doSearch();});
+si.addEventListener('keydown',e=>{
+  const rs=[...res.querySelectorAll('.r')];
+  if(e.key==='ArrowDown'){act=Math.min(rs.length-1,act+1);}
+  else if(e.key==='ArrowUp'){act=Math.max(0,act-1);}
+  else if(e.key==='Enter'){ if(hits.length) go(act<0?0:act); return; }
+  else if(e.key==='Escape'){res.classList.remove('open');si.blur();return;}
+  else return;
+  e.preventDefault(); rs.forEach((r,k)=>r.classList.toggle('act',k===act)); if(rs[act]) rs[act].scrollIntoView({block:'nearest'});
+});
+document.addEventListener('keydown',e=>{ if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();si.focus();si.select();}
+  else if(e.key==='/'&&document.activeElement.tagName!=='INPUT'&&!document.activeElement.closest('.CodeMirror')){e.preventDefault();si.focus();}});
+document.addEventListener('click',e=>{if(!e.target.closest('.search-wrap'))res.classList.remove('open');});
+</script>
+</body>
+</html>

@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bölüm 2: Çizmeden Önce Düşünmek</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+<script src="https://cdn.jsdelivr.net/pyodide/v0.27.7/full/pyodide.js"></script>
+<style>
+:root{
+  --teal:#0b3a47; --amber:#b26a00; --lteal:#6fb3c2; --sand:#f0c987;
+  --bg:#f7f6f2; --paper:#ffffff; --ink:#1f2a30; --muted:#5f6b72; --line:#e2e0d8;
+  --code-bg:#fbfaf6;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:80px}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.65 "Segoe UI",system-ui,-apple-system,Roboto,sans-serif}
+header.top{position:sticky;top:0;z-index:50;background:var(--teal);color:#fff;display:flex;align-items:center;gap:16px;padding:10px 20px;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+header.top .brand{font-weight:600;white-space:nowrap}
+header.top .brand small{opacity:.7;font-weight:400;margin-left:6px}
+.search-wrap{position:relative;flex:1;max-width:560px;margin-left:auto}
+#search{width:100%;padding:9px 14px 9px 36px;border-radius:8px;border:none;font-size:15px;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235f6b72' stroke-width='2.5'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E") no-repeat 11px center}
+#search:focus{outline:3px solid var(--sand)}
+#results{position:absolute;top:44px;left:0;right:0;background:#fff;color:var(--ink);border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,.2);max-height:70vh;overflow:auto;display:none}
+#results.open{display:block}
+#results .r{padding:10px 14px;border-bottom:1px solid var(--line);cursor:pointer}
+#results .r:hover,#results .r.act{background:#eef5f6}
+#results .r .sec{font-size:12px;color:var(--amber);font-weight:600;text-transform:uppercase;letter-spacing:.03em}
+#results .r .kind{font-size:11px;background:var(--line);border-radius:4px;padding:0 5px;margin-left:6px;color:var(--muted);text-transform:none;letter-spacing:0}
+#results .r .snip{font-size:14px}
+#results .empty,#results .count{padding:10px 14px;color:var(--muted);font-size:13px}
+mark{background:#ffe08a;color:inherit;border-radius:2px;padding:0 1px}
+#status{font-size:13px;white-space:nowrap;display:flex;align-items:center;gap:8px}
+#status .dot{width:10px;height:10px;border-radius:50%;background:#f0c987;box-shadow:0 0 0 0 rgba(240,201,135,.7);animation:pulse 1.4s infinite}
+#status.ready .dot{background:#7bd88f;animation:none}
+#status.err .dot{background:#ff6b6b;animation:none}
+@keyframes pulse{70%{box-shadow:0 0 0 8px rgba(240,201,135,0)}100%{box-shadow:0 0 0 0 rgba(240,201,135,0)}}
+.layout{display:grid;grid-template-columns:260px minmax(0,1fr);gap:28px;max-width:1240px;margin:0 auto;padding:24px 20px 80px}
+nav.toc{position:sticky;top:76px;align-self:start;max-height:calc(100vh - 96px);overflow:auto;font-size:14px}
+nav.toc h4{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+nav.toc a{display:block;color:var(--ink);text-decoration:none;padding:4px 10px;border-left:3px solid transparent;border-radius:0 4px 4px 0}
+nav.toc a.sub{padding-left:24px;font-size:13px;color:var(--muted)}
+nav.toc a:hover{background:#ece9df}
+nav.toc a.active{border-left-color:var(--amber);background:#fff;font-weight:600;color:var(--teal)}
+nav.toc .tools{margin-top:16px;display:flex;flex-direction:column;gap:6px}
+main{background:var(--paper);border-radius:12px;padding:36px 48px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+h1{font-size:2rem;color:var(--teal);margin:0 0 4px;line-height:1.25}
+.subtitle{color:var(--muted);margin:0 0 24px}
+h2{font-size:1.45rem;color:var(--teal);border-bottom:2px solid var(--sand);padding-bottom:6px;margin:48px 0 16px}
+h2 .num{color:var(--amber);margin-right:8px}
+h3{font-size:1.12rem;margin:30px 0 10px;color:var(--ink)}
+code{font-family:"JetBrains Mono",Consolas,Menlo,monospace;font-size:.88em;background:#f1efe8;padding:1px 5px;border-radius:4px;color:#7a3e00}
+.lead{font-size:1.08rem;border-left:4px solid var(--amber);padding:4px 0 4px 16px;color:#33424a}
+.goals{background:#eef5f6;border-radius:10px;padding:16px 22px}
+.goals ul{margin:6px 0 0;padding-left:20px}
+.callout{border-radius:10px;padding:12px 18px;margin:18px 0;border-left:5px solid}
+.callout .t{font-weight:700;display:block;margin-bottom:2px}
+.callout.warn{background:#fff4e5;border-color:var(--amber)}
+.callout.warn .t{color:var(--amber)}
+.callout.tip{background:#eaf6f1;border-color:#2f8f6b}
+.callout.tip .t{color:#2f8f6b}
+.callout.note{background:#eef2f7;border-color:#4b6a8a}
+.callout.note .t{color:#4b6a8a}
+pre.data{background:var(--code-bg);border:1px dashed var(--line);border-radius:8px;padding:10px 14px;font-size:13px;overflow:auto}
+/* code cells */
+.cell{border:1px solid var(--line);border-radius:10px;margin:18px 0;overflow:hidden;background:var(--code-bg)}
+.cell .bar{display:flex;align-items:center;gap:8px;padding:6px 10px;background:#f1efe8;border-bottom:1px solid var(--line);font-size:12px;color:var(--muted)}
+.cell .bar .lbl{font-family:Consolas,monospace}
+.cell .bar .sp{flex:1}
+button{font:inherit;cursor:pointer;border-radius:6px;border:1px solid transparent}
+.btn{background:var(--teal);color:#fff;padding:4px 12px;font-size:13px}
+.btn:hover{filter:brightness(1.2)}
+.btn:disabled{opacity:.5;cursor:wait}
+.btn.ghost{background:transparent;color:var(--teal);border-color:#c9d3d6}
+.btn.ghost:hover{background:#fff}
+.btn.amber{background:var(--amber)}
+.CodeMirror{height:auto;font-size:14px;background:var(--code-bg);font-family:"JetBrains Mono",Consolas,Menlo,monospace}
+.CodeMirror-scroll{min-height:30px}
+.cm-s-default .cm-keyword{color:#8a3ffc}.cm-s-default .cm-string{color:#0b7a4b}.cm-s-default .cm-number{color:#b26a00}.cm-s-default .cm-comment{color:#8a9296;font-style:italic}.cm-s-default .cm-builtin{color:#0b5f7a}
+.out{border-top:1px solid var(--line);background:#fff;padding:0;display:none}
+.out.show{display:block}
+.out .txt{margin:0;padding:10px 14px;font:13px/1.5 Consolas,Menlo,monospace;white-space:pre-wrap;color:#333}
+.out .txt.err{color:#b00020;background:#fff5f5}
+.out .plot{padding:6px;overflow-x:auto}
+.out table{border-collapse:collapse;margin:10px 14px;font-size:13px}
+.out th,.out td{border:1px solid var(--line);padding:4px 10px;text-align:right}
+.out th{background:#f1efe8}
+.out .dl{margin:10px 14px}
+.out .dl a{display:inline-block;background:var(--amber);color:#fff;text-decoration:none;padding:5px 12px;border-radius:6px;font-size:13px}
+.figdesc{font-size:14px;color:var(--muted);background:#f6f5f0;border-radius:8px;padding:8px 14px;margin:-8px 0 14px;border:1px solid var(--line)}
+.figdesc::before{content:"🖼 Beklenen grafik: ";font-weight:600;color:var(--teal)}
+.flash{animation:flash 2.2s ease}
+@keyframes flash{0%,40%{background:#fff1bf;box-shadow:0 0 0 6px #fff1bf}100%{background:transparent;box-shadow:none}}
+details.data{border:1px solid var(--line);border-radius:8px;margin:8px 0;background:#fff}
+details.data summary{cursor:pointer;padding:8px 14px;font-weight:600;color:var(--teal)}
+details.data .tbl{max-height:260px;overflow:auto;padding:0 14px 10px}
+details.data table{border-collapse:collapse;font-size:13px}
+details.data td,details.data th{border:1px solid var(--line);padding:3px 8px}
+details.data th{background:#f1efe8;position:sticky;top:0}
+/* quiz */
+.q{border:1px solid var(--line);border-radius:10px;padding:14px 18px;margin:14px 0}
+.q .qt{font-weight:600;margin-bottom:8px}
+.q label{display:block;padding:6px 10px;border-radius:6px;cursor:pointer;border:1px solid transparent}
+.q label:hover{background:#f4f2ea}
+.q label.ok{background:#e3f4ea;border-color:#2f8f6b}
+.q label.no{background:#fde8e8;border-color:#d05353}
+.q input{margin-right:8px}
+.q .fb{font-size:14px;margin-top:6px;display:none}
+.q .fb.show{display:block}
+#score{font-weight:700;color:var(--teal)}
+.out img{max-width:100%;height:auto;display:block;margin:6px auto}
+table.choose{border-collapse:collapse;width:100%;font-size:14px;margin:10px 0}table.choose th,table.choose td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}table.choose th{background:#eef5f6;color:var(--teal)}
+.chnav{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:14px;margin:0 0 18px}.chnav a{color:var(--teal);text-decoration:none;border:1px solid var(--line);border-radius:6px;padding:4px 10px}.chnav a:hover{background:#eef5f6}.chnav .all{display:flex;gap:4px;flex-wrap:wrap}.chnav .all a.cur{background:var(--teal);color:#fff}
+.summary li{margin-bottom:6px}
+footer{text-align:center;color:var(--muted);font-size:13px;padding:30px}
+kbd{border:1px solid #bbb;border-bottom-width:2px;border-radius:4px;padding:0 5px;font-size:12px;background:#fff;color:#333}
+@media (max-width:900px){.layout{grid-template-columns:1fr}nav.toc{display:none}main{padding:22px 18px}header.top .brand small{display:none}#status span{display:none}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">Bölüm 2 <small>Çizmeden Önce Düşünmek</small></div>
+  <div class="search-wrap">
+    <input id="search" type="search" placeholder="Bölümde ara… (ör. soru, okuyucu, grafik türü)   Ctrl+K" autocomplete="off">
+    <div id="results"></div>
+  </div>
+  <div id="status"><div class="dot"></div><span id="statusText">Python yükleniyor…</span></div>
+</header>
+
+<div class="layout">
+<nav class="toc" id="toc">
+  <h4>İçindekiler</h4>
+  <div id="tocLinks"></div>
+  <div class="tools">
+    <button class="btn" id="runAll">▶ Tüm hücreleri çalıştır</button>
+    <button class="btn ghost" id="resetNs">↺ Python ortamını sıfırla</button>
+  </div>
+</nav>
+
+<main id="content">
+<div class="chnav"><a href="bolum01_ortami_kurmak.html">← Bölüm 1</a><div class="all">Bölümler: <a href="bolum01_ortami_kurmak.html" class="" title="Görselleştirme Ortamını Kurmak">1</a><a href="bolum02_cizmeden_once_dusunmek.html" class="cur" title="Çizmeden Önce Düşünmek">2</a><a href="bolum03_matplotlib_temelleri.html" class="" title="matplotlib Temelleri">3</a><a href="bolum04_cizgiler_noktalar.html" class="" title="Çizgiler ve Noktalar">4</a><a href="bolum05_cubuklar_pastalar_tablolar.html" class="" title="Çubuklar, Pastalar ve Tablolar">5</a><a href="bolum06_dagilimlar_izgaralar.html" class="" title="Dağılımlar ve Değer Izgaraları">6</a><a href="bolum07_ozellestirme.html" class="" title="Bir Grafiğin Her Parçasını Özelleştirmek">7</a><a href="bolum08_yerlesimler.html" class="" title="Yerleşimler: Bir Figürde Birçok Grafik">8</a><a href="bolum09_iletisim_kuran_tasarim.html" class="" title="İletişim Kuran Tasarım">9</a><a href="bolum10_yalan_soyleyen_grafikler.html" class="" title="Yalan Söyleyen Grafikler">10</a><a href="bolum11_seaborn_temelleri.html" class="" title="seaborn Temelleri">11</a><a href="bolum12_iliskiler_regresyon.html" class="" title="İlişkiler ve Regresyon">12</a><a href="bolum13_kategoriler.html" class="" title="Kategoriler">13</a><a href="bolum14_dagilimlar.html" class="" title="Dağılımlar">14</a><a href="bolum15_izgaralar_matrisler.html" class="" title="Izgaralar ve Matrisler">15</a><a href="bolum16_plotly_express.html" class="" title="plotly express ile Etkileşimli Grafikler">16</a><a href="bolum17_haritalar_is_grafikleri.html" class="" title="Haritalar ve İş Grafikleri">17</a></div><a href="bolum03_matplotlib_temelleri.html">Bölüm 3 →</a></div>
+<h1>Bölüm 2: Çizmeden Önce Düşünmek</h1>
+<p class="subtitle">Kod hücreleri tarayıcınızda <strong>Pyodide</strong> ile çalışır; Python kurmanıza gerek yok. Kodu değiştirip yeniden çalıştırabilirsiniz (<kbd>Shift</kbd>+<kbd>Enter</kbd>). Grafikler matplotlib ile resim olarak çizilir.</p>
+
+<p class="lead">Yöneticiniz Bölüm 1’deki sipariş dosyasını tek satırlık bir istekle gönderiyor: “Perşembe’ye bundan bir grafik yapabilir misin?” Bir defter açıp aklınıza gelen ilk sütunu çizebilirsiniz. <em>Bir</em> grafik elde edersiniz. Doğru grafik olup olmadığı ise henüz kimsenin sormadığı bir soruya bağlı: toplantıdaki insanlar ondan ne öğrenmeli?</p>
+
+<p>Bu bölüm, herhangi bir koddan önce gelen bir dakikalık düşünmeyle ilgili. Neredeyse her iş grafiğinin yanıtladığı beş soruyu, her birine uyan grafik türünü ve pasta grafiklerinin lehine ve aleyhine dürüst değerlendirmeyi öğreneceksiniz. Bölüm, tek bir yanlış sayı içermeden bir grafiğin nasıl yanıltabileceğine dair kısa bir örnekle bitiyor.</p>
+
+<div class="goals">
+<strong>Bu bölümün sonunda şunları yapabileceksiniz:</strong>
+<ul>
+<li>Belirsiz bir grafik isteğini bir soruya ve tek cümlelik bir mesaja dönüştürmek</li>
+<li>Bir grafiğin yanıtlayabileceği beş soruyu tanımak: karşılaştırma, zaman içinde değişim, yayılım, ilişki ve bütünün parçası</li>
+<li>“Hangi grafik?” tablosuyla her soru için bir grafik türü seçmek</li>
+<li>Bir pasta grafiğinin ne zaman işe yaradığına ve ne zaman çubuk grafiğin daha iyi olduğuna karar vermek</li>
+<li>Ekseni kesilmiş bir çubuk grafiği fark edip <code>plt.ylim()</code> ile düzeltmek</li>
+</ul>
+</div>
+
+<details class="data" id="datasets">
+<summary>📁 Bu bölümün veri dosyaları (sayfaya gömülü — Python’da doğrudan <code>pd.read_csv()</code> ile okunur)</summary>
+<div id="dataList" style="padding:0 14px 10px"></div>
+</details>
+<div class="callout note"><span class="t">📝 Bu sayfada</span>Kitabın bu bölümünün defterinde yalnızca üç kod hücresi var (Bölüm 2.5). Bölüm 2.2 ve 2.4’teki şekillerin kodu kitapta yok; onları Bölüm 1’in <code>orders_clean.csv</code> dosyasıyla yeniden üreten <strong>ek hücreler</strong> ekledim (“Ek:” ile başlıyorlar). Henüz öğrenmediğiniz komutlar içerebilirler; şimdilik yalnızca sonuçlarına bakın.</div>
+
+<section>
+<h2 id="s2-1"><span class="num">2.1</span>Grafikle Değil, Soruyla Başlayın</h2>
+<p>Bir grafik isteği nadiren belirgindir. “Siparişleri grafiğe dök” bir düzine farklı grafik anlamına gelebilir ve her biri farklı bir hikâye anlatır. Bir şey çizmeden önce isteği grafiğin yanıtlayacağı bir soruya dönüştürün. Yapamıyorsanız isteği yapana sorun. “Siparişlerle ilgili ne öğrenmek istiyorsunuz?” son derece profesyonel bir yanıttır.</p>
+<p>Bölüm 1 bir örnek verdi. Aynı dosyanın iki hızlı özeti farklı yönleri gösterdi: en sık web kamerası sipariş edildi, ama en büyük siparişleri monitörler getirdi. Sipariş sayılarının grafiği “müşteriler en çok ne alıyor?” sorusunu yanıtlar. Gelirin grafiği “bize en çok parayı ne kazandırıyor?” sorusunu yanıtlar. Aynı veri, farklı sorular, farklı grafikler.</p>
+
+<h3 id="s2-1-message">Önce mesajı yazın</h3>
+<p>Soruyu bildiğinizde, bir şey çizmeden önce yanıtı tek bir cümleyle yazın: “Gelirin çoğunu monitörler getiriyor.” Bu cümle grafiğin <em>mesajıdır</em>. Size iki kez yardım eder:</p>
+<ul>
+<li>Grafiğe neyin gireceğine karar verir. Mesaj ürüne göre gelirle ilgili; bu yüzden grafiğe gelir ve ürünler gerekir, başka bir şey değil.</li>
+<li>Grafiğin başlığı olabilir. Bulguyu söyleyen bir başlık, meşgul bir okuyucuya neye dikkat edeceğini söyler; onu kendisi çıkarmak zorunda bırakmaz. Bölüm 9.4 buna <em>çıkarım başlığı</em> (takeaway title) diyor ve nasıl yazılacağını gösteriyor.</li>
+</ul>
+<p>Veriye bakıp cümleyi yazamıyorsanız, henüz başkası için grafik yapmaya hazır değilsiniz. Önce keşfedin (kendi gözleriniz için hızlı, kaba grafikler sorun değil), sonra mesajın ne olduğuna karar verin.</p>
+</section>
+
+<section>
+<h2 id="s2-2"><span class="num">2.2</span>Bir Grafiğin Yanıtlayabileceği Beş Soru</h2>
+<p>İşte yapacağınız grafiklerin neredeyse hepsi beş sorudan birini yanıtlar. Her birinin ona en iyi uyan bir grafik türü vardır. Aşağıdaki örneklerin biri dışında hepsi, tek bir dosyanın çok farklı soruları nasıl yanıtlayabileceğini göstermek için Bölüm 1’deki sipariş verisini kullanıyor. Bu grafiklerin her birini çizmeyi sonraki bölümlerde öğreneceksiniz; şimdilik her birinin neyi kolay görülür kıldığına bakın.</p>
+<div class="cell"><textarea># Ek: bu kısmın grafikleri için hazırlık (kitapta yok)
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+
+plt.style.use('book.mplstyle')
+orders = pd.read_csv('orders_clean.csv', parse_dates=['order_date'])
+orders.shape</textarea></div>
+
+<h3 id="s2-2-compare">Kategorileri karşılaştırmak</h3>
+<p><em>Hangi ürün en çok gelir getiriyor? Hangi şehrin en çok siparişi var?</em> Bu sorular bir sayıyı kategoriler arasında karşılaştırır: ürünler, şehirler, ekipler, mağazalar. Olağan yanıt çubuk grafiklerdir, çünkü göz çubukların uzunluklarını hızlı ve doğru karşılaştırır.</p>
+<div class="cell"><textarea># Ek: ürüne göre gelir, sıralı yatay çubuklar
+by_product = orders.groupby('product')['revenue'].sum().sort_values()
+fig, ax = plt.subplots()
+ax.barh(by_product.index, by_product.values)
+ax.set(title='Revenue by product', xlabel='Revenue ($)')
+ax.xaxis.set_major_formatter('${x:,.0f}')
+plt.show()</textarea></div>
+<p class="figdesc">Ürüne göre gelirin altı yatay çubuğu; en üstte Monitor (yaklaşık 85.000 $) olacak şekilde en altta USB Cable’a doğru sıralanmış.</p>
+<p>Çubuklar sıralı; böylece sıranın kendisi bilgi taşır: tek bir sayıyı kontrol etmeden sıralamayı yukarıdan aşağı okuyabilirsiniz. Bölüm 5.1 çubuk grafikleri ele alıyor.</p>
+
+<h3 id="s2-2-time">Zaman içinde değişim</h3>
+<p><em>Satışlar artıyor mu? Nisan alışılmadık mıydı?</em> Kategoriler zaman noktaları olduğunda (günler, aylar, yıllar) bir çizgi grafik kullanın. Çizgi noktaları sırayla birleştirir; böylece göz eğilimi soldan sağa izler.</p>
+<div class="cell"><textarea># Ek: aylık gelir çizgisi
+monthly = orders.groupby(orders['order_date'].dt.strftime('%b'), sort=False)['revenue'].sum()
+monthly = monthly.reindex(['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'])
+fig, ax = plt.subplots()
+ax.plot(monthly.index, monthly.values, marker='o')
+ax.set(title='Monthly revenue, 2025', ylabel='Revenue ($)')
+ax.yaxis.set_major_formatter('${x:,.0f}')
+plt.show()</textarea></div>
+<p class="figdesc">Ocak–Haziran 2025 aylık gelir çizgisi; 22.000 $ ile 23.500 $ arasında oldukça yatay, Nisan’da yaklaşık 27.000 $’a yükseliyor ve Haziran’da yaklaşık 21.000 $’a düşüyor.</p>
+<p>Aylar çubuk da olabilir ve bir avuç dönem için bu sorun değil. Çok nokta olduğunda ya da eğilimin şekli mesaj olduğunda çizgi daha iyidir. Bölüm 4.1 ve 4.2 çizgi grafikleri ve gerçek tarihleri ele alıyor.</p>
+
+<h3 id="s2-2-spread">Yayılım</h3>
+<p><em>Siparişlerin çoğu küçük mü büyük mü? Olağandışı olanlar var mı?</em> Bazen soru bir toplam ya da ortalamayla değil, tek tek değerlerin nasıl yayıldığıyla, yani <em>dağılımla</em> ilgilidir. Bir histogram değerleri aralıklara (burada 250 $ genişliğinde) gruplar ve her birine kaç tanesinin düştüğünü gösterir.</p>
+<div class="cell"><textarea># Ek: sipariş değerlerinin histogramı, 250 $’lık aralıklar
+fig, ax = plt.subplots()
+ax.hist(orders['revenue'], bins=np.arange(0, 5750, 250), edgecolor='white')
+ax.set(title='Order values', xlabel='Order value ($)', ylabel='Number of orders')
+plt.show()
+print(f"Average order: ${orders['revenue'].mean():,.0f}; "
+      f"orders over $4,000: {(orders['revenue'] > 4000).sum()}")</textarea></div>
+<p class="figdesc">Sipariş değerlerinin histogramı. Yaklaşık 80 siparişle en uzun çubuk 0 $ ile 250 $ arasında; çubuklar hızla kısalıyor; 2.000 $, 4.300 $ ve 5.400 $ civarında küçük gruplar var.</p>
+<p>Ortalama sipariş yaklaşık 770 $, ama histogram çok az siparişin ona yakın olduğunu gösteriyor: siparişlerin çoğu 500 $’ın altında ve küçük bir büyük monitör siparişi grubu ortalamayı yukarı çekiyor. On üç sipariş 4.000 $’ın üzerindeydi. Kutu grafikleri aynı soruyu daha az yerde yanıtlar. Bölüm 6.1 ve 6.2 ikisini de açıklıyor.</p>
+
+<h3 id="s2-2-relation">İlişki</h3>
+<p><em>Daha çok reklamlı haftalar daha çok sipariş getiriyor mu?</em> Her öğe için iki sayınız olduğunda ve birlikte hareket edip etmediklerini bilmek istediğinizde bir saçılım grafiği kullanın. Her nokta bir öğedir, burada bir hafta, iki değerine göre yerleştirilmiştir.</p>
+<div class="cell"><textarea># Ek: uydurma 26 haftalık reklam ve sipariş verisi (kitaptaki şekle benzer)
+rng = np.random.default_rng(7)
+ad_spend = rng.uniform(300, 1500, 26)
+weekly_orders = np.round(6 + ad_spend / 85 + rng.normal(0, 2, 26))
+fig, ax = plt.subplots()
+ax.scatter(ad_spend, weekly_orders)
+ax.set(title='Ad spend and orders, 26 weeks', xlabel='Ad spend ($)',
+       ylabel='Orders per week')
+plt.show()</textarea></div>
+<p class="figdesc">26 haftanın saçılım grafiği. Reklam harcaması altta yaklaşık 300 $’dan 1.500 $’a, siparişler yanda 8’den 23’e uzanıyor; noktalar sol alttan sağ üste yükseliyor.</p>
+<p>Sipariş dosyasında reklam verisi yok; bu yüzden bu örnek 26 haftalık küçük, uydurma bir veri kümesi kullanıyor. Noktalar sol alttan sağ üste gidiyor: daha çok reklam harcanan haftalarda daha çok sipariş vardı. Bir saçılım grafiği iki şeyin birlikte hareket ettiğini gösterir; birinin diğerine neden olduğunu kanıtlamaz. Bölüm 4.5 saçılım grafiklerini ele alıyor, Bölüm 12.4 de iki sayının ne kadar yakından birlikte hareket ettiğinin nasıl ölçüleceğini gösteriyor.</p>
+
+<h3 id="s2-2-part">Bütünün parçası</h3>
+<p><em>Gelirimiz nereden geliyor?</em> Burada kategoriler anlamlı bir toplama ulaşır ve soru her payın ne kadar büyük olduğudur. Yığılmış bir çubuk her payı tek bir çubuğun bir bölümü olarak gösterir.</p>
+<div class="cell"><textarea># Ek: segmente göre gelir payı, tek yığılmış çubuk
+share = orders.groupby('segment')['revenue'].sum() / orders['revenue'].sum()
+fig, ax = plt.subplots(figsize=(5.5, 1.4))
+left = 0
+for seg in ['Consumer', 'Business', 'Unknown']:
+    ax.barh(['Revenue'], share[seg], left=left, label=seg)
+    if share[seg] > 0.05:
+        ax.text(left + share[seg] / 2, 0, f'{seg} {share[seg]:.0%}',
+                ha='center', va='center', color='white')
+    left += share[seg]
+ax.set_xlim(0, 1)
+ax.xaxis.set_major_formatter('{x:.0%}')
+plt.show()</textarea></div>
+<p class="figdesc">%0’dan %100’e tek bir yatay çubuk; %79 Consumer ve %20 Business olarak bölünmüş.</p>
+<p>Bireysel müşteriler gelirin %79’unu, kurumlar %20’sini getiriyor. (Son yarım yüzde, segmenti bilinmeyen siparişler; görülmeyecek kadar ince. Bölüm 2.4’teki pasta bu siparişleri dışarıda bırakıyor; bu yüzden %79 yerine %80 gösteriyor.) Pasta grafikleri aynı soruyu yanıtlar ve Bölüm 2.4 onların ne zaman iyi bir seçim olduğuna bakıyor. Bölüm 5 yığılmış çubukları (Bölüm 5.3) ve pastaları (Bölüm 5.5) çiziyor.</p>
+</section>
+
+<section>
+<h2 id="s2-3"><span class="num">2.3</span>“Hangi Grafik?” Tablosu</h2>
+<p>İşte beş soru tek bir yerde, artı grafiğin hiç yanıt olmadığı altıncı bir durum:</p>
+<div style="overflow-x:auto"><table class="choose">
+<thead><tr><th>Soru</th><th>Örnek</th><th>Grafik</th><th>Bölüm</th></tr></thead>
+<tbody>
+<tr><td>Kategorileri karşılaştırmak</td><td>Ürüne göre gelir</td><td>Çubuk grafik</td><td>5, 13</td></tr>
+<tr><td>Zaman içinde değişim</td><td>Aya göre gelir</td><td>Çizgi grafik</td><td>4, 12</td></tr>
+<tr><td>Yayılım</td><td>Siparişlerin ne kadar büyük olduğu</td><td>Histogram, kutu grafiği</td><td>6, 14</td></tr>
+<tr><td>İlişki</td><td>Reklam harcaması ve siparişler</td><td>Saçılım grafiği</td><td>4, 12</td></tr>
+<tr><td>Bütünün parçası</td><td>Segmente göre gelir</td><td>Yığılmış çubuk, pasta</td><td>5</td></tr>
+<tr><td>Kesin değerler</td><td>Fiyat listesi</td><td>Bir tablo</td><td>5</td></tr>
+</tbody></table></div>
+<p>Son satır göründüğünden daha önemlidir. Okuyucuların kesin sayılara (bir fiyat, bir hedef, bir rapor için bir rakam) bakması gerektiğinde, iyi biçimlendirilmiş bir tablo onlara her grafikten daha iyi hizmet eder. Grafikler örüntüleri gösterir; tablolar kesin değerleri verir. Bölüm 5.6, önemli sayılar öne çıksın diye bir tabloya biraz renk eklemeyi gösteriyor.</p>
+<p>Bazı sorular bunlardan ikisini birleştirir. “Her bölgenin satışları yıl içinde nasıl değişti?” hem zaman içinde değişim <em>hem</em> karşılaştırmadır; bu da bölge başına bir çizgi ya da bölge başına küçük bir grafik önerir (Bölüm 8.1). Ana sorudan başlayın ve ayrıntılara ikincisinin karar vermesine izin verin.</p>
+<div class="callout tip"><span class="t">💡 İpucu</span>Emin olmadığınızda grafiği önce kâğıda, kaba bir şekil ve bir başlıkla çizin. Bir dakika sürer ve grafiğin soruyu yanıtlayıp yanıtlamadığını çabucak gösterir. Kodu yeniden yazmak daha uzun sürer.</div>
+</section>
+
+<section>
+<h2 id="s2-4"><span class="num">2.4</span>Pasta Grafikleri: Lehine ve Aleyhine Dürüst Değerlendirme</h2>
+<p>Pasta grafiklerinin, geçimini grafik yaparak kazanan insanlar arasında kötü bir şöhreti vardır. Bunun bir kısmı moda, ama çoğunun gerçek bir nedeni var.</p>
+
+<h3 id="s2-4-against">Aleyhine</h3>
+<p>Bir pasta her payı bir açı ve bir alan olarak gösterir ve insanlar bunları uzunluklardan çok daha az doğru karşılaştırır. 1984’teki tanınmış bir çalışmada istatistikçiler William Cleveland ve Robert McGill insanlardan farklı biçimlerde gösterilen değerleri karşılaştırmalarını istediler ve açılara (pasta dilimleri) dair yargıları, ortak bir ölçek boyunca konumlara (çubukların uçları) dair yargılarından belirgin şekilde daha az doğruydu.</p>
+<p>Kendiniz deneyin. İşte Bölüm 2.2’deki ürüne göre gelir, bir pasta olarak:</p>
+<div class="cell"><textarea># Ek: ürüne göre gelir, pasta olarak
+fig, ax = plt.subplots()
+ax.pie(by_product.values[::-1], labels=None, startangle=90, counterclock=False,
+       colors=['#0b3a47', '#b26a00', '#6fb3c2', '#f0c987', '#c4c9ce', '#7d8a91'],
+       wedgeprops={'edgecolor': 'white'})
+ax.legend(by_product.index[::-1], loc='center left', bbox_to_anchor=(1, 0.5))
+ax.set_title('Revenue by product')
+plt.show()</textarea></div>
+<p class="figdesc">Sağında göstergesi olan ürüne göre gelir pastası. Monitor pastanın yarısından fazlasını alıyor; Headset ve Keyboard dilimleri yaklaşık aynı boyutta görünüyor, Mouse ve USB Cable ince şeritler.</p>
+<p>Monitörler açıkça en büyük dilim. Ama Headset Keyboard’dan büyük mü? Önce renkleri göstergeyle eşleştirmeniz, sonra farklı yönleri gösteren iki dilimi karşılaştırmanız gerekir. Bölüm 2.2’deki çubuk grafikte Headset’in çubuğunun biraz daha uzun olduğunu bir bakışta görebilirsiniz. Ve siyah-beyaz basılı baskıda daha soluk dilimleri birbirinden ayırmak neredeyse imkânsızdır.</p>
+<p>Sorunlar dilim sayısıyla büyür. Altı ya da daha fazla parçayla küçük dilimler etiket taşıyamayan şeritlere dönüşür ve gösterge okuyucunun gözlerini ileri geri gitmeye zorlar.</p>
+
+<h3 id="s2-4-for">Lehine</h3>
+<p>Bunların hiçbiri pastaların her zaman yanlış olduğu anlamına gelmez. Bir işi iyi yaparlar: bir parçanın bütünün çoğu, yaklaşık yarısı ya da çeyreği olduğunu göstermek. İnsanlar bu şekilleri tanımakta iyidir ve grafiklere hiç bakmayan okuyucular dahil herkes bir pastayı okumayı bilir.</p>
+<div class="cell"><textarea># Ek: segment payı, iki dilimli pasta (bilinmeyen segment hariç)
+known = orders[orders['segment'] != 'Unknown'].groupby('segment')['revenue'].sum()
+fig, ax = plt.subplots()
+ax.pie(known.values[::-1], labels=known.index[::-1], autopct='%.0f%%',
+       startangle=90, counterclock=False, textprops={'color': 'black'},
+       wedgeprops={'edgecolor': 'white'})
+ax.set_title('Revenue by segment')
+plt.show()</textarea></div>
+<p class="figdesc">İki dilimli bir pasta: %80 Consumer ve %20 Business; yüzdeler dilimlerin üzerine yazılmış.</p>
+<p>İki dilim ve üzerlerine yazılmış yüzdelerle “gelirimizin beşte dördü bireysel müşterilerden geliyor” mesajı bir saniyede anlaşılır. (Buradaki segment payları segmentin bilindiği siparişlere aittir; bu yüzden ince Unknown dilimi olmadan %100’e toplanırlar.)</p>
+<p>Makul bir kural: bir pastayı yalnızca iki ila dört parça olduğunda, parçalar anlamlı bir bütüne toplandığında ve mesaj bir parçanın ondaki payıyla ilgili olduğunda kullanın. Geri kalan her şey için çubuk kullanın. Bölüm 5 ikisinin de nasıl çizileceğini gösteriyor (Bölüm 5.1 ve 5.5).</p>
+</section>
+
+<section>
+<h2 id="s2-5"><span class="num">2.5</span>Dürüst Eksenler: İlk Bakış</h2>
+<p>Bir grafik, içinde tek bir yanlış sayı olmadan yanıltabilir. En yaygın yolu, değer ekseni sıfırdan başlamayan bir çubuk grafiktir. İşte Bölüm 1’den iki sayı kullanan kısa bir kod gösterimi.</p>
+
+<h3 id="s2-5-setup">Hazırlık</h3>
+<p>Bölüm 1’deki gibi <code>chapter-02</code> klasöründe yeni bir defter oluşturun ve içe aktarmalarla ve kitabın stiliyle başlayın:</p>
+<div class="cell"><textarea>import matplotlib.pyplot as plt
+
+plt.style.use('book.mplstyle')</textarea></div>
+
+<h3 id="s2-5-bar"><code>plt.bar()</code></h3>
+<p><code>plt.bar()</code> bir çubuk grafik çizer. <code>plt.plot()</code> gibi önce kategorileri, sonra değerleri alır. Bölüm 1, gelirleri birbirine benzeyen iki şehir buldu: Philadelphia yaklaşık 25.700 $, Los Angeles yaklaşık 24.700 $ getirdi. İşte ikisi, y ekseni <code>plt.ylim()</code> ile 24.000’den 26.000’e gidecek şekilde ayarlanmış:</p>
+<div class="cell"><textarea>cities = ['Philadelphia', 'Los Angeles']
+revenue = [25664, 24693]
+
+plt.bar(cities, revenue)
+plt.ylim(24000, 26000)
+plt.title('Revenue, January to June 2025')
+plt.show()</textarea></div>
+<p class="figdesc">Y ekseni 24.000’den 26.000’e giden iki çubuk. Philadelphia’nın çubuğu Los Angeles’ınkinin iki katından uzun görünüyor.</p>
+<p><code>plt.ylim()</code> y eksenindeki en düşük ve en yüksek değerleri ayarlar, <code>plt.title()</code> bir başlık ekler. Grafikteki her sayı doğru. Yine de gerçek fark %4 iken Philadelphia’nın çubuğu Los Angeles’ınkinin neredeyse iki buçuk katı uzun görünüyor. Bir çubuğun uzunluğu onun değeridir ve eksenin altını kesmek her çubuğun çoğunu keser; geride kalan parçalar da farkı abartır.</p>
+
+<h3 id="s2-5-fix">Ekseni düzeltmek</h3>
+<p>Çözüm, eksenin sıfırdan başlamasına izin vermektir. matplotlib bunu çubuk grafikler için kendisi yapar; bu yüzden tek yapmanız gereken <code>plt.ylim()</code>’i çıkarmaktır. Bunu aynı defterde, yukarıdaki hücreden sonra çalıştırın, çünkü <code>cities</code> ve <code>revenue</code>’yu yeniden kullanıyor:</p>
+<div class="cell"><textarea>plt.bar(cities, revenue)
+plt.title('Revenue, January to June 2025')
+plt.show()</textarea></div>
+<p class="figdesc">Sıfırdan başlayan bir y ekseni üzerinde aynı iki çubuk. Neredeyse aynı yükseklikteler.</p>
+<p>Grafik şimdi doğruyu söylüyor: iki şehir neredeyse aynı geliri getirdi. (İki grafikte de hâlâ eksen etiketleri eksik; Bölüm 3.3 onları ekliyor.) Sınırları kendiniz ayarlamanız gerekiyorsa altı sıfırda tutun, örneğin <code>plt.ylim(0, 30000)</code>.</p>
+<p>Kural çubuklar için katıdır, çünkü uzunlukları değeri taşır. Çizgi grafikler farklıdır: bir çizginin yüksekliği bir uzunluk olarak okunmaz; bu yüzden değişimler küçük ama önemli olduğunda sıfırdan başlamayan bir y ekseni dürüst seçim olabilir. Bölüm 10.1 kesilmiş bir eksenin ne zaman yanılttığını ve ne zaman sorun olmadığını, Bölüm 10’un geri kalanı da grafiklerin başka nasıl yanlış gidebileceğini ele alıyor.</p>
+</section>
+
+<section>
+<h2 id="ozet">Bölüm Özeti</h2>
+<ul class="summary">
+<li>Çizmeden önce isteği bir soruya dönüştürün ve yanıtı tek cümlelik bir mesaj olarak yazın. Mesaj grafiğe neyin gireceğine karar verir ve başlığı olabilir.</li>
+<li>Kategorileri, sıra bir anlam taşısın diye sıralanmış çubuklarla karşılaştırın.</li>
+<li>Zaman içindeki değişimi bir çizgi grafikle gösterin.</li>
+<li>Değerlerin nasıl yayıldığını bir histogram ya da kutu grafiğiyle gösterin.</li>
+<li>İki sayının birlikte hareket edip etmediğini bir saçılım grafiğiyle gösterin ve birlikte hareket etmenin birinin diğerine neden olduğunu kanıtlamadığını unutmayın.</li>
+<li>Bütünün parçalarını yığılmış bir çubukla ya da iki ila dört parça olduğunda ve mesaj bir parçanın payıyla ilgili olduğunda bir pastayla gösterin. Okuyucuların kesin değerlere ihtiyacı olduğunda bir tablo kullanın.</li>
+<li>Bir çubuk grafiğin değer ekseni sıfırdan başlamalıdır; yüksek bir alt değerle <code>plt.ylim()</code> küçük farkları devasa gösterir.</li>
+</ul>
+<p>Artık hangi grafiği çizeceğinizi biliyorsunuz. Bölüm 3 onu matplotlib ile düzgünce, bir başlık, eksen etiketleri, bir gösterge ve bir slayta koyabileceğiniz bir dosyayla nasıl çizeceğinizi gösteriyor.</p>
+
+<h3 id="oyun">Kendi kodunuzu deneyin</h3>
+<p>Aşağıdaki hücre bir oyun alanı. Yukarıdaki değişkenler (<code>orders</code>, <code>cities</code>, <code>revenue</code>…) burada kullanılabilir.</p>
+<div class="cell"><textarea># Örnek: aynı veri, iki soru — sipariş sayısı mı, gelir mi?
+fig, axes = plt.subplots(1, 2, figsize=(7, 2.8), layout='constrained')
+orders['product'].value_counts().sort_values().plot.barh(ax=axes[0])
+axes[0].set(title='What do customers buy most?', ylabel='')
+orders.groupby('product')['revenue'].sum().sort_values().plot.barh(ax=axes[1])
+axes[1].set(title='What earns the most?', ylabel='')
+plt.show()</textarea></div>
+</section>
+
+<section>
+<h2 id="quiz">Sınav</h2>
+<p>Bir seçeneğe tıklayın; doğru cevap ve açıklama hemen görünür. Puan: <span id="score">0 / 8</span> &nbsp;<button class="btn ghost" id="quizReset">Sıfırla</button></p>
+<div id="quizBox"></div>
+</section>
+
+<div class="chnav"><a href="bolum01_ortami_kurmak.html">← Bölüm 1</a><div class="all">Bölümler: <a href="bolum01_ortami_kurmak.html" class="" title="Görselleştirme Ortamını Kurmak">1</a><a href="bolum02_cizmeden_once_dusunmek.html" class="cur" title="Çizmeden Önce Düşünmek">2</a><a href="bolum03_matplotlib_temelleri.html" class="" title="matplotlib Temelleri">3</a><a href="bolum04_cizgiler_noktalar.html" class="" title="Çizgiler ve Noktalar">4</a><a href="bolum05_cubuklar_pastalar_tablolar.html" class="" title="Çubuklar, Pastalar ve Tablolar">5</a><a href="bolum06_dagilimlar_izgaralar.html" class="" title="Dağılımlar ve Değer Izgaraları">6</a><a href="bolum07_ozellestirme.html" class="" title="Bir Grafiğin Her Parçasını Özelleştirmek">7</a><a href="bolum08_yerlesimler.html" class="" title="Yerleşimler: Bir Figürde Birçok Grafik">8</a><a href="bolum09_iletisim_kuran_tasarim.html" class="" title="İletişim Kuran Tasarım">9</a><a href="bolum10_yalan_soyleyen_grafikler.html" class="" title="Yalan Söyleyen Grafikler">10</a><a href="bolum11_seaborn_temelleri.html" class="" title="seaborn Temelleri">11</a><a href="bolum12_iliskiler_regresyon.html" class="" title="İlişkiler ve Regresyon">12</a><a href="bolum13_kategoriler.html" class="" title="Kategoriler">13</a><a href="bolum14_dagilimlar.html" class="" title="Dağılımlar">14</a><a href="bolum15_izgaralar_matrisler.html" class="" title="Izgaralar ve Matrisler">15</a><a href="bolum16_plotly_express.html" class="" title="plotly express ile Etkileşimli Grafikler">16</a><a href="bolum17_haritalar_is_grafikleri.html" class="" title="Haritalar ve İş Grafikleri">17</a></div><a href="bolum03_matplotlib_temelleri.html">Bölüm 3 →</a></div>
+</main>
+</div>
+<footer>Bölüm 2 · Çizmeden Önce Düşünmek — Pyodide ile etkileşimli Türkçe sürüm</footer>
+
+<script>
+
+const DATA = {"orders_clean.csv": "order_id,order_date,product,city,quantity,unit_price,revenue,segment\nORD-1001,2025-03-08,Webcam,Los Angeles,5,259.0,1295.0,Consumer\nORD-1003,2025-03-22,Webcam,Philadelphia,2,259.0,518.0,Consumer\nORD-1004,2025-04-15,USB Cable,San Francisco,3,19.9,59.7,Consumer\nORD-1005,2025-05-01,Monitor,Los Angeles,4,1099.0,4396.0,Consumer\nORD-1006,2025-01-16,Headset,New York,1,189.0,189.0,Business\nORD-1007,2025-04-30,Mouse,New York,1,49.9,49.9,Business\nORD-1008,2025-06-17,Webcam,New York,2,259.0,518.0,Consumer\nORD-1009,2025-01-28,Webcam,Philadelphia,1,259.0,259.0,Business\nORD-1010,2025-03-30,Headset,Seattle,3,189.0,567.0,Consumer\nORD-1011,2025-05-27,Keyboard,New York,3,129.0,387.0,Consumer\nORD-1012,2025-01-04,Monitor,San Francisco,2,1099.0,2198.0,Consumer\nORD-1013,2025-02-27,Mouse,Los Angeles,4,49.9,199.6,Consumer\nORD-1016,2025-05-27,Webcam,Seattle,4,259.0,1036.0,Business\nORD-1017,2025-06-13,Keyboard,Seattle,1,129.0,129.0,Consumer\nORD-1018,2025-03-20,Webcam,San Francisco,5,259.0,1295.0,Business\nORD-1019,2025-02-10,Webcam,Philadelphia,4,259.0,1036.0,Consumer\nORD-1020,2025-04-30,Monitor,New York,2,1099.0,2198.0,Consumer\nORD-1021,2025-01-01,Webcam,New York,5,259.0,1295.0,Business\nORD-1022,2025-01-28,Headset,Los Angeles,1,189.0,189.0,Consumer\nORD-1023,2025-02-20,Keyboard,Denver,3,129.0,387.0,Consumer\nORD-1024,2025-01-27,Webcam,New York,1,259.0,259.0,Consumer\nORD-1025,2025-06-25,Mouse,Unknown,3,49.9,149.7,Consumer\nORD-1026,2025-02-06,Webcam,Denver,5,259.0,1295.0,Consumer\nORD-1027,2025-03-20,Mouse,Unknown,2,49.9,99.8,Consumer\nORD-1028,2025-03-30,USB Cable,Seattle,5,19.9,99.5,Consumer\nORD-1029,2025-04-01,Mouse,Los Angeles,1,49.9,49.9,Consumer\nORD-1030,2025-01-26,Headset,Seattle,1,189.0,189.0,Business\nORD-1031,2025-05-14,Headset,Philadelphia,1,189.0,189.0,Consumer\nORD-1032,2025-01-20,Keyboard,Denver,2,129.0,258.0,Consumer\nORD-1033,2025-05-19,USB Cable,San Francisco,3,19.9,59.7,Consumer\nORD-1034,2025-03-09,Webcam,Unknown,2,259.0,518.0,Consumer\nORD-1035,2025-04-07,Keyboard,New York,5,129.0,645.0,Consumer\nORD-1036,2025-01-20,Webcam,Los Angeles,1,259.0,259.0,Business\nORD-1037,2025-02-27,Keyboard,New York,1,129.0,129.0,Consumer\nORD-1038,2025-02-21,USB Cable,New York,4,19.9,79.6,Consumer\nORD-1039,2025-02-05,Keyboard,New York,4,129.0,516.0,Consumer\nORD-1040,2025-03-13,Headset,Philadelphia,4,189.0,756.0,Business\nORD-1041,2025-04-08,Mouse,New York,2,49.9,99.8,Business\nORD-1044,2025-01-18,Webcam,Seattle,2,259.0,518.0,Consumer\nORD-1045,2025-04-15,Headset,Los Angeles,1,189.0,189.0,Consumer\nORD-1046,2025-04-08,Keyboard,San Francisco,4,129.0,516.0,Consumer\nORD-1047,2025-05-05,USB Cable,New York,3,19.9,59.7,Consumer\nORD-1048,2025-03-17,USB Cable,Philadelphia,4,19.9,79.6,Business\nORD-1049,2025-03-20,Monitor,Los Angeles,5,1099.0,5495.0,Business\nORD-1050,2025-06-15,Webcam,New York,5,259.0,1295.0,Consumer\nORD-1051,2025-03-30,USB Cable,San Francisco,4,19.9,79.6,Consumer\nORD-1052,2025-02-22,Keyboard,New York,3,129.0,387.0,Consumer\nORD-1053,2025-06-16,Mouse,Los Angeles,4,49.9,199.6,Business\nORD-1054,2025-01-16,USB Cable,New York,1,19.9,19.9,Consumer\nORD-1055,2025-03-15,USB Cable,Denver,5,19.9,99.5,Consumer\nORD-1056,2025-02-15,Headset,New York,1,189.0,189.0,Consumer\nORD-1057,2025-01-24,USB Cable,Los Angeles,3,19.9,59.7,Consumer\nORD-1058,2025-05-19,Webcam,Philadelphia,1,259.0,259.0,Business\nORD-1059,2025-06-02,Mouse,New York,4,49.9,199.6,Consumer\nORD-1060,2025-03-17,Webcam,Los Angeles,4,259.0,1036.0,Consumer\nORD-1061,2025-05-28,Headset,New York,2,189.0,378.0,Consumer\nORD-1062,2025-01-29,Webcam,Seattle,4,259.0,1036.0,Consumer\nORD-1063,2025-01-24,Headset,Los Angeles,4,189.0,756.0,Consumer\nORD-1064,2025-03-28,Mouse,Seattle,5,49.9,249.5,Consumer\nORD-1065,2025-03-18,Mouse,San Francisco,1,49.9,49.9,Business\nORD-1066,2025-04-17,Mouse,New York,4,49.9,199.6,Consumer\nORD-1067,2025-03-20,Keyboard,Philadelphia,2,129.0,258.0,Consumer\nORD-1068,2025-06-16,Headset,New York,1,189.0,189.0,Business\nORD-1069,2025-05-04,Keyboard,San Francisco,5,129.0,645.0,Consumer\nORD-1070,2025-05-01,Mouse,New York,5,49.9,249.5,Consumer\nORD-1071,2025-02-14,Keyboard,New York,1,129.0,129.0,Consumer\nORD-1072,2025-06-14,Keyboard,Unknown,1,129.0,129.0,Consumer\nORD-1073,2025-05-29,USB Cable,San Francisco,5,19.9,99.5,Consumer\nORD-1074,2025-01-11,Headset,Seattle,5,189.0,945.0,Consumer\nORD-1075,2025-05-29,Webcam,New York,1,259.0,259.0,Business\nORD-1076,2025-04-02,USB Cable,Los Angeles,3,19.9,59.7,Consumer\nORD-1077,2025-05-28,Headset,New York,4,189.0,756.0,Consumer\nORD-1078,2025-06-27,Headset,New York,1,189.0,189.0,Consumer\nORD-1079,2025-02-09,Webcam,Denver,1,259.0,259.0,Consumer\nORD-1080,2025-02-03,Monitor,Philadelphia,2,1099.0,2198.0,Business\nORD-1081,2025-06-07,USB Cable,New York,2,19.9,39.8,Business\nORD-1082,2025-04-15,USB Cable,Los Angeles,1,19.9,19.9,Consumer\nORD-1083,2025-03-25,USB Cable,Philadelphia,1,19.9,19.9,Business\nORD-1084,2025-01-25,Webcam,New York,4,259.0,1036.0,Consumer\nORD-1085,2025-03-14,USB Cable,Philadelphia,2,19.9,39.8,Unknown\nORD-1086,2025-04-17,USB Cable,New York,3,19.9,59.7,Business\nORD-1087,2025-01-27,Keyboard,Unknown,4,129.0,516.0,Consumer\nORD-1088,2025-04-28,USB Cable,New York,2,19.9,39.8,Consumer\nORD-1089,2025-02-05,Monitor,Los Angeles,3,1099.0,3297.0,Consumer\nORD-1090,2025-05-14,USB Cable,Seattle,4,19.9,79.6,Consumer\nORD-1091,2025-02-18,Headset,New York,3,189.0,567.0,Consumer\nORD-1092,2025-01-21,Mouse,San Francisco,1,49.9,49.9,Business\nORD-1093,2025-04-13,Monitor,New York,4,1099.0,4396.0,Business\nORD-1094,2025-01-03,Monitor,San Francisco,4,1099.0,4396.0,Consumer\nORD-1095,2025-02-13,USB Cable,New York,5,19.9,99.5,Consumer\nORD-1096,2025-06-30,Monitor,New York,1,1099.0,1099.0,Consumer\nORD-1097,2025-05-17,Monitor,Los Angeles,2,1099.0,2198.0,Consumer\nORD-1098,2025-04-06,Monitor,Unknown,5,1099.0,5495.0,Consumer\nORD-1099,2025-06-23,USB Cable,San Francisco,1,19.9,19.9,Consumer\nORD-1100,2025-03-23,Webcam,New York,1,259.0,259.0,Consumer\nORD-1101,2025-03-28,Monitor,Unknown,5,1099.0,5495.0,Consumer\nORD-1103,2025-05-11,Monitor,New York,5,1099.0,5495.0,Consumer\nORD-1104,2025-04-26,USB Cable,Los Angeles,4,19.9,79.6,Consumer\nORD-1105,2025-05-12,Monitor,Philadelphia,5,1099.0,5495.0,Consumer\nORD-1106,2025-03-29,USB Cable,San Francisco,3,19.9,59.7,Consumer\nORD-1107,2025-02-25,USB Cable,San Francisco,3,19.9,59.7,Consumer\nORD-1108,2025-04-07,USB Cable,Philadelphia,4,19.9,79.6,Business\nORD-1109,2025-03-12,Keyboard,New York,1,129.0,129.0,Consumer\nORD-1110,2025-06-17,Headset,New York,3,189.0,567.0,Business\nORD-1111,2025-03-17,Keyboard,Unknown,5,129.0,645.0,Consumer\nORD-1112,2025-04-23,Webcam,Denver,3,259.0,777.0,Consumer\nORD-1113,2025-02-21,Webcam,Denver,1,259.0,259.0,Business\nORD-1114,2025-05-13,Headset,Los Angeles,3,189.0,567.0,Business\nORD-1115,2025-01-20,Webcam,New York,4,259.0,1036.0,Consumer\nORD-1116,2025-03-04,Mouse,New York,5,49.9,249.5,Business\nORD-1117,2025-06-08,Webcam,Philadelphia,3,259.0,777.0,Consumer\nORD-1118,2025-05-24,USB Cable,Los Angeles,2,19.9,39.8,Consumer\nORD-1119,2025-03-22,Headset,New York,1,189.0,189.0,Consumer\nORD-1120,2025-01-20,Webcam,Denver,1,259.0,259.0,Consumer\nORD-1121,2025-05-14,Headset,San Francisco,2,189.0,378.0,Consumer\nORD-1122,2025-04-23,Keyboard,New York,2,129.0,258.0,Consumer\nORD-1123,2025-04-07,Mouse,Philadelphia,4,49.9,199.6,Consumer\nORD-1125,2025-05-09,USB Cable,Philadelphia,5,19.9,99.5,Business\nORD-1126,2025-02-03,Headset,New York,3,189.0,567.0,Unknown\nORD-1127,2025-04-07,Webcam,New York,1,259.0,259.0,Consumer\nORD-1128,2025-04-15,Keyboard,Denver,1,129.0,129.0,Business\nORD-1129,2025-03-31,Webcam,Philadelphia,2,259.0,518.0,Business\nORD-1131,2025-06-09,Monitor,Philadelphia,4,1099.0,4396.0,Consumer\nORD-1132,2025-04-08,Webcam,San Francisco,3,259.0,777.0,Consumer\nORD-1133,2025-06-11,Webcam,Philadelphia,3,259.0,777.0,Consumer\nORD-1134,2025-04-29,Mouse,New York,1,49.9,49.9,Consumer\nORD-1135,2025-03-04,Webcam,New York,4,259.0,1036.0,Consumer\nORD-1136,2025-05-22,USB Cable,Philadelphia,3,19.9,59.7,Consumer\nORD-1137,2025-02-16,Headset,Seattle,1,189.0,189.0,Consumer\nORD-1138,2025-04-12,Keyboard,Los Angeles,4,129.0,516.0,Business\nORD-1139,2025-06-19,Monitor,New York,1,1099.0,1099.0,Consumer\nORD-1140,2025-01-08,Mouse,New York,2,49.9,99.8,Consumer\nORD-1141,2025-05-24,Keyboard,New York,2,129.0,258.0,Business\nORD-1142,2025-01-11,Webcam,New York,3,259.0,777.0,Consumer\nORD-1144,2025-01-01,Mouse,Philadelphia,3,49.9,149.7,Consumer\nORD-1145,2025-04-10,Headset,San Francisco,2,189.0,378.0,Business\nORD-1146,2025-02-13,Webcam,Los Angeles,4,259.0,1036.0,Consumer\nORD-1147,2025-02-14,Webcam,New York,4,259.0,1036.0,Consumer\nORD-1148,2025-01-28,USB Cable,New York,1,19.9,19.9,Business\nORD-1149,2025-06-18,Keyboard,New York,4,129.0,516.0,Consumer\nORD-1150,2025-02-13,Mouse,Los Angeles,3,49.9,149.7,Consumer\nORD-1151,2025-02-20,Webcam,Los Angeles,4,259.0,1036.0,Consumer\nORD-1152,2025-06-04,Keyboard,Seattle,5,129.0,645.0,Consumer\nORD-1153,2025-06-14,Webcam,Philadelphia,2,259.0,518.0,Consumer\nORD-1154,2025-05-25,Mouse,New York,4,49.9,199.6,Consumer\nORD-1155,2025-05-30,Mouse,New York,1,49.9,49.9,Consumer\nORD-1156,2025-01-30,USB Cable,Denver,5,19.9,99.5,Consumer\nORD-1157,2025-01-23,Webcam,Los Angeles,1,259.0,259.0,Consumer\nORD-1159,2025-06-17,Mouse,Seattle,1,49.9,49.9,Consumer\nORD-1160,2025-06-12,Mouse,Philadelphia,1,49.9,49.9,Consumer\nORD-1161,2025-05-11,Mouse,Los Angeles,4,49.9,199.6,Consumer\nORD-1162,2025-06-01,Keyboard,Los Angeles,5,129.0,645.0,Consumer\nORD-1163,2025-06-01,Keyboard,Los Angeles,2,129.0,258.0,Consumer\nORD-1164,2025-05-03,USB Cable,Los Angeles,4,19.9,79.6,Consumer\nORD-1165,2025-01-28,Monitor,Philadelphia,4,1099.0,4396.0,Consumer\nORD-1166,2025-04-05,Monitor,New York,4,1099.0,4396.0,Business\nORD-1167,2025-01-29,Headset,New York,1,189.0,189.0,Consumer\nORD-1168,2025-02-06,Webcam,Seattle,2,259.0,518.0,Consumer\nORD-1169,2025-06-09,Headset,San Francisco,3,189.0,567.0,Business\nORD-1170,2025-05-15,USB Cable,Denver,3,19.9,59.7,Consumer\nORD-1171,2025-05-21,Webcam,San Francisco,1,259.0,259.0,Consumer\nORD-1172,2025-02-06,Monitor,New York,5,1099.0,5495.0,Consumer\nORD-1173,2025-05-26,Headset,San Francisco,2,189.0,378.0,Business\nORD-1174,2025-04-21,USB Cable,Philadelphia,3,19.9,59.7,Unknown\nORD-1175,2025-04-02,Monitor,New York,2,1099.0,2198.0,Consumer\nORD-1176,2025-01-24,Keyboard,Los Angeles,1,129.0,129.0,Consumer\nORD-1177,2025-05-12,Keyboard,New York,5,129.0,645.0,Consumer\nORD-1178,2025-02-20,Monitor,New York,1,1099.0,1099.0,Consumer\nORD-1179,2025-03-24,Keyboard,New York,5,129.0,645.0,Consumer\nORD-1180,2025-04-29,Headset,New York,1,189.0,189.0,Consumer\nORD-1181,2025-02-26,Headset,San Francisco,5,189.0,945.0,Business\nORD-1182,2025-06-27,Monitor,New York,5,1099.0,5495.0,Consumer\nORD-1183,2025-02-10,USB Cable,New York,4,19.9,79.6,Consumer\nORD-1184,2025-04-09,USB Cable,New York,1,19.9,19.9,Consumer\nORD-1185,2025-03-09,USB Cable,Denver,2,19.9,39.8,Consumer\nORD-1186,2025-03-15,Mouse,Denver,4,49.9,199.6,Consumer\nORD-1187,2025-03-15,Mouse,San Francisco,2,49.9,99.8,Consumer\nORD-1188,2025-06-03,USB Cable,Philadelphia,1,19.9,19.9,Consumer\nORD-1189,2025-06-09,Headset,San Francisco,2,189.0,378.0,Consumer\nORD-1190,2025-04-07,Headset,New York,1,189.0,189.0,Consumer\nORD-1191,2025-01-14,Webcam,Denver,3,259.0,777.0,Consumer\nORD-1192,2025-04-06,Monitor,Philadelphia,2,1099.0,2198.0,Consumer\nORD-1193,2025-02-03,Webcam,Philadelphia,1,259.0,259.0,Consumer\nORD-1194,2025-04-11,Webcam,New York,2,259.0,518.0,Consumer\n", "book.mplstyle": "# Chart style for \"Master Data Visualization\".\n# Load it with plt.style.use('book.mplstyle') so your charts match the book.\n# Chapter 7 explains every line; delete one and see what changes.\n\n# Four colors that stay different when printed in black and white:\n# dark teal, amber, light teal, sand. Lines also change style\n# (solid, dashed, dotted, dash-dot) so they can be told apart in gray.\naxes.prop_cycle: cycler('color', ['0b3a47', 'b26a00', '6fb3c2', 'f0c987']) + cycler('linestyle', ['-', '--', ':', '-.'])\n\n# Size in inches (fits a printed book page) and text sizes in points\nfigure.figsize: 5.5, 3.4\nfont.size: 9.5\naxes.titlesize: 11\naxes.titlelocation: left\naxes.labelsize: 9.5\nlegend.fontsize: 9\n\n# Thicker lines; if you turn the grid on (ax.grid()), it is light and sits behind the data\nlines.linewidth: 2\naxes.axisbelow: True\ngrid.color: d9dde1\n"};
+</script>
+<script>
+// ---------------- Quiz -----------------
+const QUIZ = [
+ {q:"Yöneticiniz “siparişlerin bir grafiğini” istiyor. Kod yazmadan önce ne yapmalısınız?",
+  o:["Her sütunu çizip en iyi görüneni tutmak","Grafiğin yönetici için hangi soruyu yanıtlaması gerektiğine karar vermek","Herkes okumayı bildiği için bir pasta grafik çizmek","Şirketin slaytlarına uyan renk ve boyut seçmek"],a:1,
+  e:"Önce soru, sonra tek cümlelik mesaj (2.1)."},
+ {q:"“Son iki yılda aylık satışlar nasıl değişti?” sorusuna hangi grafik uyar?",
+  o:["Pasta grafik","Saçılım grafiği","Çizgi grafik","Histogram"],a:2,
+  e:"Zaman içinde değişim → çizgi grafik."},
+ {q:"Müşterilerinizin siparişlerinin çoğunun küçük mü, büyük mü yoksa arada mı olduğunu bilmek istiyorsunuz. Bu hangi sorudur?",
+  o:["Kategorileri karşılaştırmak","Bütünün parçası","İlişki","Yayılım"],a:3,
+  e:"Tek tek değerlerin nasıl dağıldığı → histogram ya da kutu grafiği."},
+ {q:"Bir saçılım grafiği, daha çok personeli olan mağazaların satışlarının daha yüksek olduğunu gösteriyor. Ne sonuç çıkarabilirsiniz?",
+  o:["Birlikte hareket ediyorlar, ama bu daha çok personelin daha yüksek satışa neden olduğunu kanıtlamaz","Noktalar sağa yükseldiği için daha çok personel almak satışları artırır","Yoğun mağazalar yardıma ihtiyaç duyduğu için yüksek satışlar personel alımına neden olur","Hiçbir şey, çünkü saçılım grafiği yalnızca bir sütunun yayılımını gösterir"],a:0,
+  e:"Birlikte hareket etmek nedensellik değildir."},
+ {q:"Bir pasta grafik ne zaman makul bir seçimdir?",
+  o:["Sekiz ürünün gelirini, her ürün için bir dilimle karşılaştırırken","Değerlerin bir yıl boyunca aydan aya nasıl değiştiğini gösterirken","Mesaj bir parçanın payı olduğunda, bir bütünün iki ila dört parçası için","Okuyucunun her dilimin kesin değerine dolarına kadar ihtiyacı olduğunda"],a:2,
+  e:"2–4 parça, anlamlı bir bütün ve tek bir parçanın payı (2.4)."},
+ {q:"İnsanlar değerleri neden bir pasta grafikten çok bir çubuk grafikte daha doğru karşılaştırır?",
+  o:["Çubuklar pasta dilimlerinden geniştir, karşılaştırılacak daha çok renk vardır","Ortak bir ölçek üzerindeki uzunlukları yargılamak açılardan daha kolaydır","Çubuk grafikler varsayılan olarak her kesin değeri çubuğuna yazar","Pasta bir gösterge ister ve renkleri göstergeyle eşleştirmek yavaştır"],a:1,
+  e:"Cleveland ve McGill (1984): konum/uzunluk yargıları açı yargılarından daha doğrudur."},
+ {q:"İki şehrin çubuk grafiğinin y ekseni 24.000’den 26.000’e gidiyor ve bir çubuk diğerinin iki katından uzun görünüyor. Sorun nedir?",
+  o:["Başlık eksik","Şehir adları sığsın diye çubuklar yatay olmalı","Grafiğin hangi çubuğun hangi şehir olduğunu söyleyen bir göstergeye ihtiyacı var","Eksen sıfırdan başlamıyor"],a:3,
+  e:"Kesilen taban, her çubuğun çoğunu keser ve farkı abartır (2.5)."},
+ {q:"7. sorudaki çubuk grafiği hangi satır düzeltir?",
+  o:["<code>plt.ylim(0, 30000)</code>","<code>plt.ylim(24000, 30000)</code>","<code>plt.title('Revenue')</code>","<code>plt.ylim(26000, 24000)</code>"],a:0,
+  e:"Alt sınır sıfırda kalmalıdır."}
+];
+
+function buildQuiz(){
+  const box=document.getElementById('quizBox'); box.innerHTML='';
+  const L='ABCD';
+  QUIZ.forEach((it,i)=>{
+    const d=document.createElement('div'); d.className='q'; d.id='q'+(i+1);
+    d.innerHTML=`<div class="qt">${i+1}. ${it.q}</div>`+
+      it.o.map((o,j)=>`<label><input type="radio" name="q${i}" value="${j}"><strong>${L[j]}.</strong> ${o}</label>`).join('')+
+      `<div class="fb"></div>`;
+    d.querySelectorAll('input').forEach(inp=>inp.addEventListener('change',()=>{
+      if(d.dataset.done) return; d.dataset.done=1;
+      const j=+inp.value, labs=d.querySelectorAll('label');
+      labs[it.a].classList.add('ok'); if(j!==it.a) labs[j].classList.add('no');
+      d.querySelectorAll('input').forEach(x=>x.disabled=true);
+      const fb=d.querySelector('.fb'); fb.classList.add('show');
+      fb.innerHTML=(j===it.a?'✅ <strong>Doğru.</strong> ':'❌ <strong>Doğru cevap '+L[it.a]+'.</strong> ')+it.e;
+      if(j===it.a) d.dataset.ok=1; updateScore();
+    }));
+    box.appendChild(d);
+  });
+  updateScore();
+}
+function updateScore(){
+  const ok=document.querySelectorAll('.q[data-ok]').length, done=document.querySelectorAll('.q[data-done]').length;
+  document.getElementById('score').textContent=`${ok} / ${QUIZ.length}`+(done?` (cevaplanan: ${done})`:'');
+}
+document.getElementById('quizReset').onclick=buildQuiz;
+buildQuiz();
+
+// ---------------- Data list -----------------
+function csvToTable(txt,max=200){
+  const rows=txt.trim().split(/\r?\n/).map(r=>r.split(','));
+  const h=rows.shift();
+  return '<table><thead><tr>'+h.map(x=>`<th>${x}</th>`).join('')+'</tr></thead><tbody>'+
+    rows.slice(0,max).map(r=>'<tr>'+r.map(x=>`<td>${x}</td>`).join('')+'</tr>').join('')+'</tbody></table>';
+}
+(function(){
+  const host=document.getElementById('dataList');
+  Object.entries(DATA).forEach(([name,txt])=>{
+    const n=txt.trim().split(/\r?\n/).length-1;
+    const url=URL.createObjectURL(new Blob([txt],{type:'text/csv'}));
+    const d=document.createElement('details'); d.className='data';
+    const isCsv=name.endsWith('.csv');
+    d.innerHTML=`<summary>${name} <span style="font-weight:400;color:#5f6b72">— ${isCsv?n+' satır':'stil dosyası'}</span> · <a href="${url}" download="${name}">indir</a></summary><div class="tbl">${isCsv?csvToTable(txt):'<pre style="font-size:12px;white-space:pre-wrap">'+txt.replace(/</g,'&lt;')+'</pre>'}</div>`;
+    host.appendChild(d);
+  });
+})();
+
+// ---------------- Code cells -----------------
+const cells=[];
+document.querySelectorAll('.cell').forEach((el,i)=>{
+  const ta=el.querySelector('textarea'); const src=ta.value;
+  const bar=document.createElement('div'); bar.className='bar';
+  bar.innerHTML=`<span class="lbl">In [<span class="cnt"> </span>]:</span><span class="sp"></span>
+    <button class="btn ghost reset" title="Orijinal koda dön">↺ Orijinal</button>
+    <button class="btn run" disabled>▶ Çalıştır</button>`;
+  el.insertBefore(bar,ta);
+  const cm=CodeMirror.fromTextArea(ta,{mode:'python',lineNumbers:false,indentUnit:4,viewportMargin:Infinity,
+     extraKeys:{'Shift-Enter':()=>runCell(i),'Ctrl-Enter':()=>runCell(i),Tab:c=>c.replaceSelection('    ')}});
+  const out=document.createElement('div'); out.className='out'; el.appendChild(out);
+  const c={el,cm,out,src,ran:false,idx:i,btn:bar.querySelector('.run'),cnt:bar.querySelector('.cnt')};
+  bar.querySelector('.run').onclick=()=>runCell(i);
+  bar.querySelector('.reset').onclick=()=>cm.setValue(src);
+  el.id='hucre-'+(i+1);
+  cells.push(c);
+});
+
+// ---------------- Pyodide -----------------
+let py=null, execCount=0, busy=false;
+const st=document.getElementById('status'), stT=document.getElementById('statusText');
+window.__currentOut=null;
+window.renderPlot=function(json){
+  const spec=JSON.parse(json); const div=document.createElement('div'); div.className='plot';
+  const inner=document.createElement('div'); div.appendChild(inner);
+  window.__currentOut.appendChild(div);
+  Plotly.newPlot(inner,spec.data,spec.layout||{},{responsive:true,displaylogo:false,locale:'tr'});
+};
+const PY_SETUP=`
+import os
+os.environ['MPLBACKEND'] = 'Agg'
+import matplotlib
+matplotlib.use('Agg')
+import sys, io, ast, contextlib, base64
+import pandas as pd
+import matplotlib.pyplot as plt
+_CAPTURED = []
+def _grab_figs():
+    for n in plt.get_fignums():
+        f = plt.figure(n); b = io.BytesIO()
+        f.savefig(b, format='png', dpi=120, bbox_inches='tight')
+        _CAPTURED.append(base64.b64encode(b.getvalue()).decode())
+    plt.close('all')
+plt.show = lambda *a, **k: _grab_figs()
+# matplotlib 3.8 (Pyodide) için kitap kodunun 3.10+ parametrelerine uyum katmanı
+from matplotlib.axes import Axes as _Axes
+_orig_boxplot = _Axes.boxplot
+def _boxplot(self, *a, tick_labels=None, orientation=None, **k):
+    if tick_labels is not None: k['labels'] = tick_labels
+    if orientation is not None: k['vert'] = (orientation == 'vertical')
+    return _orig_boxplot(self, *a, **k)
+_Axes.boxplot = _boxplot
+import warnings
+warnings.simplefilter('ignore', FutureWarning)
+pd.set_option('display.width', 120)
+SKIP = ('.csv', '.mplstyle')
+def _written(src):
+    import re
+    return re.findall(r"savefig\\(\\s*['\\"]([^'\\"]+)['\\"]", src)
+def __run_cell(src, ns):
+    buf = io.StringIO()
+    before = set(f for f in os.listdir('.') if not f.endswith(SKIP))
+    _CAPTURED.clear()
+    res = {'stdout':'', 'html':None, 'text':None, 'files':[], 'imgs':[]}
+    val = None
+    try:
+        with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(buf):
+            tree = ast.parse(src)
+            last = None
+            if tree.body and isinstance(tree.body[-1], ast.Expr):
+                last = ast.Expression(tree.body.pop().value)
+            exec(compile(tree, '<hücre>', 'exec'), ns)
+            val = eval(compile(last, '<hücre>', 'eval'), ns) if last is not None else None
+    finally:
+        _grab_figs()
+        res['imgs'] = list(_CAPTURED)
+        _CAPTURED.clear()
+    res['stdout'] = buf.getvalue()
+    if val is not None:
+        if isinstance(val, (pd.DataFrame, pd.Series)):
+            df = val.to_frame() if isinstance(val, pd.Series) else val
+            res['html'] = df.to_html(max_rows=30, border=0)
+        elif hasattr(val, '_repr_html_') and type(val).__name__ == 'Styler':
+            res['html'] = val._repr_html_()
+        else:
+            res['text'] = repr(val)
+    after = set(f for f in os.listdir('.') if not f.endswith(SKIP))
+    res['files'] = sorted((after - before) | (set(_written(src)) & after))
+    return res
+def __new_ns():
+    plt.close('all'); matplotlib.rcdefaults()
+    return {'__name__':'__main__'}
+`;
+async function initPy(){
+  try{
+    stT.textContent='Pyodide yükleniyor…';
+    py=await loadPyodide();
+    stT.textContent='pandas, matplotlib yükleniyor…';
+    await py.loadPackage(['pandas','matplotlib','scipy','jinja2','micropip']);
+    stT.textContent='seaborn yükleniyor…';
+    const mp=py.pyimport('micropip');
+    await mp.install(['seaborn'].concat(window.EXTRA_PKGS||[]));
+    for(const [n,t] of Object.entries(DATA)) py.FS.writeFile(n,t);
+    await py.runPythonAsync(PY_SETUP);
+    window.__ns=py.runPython('__new_ns()');
+    st.className='ready'; stT.textContent='Python hazır';
+    cells.forEach(c=>c.btn.disabled=false);
+  }catch(e){ st.className='err'; stT.textContent='Yükleme hatası'; console.error(e);
+    alert('Pyodide yüklenemedi. İnternet bağlantınızı kontrol edin.\n'+e); }
+}
+async function execOne(c){
+  c.out.innerHTML=''; c.out.classList.add('show'); window.__currentOut=c.out;
+  c.el.style.opacity=1;
+  try{
+    const fn=py.globals.get('__run_cell');
+    const r=fn(c.cm.getValue(), window.__ns).toJs({dict_converter:Object.fromEntries});
+    fn.destroy();
+    if(r.stdout){const p=document.createElement('pre');p.className='txt';p.textContent=r.stdout;c.out.prepend(p);}
+    if(r.html){const d=document.createElement('div');d.style.overflowX='auto';d.innerHTML=r.html;c.out.appendChild(d);}
+    if(r.text){const p=document.createElement('pre');p.className='txt';p.textContent=r.text;c.out.appendChild(p);}
+    for(const im of (r.imgs||[])){const d=document.createElement('div');d.className='plot';const g=document.createElement('img');g.src='data:image/png;base64,'+im;g.alt='Grafik';d.appendChild(g);c.out.appendChild(d);}
+    for(const f of (r.files||[])){
+      const bytes=py.FS.readFile(f); const url=URL.createObjectURL(new Blob([bytes],{type:f.endsWith('.html')?'text/html':'application/octet-stream'}));
+      const d=document.createElement('div');d.className='dl';
+      d.innerHTML=`<a href="${url}" download="${f}">⬇ ${f} dosyasını indir (${(bytes.length/1048576).toFixed(1)} MB)</a> &nbsp;<a href="${url}" target="_blank" style="background:#0b3a47">Yeni sekmede aç</a>`;
+      c.out.appendChild(d);
+    }
+    if(!c.out.children.length){const p=document.createElement('pre');p.className='txt';p.style.color='#8a9296';p.textContent='✓ Çalıştı (çıktı yok)';c.out.appendChild(p);}
+    c.ran=true; c.cnt.textContent=++execCount; return true;
+  }catch(e){
+    let msg=String(e.message||e); const k=msg.lastIndexOf('File "<hücre>"');
+    if(k>0) msg=msg.slice(k);
+    const p=document.createElement('pre');p.className='txt err';p.textContent=msg;c.out.appendChild(p);
+    c.cnt.textContent='!'; return false;
+  }
+}
+async function runCell(i){
+  if(!py||busy) return; busy=true;
+  const target=cells[i];
+  target.btn.disabled=true; target.btn.textContent='⏳';
+  await new Promise(r=>setTimeout(r,20));
+  for(let k=0;k<i;k++){ if(!cells[k].ran){ cells[k].btn.textContent='⏳'; await new Promise(r=>setTimeout(r,10)); await execOne(cells[k]); cells[k].btn.textContent='▶ Çalıştır'; } }
+  await execOne(target);
+  target.btn.disabled=false; target.btn.textContent='▶ Çalıştır'; busy=false;
+}
+document.getElementById('runAll').onclick=async()=>{ if(!py)return; for(let i=0;i<cells.length;i++){ cells[i].ran=false; } await runCell(cells.length-1); };
+document.getElementById('resetNs').onclick=()=>{ if(!py)return; window.__ns=py.runPython('__new_ns()'); execCount=0;
+  cells.forEach(c=>{c.ran=false;c.cnt.textContent=' ';c.out.innerHTML='';c.out.classList.remove('show');}); };
+initPy();
+
+// ---------------- TOC -----------------
+const toc=document.getElementById('tocLinks');
+const heads=[...document.querySelectorAll('main h2[id], main h3[id]')];
+heads.forEach(h=>{const a=document.createElement('a');a.href='#'+h.id;a.innerHTML=h.innerHTML.replace(/<span class="num">(.*?)<\/span>/,'$1 ');if(h.tagName==='H3')a.className='sub';toc.appendChild(a);});
+const tocLinks=[...toc.querySelectorAll('a')];
+const io2=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){tocLinks.forEach(a=>a.classList.toggle('active',a.getAttribute('href')==='#'+e.target.id));}})},{rootMargin:'-80px 0px -70% 0px'});
+heads.forEach(h=>io2.observe(h));
+
+// ---------------- Search -----------------
+const norm=s=>s.toLocaleLowerCase('tr').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/ı/g,'i');
+const index=[];
+(function buildIndex(){
+  let sec='Giriş';
+  document.querySelectorAll('main h1, main h2, main h3, main p, main li, main .callout, main .cell, main .q, main pre.data').forEach(el=>{
+    if(el.closest('.callout')&&el.tagName!=='DIV') return;
+    if(el.closest('#datasets')) return;
+    if(el.matches('.q')){ index.push({el,sec:'Sınav',kind:'soru',text:el.querySelector('.qt').textContent+' '+[...el.querySelectorAll('label')].map(l=>l.textContent).join(' ')}); return; }
+    if(el.closest('.q')) return;
+    if(el.matches('h2,h3')){ sec=el.textContent; }
+    let kind='metin', text=el.textContent;
+    if(el.matches('.cell')){ kind='kod'; const c=cells.find(c=>c.el===el); text=c?c.cm.getValue():text; }
+    else if(el.matches('h1,h2,h3')) kind='başlık';
+    else if(el.matches('.callout')) kind='kutu';
+    else if(el.matches('.figdesc')) kind='grafik';
+    else if(el.matches('pre.data')) kind='veri';
+    index.push({el,sec,kind,text:text.replace(/\s+/g,' ').trim()});
+  });
+  index.forEach(x=>x.n=norm(x.text));
+})();
+const si=document.getElementById('search'), res=document.getElementById('results');
+let hits=[], act=-1;
+function esc(s){return s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+function snippet(text,terms){
+  const n=norm(text); let pos=-1;
+  for(const t of terms){const p=n.indexOf(t);if(p>=0){pos=p;break;}}
+  let s=Math.max(0,pos-60), e=Math.min(text.length,(pos<0?0:pos)+140);
+  let out=(s>0?'…':'')+text.slice(s,e)+(e<text.length?'…':'');
+  // highlight (norm keeps length for Turkish chars after NFD strip mostly; do case-insensitive regex)
+  let h=esc(out);
+  terms.forEach(t=>{ if(!t) return;
+    const re=new RegExp(t.split('').map(ch=>{const m={'i':'[iıİI]','s':'[sşŞS]','c':'[cçÇC]','g':'[gğĞG]','o':'[oöÖO]','u':'[uüÜU]'}; return m[ch]||ch.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}).join(''),'gi');
+    h=h.replace(re,m=>`<mark>${m}</mark>`); });
+  return h;
+}
+function doSearch(){
+  const q=si.value.trim();
+  if(q.length<2){res.classList.remove('open');res.innerHTML='';return;}
+  const terms=norm(q).split(/\s+/).filter(Boolean);
+  hits=index.map(x=>{let sc=0;for(const t of terms){const c=x.n.split(t).length-1;if(!c)return null;sc+=c;} if(x.kind==='başlık')sc+=5; if(x.kind==='kod')sc+=1; return {x,sc};}).filter(Boolean).sort((a,b)=>b.sc-a.sc).slice(0,40);
+  act=-1;
+  res.innerHTML=hits.length?`<div class="count">${hits.length} sonuç · <kbd>↑</kbd><kbd>↓</kbd> ile gez, <kbd>Enter</kbd> ile git</div>`+hits.map((h,i)=>`<div class="r" data-i="${i}"><div class="sec">${esc(h.x.sec)}<span class="kind">${h.x.kind}</span></div><div class="snip">${snippet(h.x.text,terms)}</div></div>`).join('')
+    :'<div class="empty">Sonuç bulunamadı.</div>';
+  res.classList.add('open');
+  res.querySelectorAll('.r').forEach(r=>r.onclick=()=>go(+r.dataset.i));
+}
+function go(i){
+  const el=hits[i].x.el; res.classList.remove('open');
+  const det=el.closest('details'); if(det) det.open=true;
+  el.scrollIntoView({behavior:'smooth',block:'center'});
+  el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
+}
+si.addEventListener('input',doSearch);
+si.addEventListener('focus',()=>{if(si.value.trim().length>=2)doSearch();});
+si.addEventListener('keydown',e=>{
+  const rs=[...res.querySelectorAll('.r')];
+  if(e.key==='ArrowDown'){act=Math.min(rs.length-1,act+1);}
+  else if(e.key==='ArrowUp'){act=Math.max(0,act-1);}
+  else if(e.key==='Enter'){ if(hits.length) go(act<0?0:act); return; }
+  else if(e.key==='Escape'){res.classList.remove('open');si.blur();return;}
+  else return;
+  e.preventDefault(); rs.forEach((r,k)=>r.classList.toggle('act',k===act)); if(rs[act]) rs[act].scrollIntoView({block:'nearest'});
+});
+document.addEventListener('keydown',e=>{ if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();si.focus();si.select();}
+  else if(e.key==='/'&&document.activeElement.tagName!=='INPUT'&&!document.activeElement.closest('.CodeMirror')){e.preventDefault();si.focus();}});
+document.addEventListener('click',e=>{if(!e.target.closest('.search-wrap'))res.classList.remove('open');});
+</script>
+</body>
+</html>

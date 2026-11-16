@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bölüm 1: Görselleştirme Ortamını Kurmak</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+<script src="https://cdn.jsdelivr.net/pyodide/v0.27.7/full/pyodide.js"></script>
+<style>
+:root{
+  --teal:#0b3a47; --amber:#b26a00; --lteal:#6fb3c2; --sand:#f0c987;
+  --bg:#f7f6f2; --paper:#ffffff; --ink:#1f2a30; --muted:#5f6b72; --line:#e2e0d8;
+  --code-bg:#fbfaf6;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:80px}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.65 "Segoe UI",system-ui,-apple-system,Roboto,sans-serif}
+header.top{position:sticky;top:0;z-index:50;background:var(--teal);color:#fff;display:flex;align-items:center;gap:16px;padding:10px 20px;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+header.top .brand{font-weight:600;white-space:nowrap}
+header.top .brand small{opacity:.7;font-weight:400;margin-left:6px}
+.search-wrap{position:relative;flex:1;max-width:560px;margin-left:auto}
+#search{width:100%;padding:9px 14px 9px 36px;border-radius:8px;border:none;font-size:15px;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235f6b72' stroke-width='2.5'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E") no-repeat 11px center}
+#search:focus{outline:3px solid var(--sand)}
+#results{position:absolute;top:44px;left:0;right:0;background:#fff;color:var(--ink);border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,.2);max-height:70vh;overflow:auto;display:none}
+#results.open{display:block}
+#results .r{padding:10px 14px;border-bottom:1px solid var(--line);cursor:pointer}
+#results .r:hover,#results .r.act{background:#eef5f6}
+#results .r .sec{font-size:12px;color:var(--amber);font-weight:600;text-transform:uppercase;letter-spacing:.03em}
+#results .r .kind{font-size:11px;background:var(--line);border-radius:4px;padding:0 5px;margin-left:6px;color:var(--muted);text-transform:none;letter-spacing:0}
+#results .r .snip{font-size:14px}
+#results .empty,#results .count{padding:10px 14px;color:var(--muted);font-size:13px}
+mark{background:#ffe08a;color:inherit;border-radius:2px;padding:0 1px}
+#status{font-size:13px;white-space:nowrap;display:flex;align-items:center;gap:8px}
+#status .dot{width:10px;height:10px;border-radius:50%;background:#f0c987;box-shadow:0 0 0 0 rgba(240,201,135,.7);animation:pulse 1.4s infinite}
+#status.ready .dot{background:#7bd88f;animation:none}
+#status.err .dot{background:#ff6b6b;animation:none}
+@keyframes pulse{70%{box-shadow:0 0 0 8px rgba(240,201,135,0)}100%{box-shadow:0 0 0 0 rgba(240,201,135,0)}}
+.layout{display:grid;grid-template-columns:260px minmax(0,1fr);gap:28px;max-width:1240px;margin:0 auto;padding:24px 20px 80px}
+nav.toc{position:sticky;top:76px;align-self:start;max-height:calc(100vh - 96px);overflow:auto;font-size:14px}
+nav.toc h4{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+nav.toc a{display:block;color:var(--ink);text-decoration:none;padding:4px 10px;border-left:3px solid transparent;border-radius:0 4px 4px 0}
+nav.toc a.sub{padding-left:24px;font-size:13px;color:var(--muted)}
+nav.toc a:hover{background:#ece9df}
+nav.toc a.active{border-left-color:var(--amber);background:#fff;font-weight:600;color:var(--teal)}
+nav.toc .tools{margin-top:16px;display:flex;flex-direction:column;gap:6px}
+main{background:var(--paper);border-radius:12px;padding:36px 48px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+h1{font-size:2rem;color:var(--teal);margin:0 0 4px;line-height:1.25}
+.subtitle{color:var(--muted);margin:0 0 24px}
+h2{font-size:1.45rem;color:var(--teal);border-bottom:2px solid var(--sand);padding-bottom:6px;margin:48px 0 16px}
+h2 .num{color:var(--amber);margin-right:8px}
+h3{font-size:1.12rem;margin:30px 0 10px;color:var(--ink)}
+code{font-family:"JetBrains Mono",Consolas,Menlo,monospace;font-size:.88em;background:#f1efe8;padding:1px 5px;border-radius:4px;color:#7a3e00}
+.lead{font-size:1.08rem;border-left:4px solid var(--amber);padding:4px 0 4px 16px;color:#33424a}
+.goals{background:#eef5f6;border-radius:10px;padding:16px 22px}
+.goals ul{margin:6px 0 0;padding-left:20px}
+.callout{border-radius:10px;padding:12px 18px;margin:18px 0;border-left:5px solid}
+.callout .t{font-weight:700;display:block;margin-bottom:2px}
+.callout.warn{background:#fff4e5;border-color:var(--amber)}
+.callout.warn .t{color:var(--amber)}
+.callout.tip{background:#eaf6f1;border-color:#2f8f6b}
+.callout.tip .t{color:#2f8f6b}
+.callout.note{background:#eef2f7;border-color:#4b6a8a}
+.callout.note .t{color:#4b6a8a}
+pre.data{background:var(--code-bg);border:1px dashed var(--line);border-radius:8px;padding:10px 14px;font-size:13px;overflow:auto}
+/* code cells */
+.cell{border:1px solid var(--line);border-radius:10px;margin:18px 0;overflow:hidden;background:var(--code-bg)}
+.cell .bar{display:flex;align-items:center;gap:8px;padding:6px 10px;background:#f1efe8;border-bottom:1px solid var(--line);font-size:12px;color:var(--muted)}
+.cell .bar .lbl{font-family:Consolas,monospace}
+.cell .bar .sp{flex:1}
+button{font:inherit;cursor:pointer;border-radius:6px;border:1px solid transparent}
+.btn{background:var(--teal);color:#fff;padding:4px 12px;font-size:13px}
+.btn:hover{filter:brightness(1.2)}
+.btn:disabled{opacity:.5;cursor:wait}
+.btn.ghost{background:transparent;color:var(--teal);border-color:#c9d3d6}
+.btn.ghost:hover{background:#fff}
+.btn.amber{background:var(--amber)}
+.CodeMirror{height:auto;font-size:14px;background:var(--code-bg);font-family:"JetBrains Mono",Consolas,Menlo,monospace}
+.CodeMirror-scroll{min-height:30px}
+.cm-s-default .cm-keyword{color:#8a3ffc}.cm-s-default .cm-string{color:#0b7a4b}.cm-s-default .cm-number{color:#b26a00}.cm-s-default .cm-comment{color:#8a9296;font-style:italic}.cm-s-default .cm-builtin{color:#0b5f7a}
+.out{border-top:1px solid var(--line);background:#fff;padding:0;display:none}
+.out.show{display:block}
+.out .txt{margin:0;padding:10px 14px;font:13px/1.5 Consolas,Menlo,monospace;white-space:pre-wrap;color:#333}
+.out .txt.err{color:#b00020;background:#fff5f5}
+.out .plot{padding:6px;overflow-x:auto}
+.out table{border-collapse:collapse;margin:10px 14px;font-size:13px}
+.out th,.out td{border:1px solid var(--line);padding:4px 10px;text-align:right}
+.out th{background:#f1efe8}
+.out .dl{margin:10px 14px}
+.out .dl a{display:inline-block;background:var(--amber);color:#fff;text-decoration:none;padding:5px 12px;border-radius:6px;font-size:13px}
+.figdesc{font-size:14px;color:var(--muted);background:#f6f5f0;border-radius:8px;padding:8px 14px;margin:-8px 0 14px;border:1px solid var(--line)}
+.figdesc::before{content:"🖼 Beklenen grafik: ";font-weight:600;color:var(--teal)}
+.flash{animation:flash 2.2s ease}
+@keyframes flash{0%,40%{background:#fff1bf;box-shadow:0 0 0 6px #fff1bf}100%{background:transparent;box-shadow:none}}
+details.data{border:1px solid var(--line);border-radius:8px;margin:8px 0;background:#fff}
+details.data summary{cursor:pointer;padding:8px 14px;font-weight:600;color:var(--teal)}
+details.data .tbl{max-height:260px;overflow:auto;padding:0 14px 10px}
+details.data table{border-collapse:collapse;font-size:13px}
+details.data td,details.data th{border:1px solid var(--line);padding:3px 8px}
+details.data th{background:#f1efe8;position:sticky;top:0}
+/* quiz */
+.q{border:1px solid var(--line);border-radius:10px;padding:14px 18px;margin:14px 0}
+.q .qt{font-weight:600;margin-bottom:8px}
+.q label{display:block;padding:6px 10px;border-radius:6px;cursor:pointer;border:1px solid transparent}
+.q label:hover{background:#f4f2ea}
+.q label.ok{background:#e3f4ea;border-color:#2f8f6b}
+.q label.no{background:#fde8e8;border-color:#d05353}
+.q input{margin-right:8px}
+.q .fb{font-size:14px;margin-top:6px;display:none}
+.q .fb.show{display:block}
+#score{font-weight:700;color:var(--teal)}
+.out img{max-width:100%;height:auto;display:block;margin:6px auto}
+table.choose{border-collapse:collapse;width:100%;font-size:14px;margin:10px 0}table.choose th,table.choose td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}table.choose th{background:#eef5f6;color:var(--teal)}
+.chnav{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:14px;margin:0 0 18px}.chnav a{color:var(--teal);text-decoration:none;border:1px solid var(--line);border-radius:6px;padding:4px 10px}.chnav a:hover{background:#eef5f6}.chnav .all{display:flex;gap:4px;flex-wrap:wrap}.chnav .all a.cur{background:var(--teal);color:#fff}
+.summary li{margin-bottom:6px}
+footer{text-align:center;color:var(--muted);font-size:13px;padding:30px}
+kbd{border:1px solid #bbb;border-bottom-width:2px;border-radius:4px;padding:0 5px;font-size:12px;background:#fff;color:#333}
+@media (max-width:900px){.layout{grid-template-columns:1fr}nav.toc{display:none}main{padding:22px 18px}header.top .brand small{display:none}#status span{display:none}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">Bölüm 1 <small>Görselleştirme Ortamını Kurmak</small></div>
+  <div class="search-wrap">
+    <input id="search" type="search" placeholder="Bölümde ara… (ör. Jupyter, pandas, read_csv)   Ctrl+K" autocomplete="off">
+    <div id="results"></div>
+  </div>
+  <div id="status"><div class="dot"></div><span id="statusText">Python yükleniyor…</span></div>
+</header>
+
+<div class="layout">
+<nav class="toc" id="toc">
+  <h4>İçindekiler</h4>
+  <div id="tocLinks"></div>
+  <div class="tools">
+    <button class="btn" id="runAll">▶ Tüm hücreleri çalıştır</button>
+    <button class="btn ghost" id="resetNs">↺ Python ortamını sıfırla</button>
+  </div>
+</nav>
+
+<main id="content">
+<div class="chnav"><span></span><div class="all">Bölümler: <a href="bolum01_ortami_kurmak.html" class="cur" title="Görselleştirme Ortamını Kurmak">1</a><a href="bolum02_cizmeden_once_dusunmek.html" class="" title="Çizmeden Önce Düşünmek">2</a><a href="bolum03_matplotlib_temelleri.html" class="" title="matplotlib Temelleri">3</a><a href="bolum04_cizgiler_noktalar.html" class="" title="Çizgiler ve Noktalar">4</a><a href="bolum05_cubuklar_pastalar_tablolar.html" class="" title="Çubuklar, Pastalar ve Tablolar">5</a><a href="bolum06_dagilimlar_izgaralar.html" class="" title="Dağılımlar ve Değer Izgaraları">6</a><a href="bolum07_ozellestirme.html" class="" title="Bir Grafiğin Her Parçasını Özelleştirmek">7</a><a href="bolum08_yerlesimler.html" class="" title="Yerleşimler: Bir Figürde Birçok Grafik">8</a><a href="bolum09_iletisim_kuran_tasarim.html" class="" title="İletişim Kuran Tasarım">9</a><a href="bolum10_yalan_soyleyen_grafikler.html" class="" title="Yalan Söyleyen Grafikler">10</a><a href="bolum11_seaborn_temelleri.html" class="" title="seaborn Temelleri">11</a><a href="bolum12_iliskiler_regresyon.html" class="" title="İlişkiler ve Regresyon">12</a><a href="bolum13_kategoriler.html" class="" title="Kategoriler">13</a><a href="bolum14_dagilimlar.html" class="" title="Dağılımlar">14</a><a href="bolum15_izgaralar_matrisler.html" class="" title="Izgaralar ve Matrisler">15</a><a href="bolum16_plotly_express.html" class="" title="plotly express ile Etkileşimli Grafikler">16</a><a href="bolum17_haritalar_is_grafikleri.html" class="" title="Haritalar ve İş Grafikleri">17</a></div><a href="bolum02_cizmeden_once_dusunmek.html">Bölüm 2 →</a></div>
+<h1>Bölüm 1: Görselleştirme Ortamını Kurmak</h1>
+<p class="subtitle">Kod hücreleri tarayıcınızda <strong>Pyodide</strong> ile çalışır; Python kurmanıza gerek yok. Kodu değiştirip yeniden çalıştırabilirsiniz (<kbd>Shift</kbd>+<kbd>Enter</kbd>). Grafikler matplotlib ile resim olarak çizilir.</p>
+
+<p class="lead">Elinizde çevrimiçi bir elektronik mağazasının, temizlenmiş bir sipariş dosyası var: düzgün sayılar, gerçek tarihler ve her şehir için tek bir yazım. Yöneticiniz özet tabloyu gördü ve yanıtı şu: “Bunu slaytlar için bir grafiğe koyabilir misin?” Bir sayı tablosu, onu dikkatle okuyan insanların sorularını yanıtlar. Bir grafik ise geri kalan herkesinkini, birkaç saniyede.</p>
+
+<p>Bu bölüm bilgisayarınızı Python ile grafik çizmeye hazırlıyor. Bu kitabın kullandığı üç grafik kütüphanesini kuracak, eşlik eden dosyaları indirecek, ilk grafiğinizi çizecek ve çizimden önce veriyi biçime sokmak için ihtiyaç duyacağınız pandas bilgisini tazeleyeceksiniz.</p>
+
+<div class="goals">
+<strong>Bu bölümün sonunda şunları yapabileceksiniz:</strong>
+<ul>
+<li>matplotlib, seaborn ve plotly’yi kendilerine ait bir ortama kurmak</li>
+<li>Eşlik eden dosyaları indirip bir bölüm klasörünü Jupyter’de açmak</li>
+<li><code>plt.plot()</code> ve <code>plt.show()</code> ile ilk grafiğinizi çizmek ve kitabın grafik stilini yüklemek</li>
+<li>pandas ile bir DataFrame’i yüklemek, seçmek, süzmek, sıralamak ve gruplamak</li>
+<li>En yaygın kurulum hatalarını düzeltmek: eksik kütüphane, eksik dosya ve eksik stil</li>
+</ul>
+</div>
+
+<details class="data" id="datasets">
+<summary>📁 Bu bölümün veri dosyaları (sayfaya gömülü — Python’da doğrudan <code>pd.read_csv()</code> ile okunur)</summary>
+<div id="dataList" style="padding:0 14px 10px"></div>
+</details>
+
+<section>
+<h2 id="s1-1"><span class="num">1.1</span>Grafik Kütüphanelerini Kurmak</h2>
+<p>Bu kitap, her birinin farklı bir işi olan üç kütüphane kullanıyor:</p>
+<div style="overflow-x:auto"><table class="choose">
+<thead><tr><th>Kütüphane</th><th>Ne için</th><th>Bölümler</th></tr></thead>
+<tbody>
+<tr><td>matplotlib</td><td>Her parçası üzerinde denetimle her türlü grafiği çizmek</td><td>3–10</td></tr>
+<tr><td>seaborn</td><td>matplotlib üzerine kurulu, daha az satırda istatistiksel grafikler</td><td>11–15</td></tr>
+<tr><td>plotly</td><td>Üzerine gelinip yakınlaştırılabilen etkileşimli grafikler</td><td>16 ve 17</td></tr>
+</tbody></table></div>
+<p>Veriyi tutan pandas’a ve kodu yazıp çalıştırdığınız Jupyter Notebook’a da ihtiyacınız olacak. Beşi de ücretsiz.</p>
+
+<h3 id="s1-1-anaconda">Anaconda’yı kurmak</h3>
+<p>Önce Anaconda gerekiyor. Python’u ve diğer her şeyi kuran araç olan conda’yı kurar.</p>
+<ol>
+<li><a href="https://www.anaconda.com/download" target="_blank" rel="noopener">https://www.anaconda.com/download</a> adresine gidin. Sayfa e-posta adresinizi isterse, kaydı atlayıp doğrudan indirmelere gitmenizi sağlayan küçük bağlantıyı arayın.</li>
+<li>İşletim sisteminiz için kurulum dosyasını indirin. Mac’te işlemcinize uyan sürümü seçin: Apple menüsü → <em>About This Mac</em> (Bu Mac Hakkında), Apple silicon için “Apple M1” (ya da M2, M3 …) veya “Intel” gösterir.</li>
+<li>İndirilen dosyayı açın ve kurulum ekranlarında ilerleyin. Windows’ta: <em>Next</em>, <em>I Agree</em>, <em>Just Me (recommended)</em>; önerilen kurulum konumunu koruyun, <em>Advanced Installation Options</em> ekranındaki kutuları olduğu gibi bırakın ve <em>Install</em>’a tıklayın. Mac’te ekranlar boyunca <em>Continue</em> ve <em>Agree</em>’ye tıklayın; sorulursa <em>Install for me only</em>’yi seçin.</li>
+<li>Bitmesini bekleyin. Bu genellikle 5–15 dakika sürer.</li>
+</ol>
+<div class="callout note"><span class="t">📝 Not</span>Anaconda Distribution bireysel kullanım için ücretsizdir. Büyük kuruluşların ücretli lisansa ihtiyacı vardır; bu yüzden onu bir iş bilgisayarına kuruyorsanız önce BT ekibinize danışın.</div>
+<p>Ardından bu kitap için bir <em>ortam</em> (environment) oluşturun: kitabın ihtiyaç duyduğu kütüphanelerle birlikte kendi içinde kapalı bir Python kopyası. Oraya kurduğunuz hiçbir şey Anaconda’nın kendi kurulumunu bozamaz. Windows’ta Başlat menüsünde <em>Anaconda Prompt</em>’u arayıp açın; Mac’te <em>Terminal</em> uygulamasını açın. Bu satırları tam olarak yazıldığı gibi kopyalayın, her birinden sonra <kbd>Enter</kbd>’a basın ve sorulursa <code>y</code> yanıtını verin:</p>
+<pre class="data">conda create -n dataviz --override-channels -c conda-forge python=3.14
+conda activate dataviz
+conda install --override-channels -c conda-forge jupyter pandas=3.0
+conda install --override-channels -c conda-forge matplotlib=3.11 seaborn=0.13
+conda install --override-channels -c conda-forge plotly=7.1</pre>
+<p><code>-n dataviz</code> ortama ad verir, <code>-c conda-forge</code> ise conda’ya nereden indireceğini söyler. <code>=</code>’den sonraki sayılar kitabın test edildiği sürümleri ister; böylece her örnek basıldığı gibi çalışır. İndirmeler birkaç dakika sürer; yanıp sönen imleç yeni bir satırda geri geldiğinde her komut bitmiş demektir. <code>conda activate dataviz</code>’den sonra satır <code>(base)</code> yerine <code>(dataviz)</code> ile başlar; ortamın açık olduğunu böyle anlarsınız. Bundan sonra Jupyter’i şöyle başlatın: Anaconda Prompt’u açın (Mac’te Terminal; <code>conda</code> bulunamadı derse Terminal’i kapatıp yeniden açın), <code>conda activate dataviz</code>, ardından <code>jupyter notebook</code> yazın.</p>
+<div class="callout warn"><span class="t">⚠ Dikkat</span>Windows’ta bu komutları normal Komut İstemi’ne değil, <em>Anaconda Prompt</em>’a yazın; Komut İstemi <code>conda</code>’nın tanınmadığını söyleyebilir. Jupyter’i de Başlat menüsündeki kısayoldan başlatmayın: o, Anaconda’nın özgün kurulumunu açar ve orada bu kitabın kütüphane sürümleri yoktur.</div>
+<div class="callout tip"><span class="t">💡 Bu sayfada</span>Bu sayfadaki kod hücreleri kurulum gerektirmez: Python, pandas, matplotlib, seaborn ve plotly tarayıcınızda Pyodide ile çalışır. Kurulumu yine de kendi bilgisayarınızda Jupyter ile çalışmak için yapın.</div>
+</section>
+
+<section>
+<h2 id="s1-2"><span class="num">1.2</span>Eşlik Eden Dosyaları Almak</h2>
+<p>Her bölümün eşlik eden dosyalardan oluşan bir klasörü var: örneklerin kullandığı veriler, bölümün tüm kodunu içeren bir defter (notebook) ve kitabın grafik stili. Hepsini kitabın GitHub deposundan indirin:</p>
+<ol>
+<li><a href="https://github.com/Datamous/master-data-visualization" target="_blank" rel="noopener">https://github.com/Datamous/master-data-visualization</a> adresine gidin.</li>
+<li>Yeşil <em>Code</em> düğmesine, ardından <em>Download ZIP</em>’e tıklayın.</li>
+<li>İndirilen <code>master-data-visualization-main.zip</code> dosyasını <em>İndirilenler</em> klasörünüzde bulun. Windows’ta sağ tıklayın, <em>Tümünü Ayıkla…</em>’yı seçin, <em>Gözat</em>’a tıklayıp <em>Belgeler</em> klasörünüzü seçin ve <em>Ayıkla</em>’ya tıklayın. Mac’te ZIP dosyasına çift tıklayın, sonra yeni klasörü <em>Belgeler</em>’e sürükleyin.</li>
+</ol>
+<p>Artık içinde <code>chapter-01</code>, <code>chapter-02</code> vb. adlı klasörler olan <code>master-data-visualization-main</code> adlı bir klasörünüz var. Aynı adı taşıyan tek bir klasör daha görürseniz dosyalar bir düzey daha içeridedir; bundan sonra o iç klasörü kullanın.</p>
+
+<h3 id="s1-2-open">Bir bölümü Jupyter’de açmak</h3>
+<p>Jupyter’i Bölüm 1.1’de anlatıldığı gibi başlatın. Tarayıcınız açılır ve kullanıcı klasörünüzdeki klasörleri gösterir. Tıklayarak <em>Documents</em>, sonra <code>master-data-visualization-main</code>, sonra <code>chapter-01</code>’e ilerleyin. Listede <em>Documents</em>’ı göremiyorsanız önce <em>OneDrive</em>’ın içine bakın; birçok Windows bilgisayarı Belgeler’i orada tutar.</p>
+<p>Klasörde üç dosya var:</p>
+<div style="overflow-x:auto"><table class="choose">
+<thead><tr><th>Dosya</th><th>Nedir</th></tr></thead>
+<tbody>
+<tr><td><code>chapter-01.ipynb</code></td><td>Bu bölümdeki her örneği içeren bir defter</td></tr>
+<tr><td><code>orders_clean.csv</code></td><td>Bu bölümün örneklerinin verisi</td></tr>
+<tr><td><code>book.mplstyle</code></td><td>Kitabın grafik stili (Bölüm 1.3)</td></tr>
+</tbody></table></div>
+<p>Defteri açıp örnekleri okudukça çalıştırabilirsiniz. Yine de onları kendiniz yazmak öğrenmenin daha iyi yoludur; bu yüzden kendi defterinizi oluşturun: sağ üst köşedeki <em>New</em>’e tıklayıp <em>Notebook</em>’u seçin. Jupyter bir çekirdek (kernel) sorarsa <em>Python 3 (ipykernel)</em>’i seçin. Sonra üstteki <em>Untitled</em> adına tıklayıp onu yeniden adlandırın, örneğin <code>my_charts</code>. <code>chapter-01</code> klasörüne baktığınız için defter oraya, veri dosyalarının yanına kaydedilir. Bu önemlidir: bir defter kendi klasöründeki dosyaları yalnızca adlarıyla açabilir.</p>
+<div class="callout warn"><span class="t">⚠ Dikkat</span>Jupyter kendi bilgisayarınızda çalışır ve onu başlatan Anaconda Prompt penceresi siz çalışırken açık kalmalıdır. Onu kapatırsanız Jupyter durur.</div>
+
+<h3 id="s1-2-cells">Hücrelerde kod çalıştırmak</h3>
+<p>Bir defter, <em>hücrelerden</em> oluşan bir listedir. Bir hücreye kod yazıp çalıştırmak için <kbd>Shift</kbd> + <kbd>Enter</kbd>’a basın; sonuç altında belirir ve Jupyter sonraki hücreye geçer. Bir hücrenin son satırı bir değerse Jupyter onu <code>print()</code> olmadan gösterir ve bu kitap buna dayanır.</p>
+<p>Jupyter, çekirdeğini (defterin arkasındaki Python süreci) yeniden başlatana kadar çalıştırdığınız her şeyi hatırlar ve hücreleri sayfada göründükleri sırayla değil, <em>sizin</em> çalıştırdığınız sırayla çalıştırır. Sonuçlar tuhaf göründüğünde <em>Kernel → Restart Kernel and Run All Cells</em>’i seçerek temiz başlayın ve her şeyi yukarıdan çalıştırın. Bu kitap için ihtiyacınız olan tek şey bu iki alışkanlıktır. (Bu sayfada karşılığı: “Python ortamını sıfırla” ve “Tüm hücreleri çalıştır”.)</p>
+</section>
+
+<section>
+<h2 id="s1-3"><span class="num">1.3</span>İlk Grafiğiniz</h2>
+<h3 id="s1-3-check">Kurulumu kontrol etmek</h3>
+<p>Bunu defterinizin ilk hücresinde çalıştırın. Her kütüphaneyi yükler ve sürüm numarasını yazdırır:</p>
+<div class="cell"><textarea>import matplotlib
+import seaborn as sns
+import plotly
+import pandas as pd
+
+print('matplotlib', matplotlib.__version__)
+print('seaborn', sns.__version__)
+print('plotly', plotly.__version__)
+print('pandas', pd.__version__)</textarea></div>
+<p>Kitaptaki çıktı <code>matplotlib 3.11.2</code>, <code>seaborn 0.13.2</code>, <code>plotly 7.1.0</code>, <code>pandas 3.0.6</code> gösteriyor. Sizin sayılarınız biraz daha yüksek olabilir; sorun değil. Kitap matplotlib 3.11 ya da üstünü, seaborn 0.13’ü, plotly 7’yi ve pandas 3’ü gerektirir. Bir sayı daha düşükse (örneğin plotly 6), Jupyter <code>dataviz</code> ortamında çalışmıyor demektir: kapatıp Bölüm 1.1’de anlatıldığı gibi yeniden başlatın. Sürüm numaraları yerine bir hata alırsanız Bölüm 1.5 neyin ters gittiğini açıklıyor.</p>
+<div class="callout note"><span class="t">📝 Bu sayfada</span>Burada Pyodide’in paketlediği sürümleri görürsünüz (ör. matplotlib 3.8, pandas 2.2, plotly 5). Bu bölümlerdeki örnekler için yeterlidir; kendi bilgisayarınızda kitabın sürümlerini kurun.</div>
+<p><code>import seaborn as sns</code> ve <code>import pandas as pd</code>, kütüphanelere herkesin kullandığı kısa adları verir; böylece <code>pandas.read_csv()</code> yerine <code>pd.read_csv()</code> yazabilirsiniz.</p>
+
+<h3 id="s1-3-plot"><code>plt.plot()</code></h3>
+<p>matplotlib grafikleri, herkesin <code>plt</code> olarak içe aktardığı <code>pyplot</code> adlı bir kütüphane parçası üzerinden çizer. İşte üç satırda bütün bir grafik: çizgi olarak beş günlük satış.</p>
+<div class="cell"><textarea>import matplotlib.pyplot as plt
+plt.plot(['Mon', 'Tue', 'Wed', 'Thu', 'Fri'], [150, 200, 175, 190, 210])
+plt.show()</textarea></div>
+<p class="figdesc">matplotlib’in varsayılan stilinde mavi bir çizgi; Pazartesi 150’den Salı 200’e yükseliyor, Çarşamba düşüyor ve Cuma 210’da bitiyor.</p>
+<p><code>plt.plot()</code> önce x ekseninin değerlerini (gün adları), sonra y ekseninin değerlerini (satışlar) alır. Noktaları bir çizgiyle birleştirir. <code>plt.show()</code> grafiği gösterir; o olmadan Jupyter grafiğin üstüne ihtiyacınız olmayan bir metin satırı ekler. Bölüm 3.2 ikisini de ayrıntılı açıklıyor.</p>
+<p>Henüz başlık, eksen etiketi ve birim yok. Hepsini Bölüm 3.3’te ekleyeceksiniz. Şimdilik önemli olan, kurulumun çalışması.</p>
+
+<h3 id="s1-3-style"><code>plt.style.use()</code></h3>
+<p>Grafiğiniz matplotlib’in varsayılan stilinde: oldukça büyük bir tuval üzerinde mavi bir çizgi. Bu kitaptaki grafikler farklı görünür, çünkü eşlik eden dosyalarla gelen bir stil dosyası kullanırlar: <code>book.mplstyle</code>. Onu bir defterin başına yakın bir yerde bir kez yükleyin; ondan sonraki her grafik stili izler:</p>
+<div class="cell"><textarea>plt.style.use('book.mplstyle')
+plt.plot(['Mon', 'Tue', 'Wed', 'Thu', 'Fri'], [150, 200, 175, 190, 210])
+plt.show()</textarea></div>
+<p class="figdesc">Aynı çizgi kitabın stilinde: sayfaya sığacak boyutta daha küçük bir grafik üzerinde daha kalın, koyu camgöbeği bir çizgi.</p>
+<p>Veri ve kod aynı; yalnızca görünüm değişti. Stil renkleri, kitabın sayfasına sığan grafik boyutunu ve yazı boyutlarını ayarlar. Her bölüm klasörünün kendi <code>book.mplstyle</code> kopyası vardır ve her bölümün defteri onu yükleyerek başlar. Bölüm 7.5 dosyanın içinde ne olduğunu ve kendi stilinizi nasıl yapacağınızı gösteriyor.</p>
+</section>
+
+<section>
+<h2 id="s1-4"><span class="num">1.4</span>Hızlı bir pandas Tekrarı</h2>
+<p>Grafikler ancak arkalarındaki tablo kadar iyidir. Bir grafikten önceki işin çoğu veriyi doğru biçime sokmaktır: doğru satırlar, doğru sütunlar, doğru şekilde toplanmış ya da sayılmış. Bu kısım, kitap boyunca bunun için kullanacağınız pandas bilgisini tekrar ediyor.</p>
+<p>Veri, temiz bir sipariş dosyası: çevrimiçi bir elektronik mağazasından Ocak–Haziran 2025 arası 184 sipariş. Not Defteri gibi bir metin düzenleyicide açıldığında <code>orders_clean.csv</code>’nin başı şöyle görünür:</p>
+<pre class="data">order_id,order_date,product,city,quantity,unit_price,revenue,segment
+ORD-1001,2025-03-08,Webcam,Los Angeles,5,259.0,1295.0,Consumer
+ORD-1003,2025-03-22,Webcam,Philadelphia,2,259.0,518.0,Consumer
+ORD-1004,2025-04-15,USB Cable,San Francisco,3,19.9,59.7,Consumer</pre>
+<p>Her satır bir sipariş. <code>revenue</code> dolar cinsinden miktar çarpı birim fiyattır; <code>segment</code> ise müşterinin bireysel mi kurumsal mı olduğunu söyler.</p>
+
+<h3 id="s1-4-read"><code>pd.read_csv()</code></h3>
+<p><code>pd.read_csv()</code> bir CSV dosyasını, pandas’ın tablo için kullandığı ad olan bir DataFrame’e yükler. <code>parse_dates=</code> hangi sütunların tarih tuttuğunu söyler; böylece metin olarak değil gerçek tarih olarak gelirler:</p>
+<div class="cell"><textarea>orders = pd.read_csv('orders_clean.csv', parse_dates=['order_date'])
+orders.shape</textarea></div>
+<p><code>shape</code> satır ve sütun sayısını verir: 184 sipariş, 8 sütun.</p>
+
+<h3 id="s1-4-select">Sütun seçmek</h3>
+<p>Tek bir sütun adıyla köşeli parantezler size o sütunu bir <em>Series</em> olarak verir: satır etiketleriyle tek bir sütun. Adlardan oluşan bir listeyle (çift köşeli parantezlere dikkat) daha küçük bir DataFrame alırsınız. <code>head()</code> ardından ilk beş satırı gösterir:</p>
+<div class="cell"><textarea>orders[['order_date', 'product', 'city', 'revenue']].head()</textarea></div>
+<p>Soldaki sayılar, pandas’ın satır etiketleri olan <em>indekstir</em>.</p>
+
+<h3 id="s1-4-filter">Satırları süzmek</h3>
+<p>Köşeli parantez içindeki bir koşul, yalnızca doğru olduğu satırları tutar. İşte Seattle’dan gelen ve 500 $’dan fazla getiren siparişler:</p>
+<div class="cell"><textarea>big_seattle = orders[(orders['city'] == 'Seattle')
+                     &amp; (orders['revenue'] &gt; 500)]
+big_seattle[['order_date', 'product', 'revenue']]</textarea></div>
+<p><code>&amp;</code> “ve”, <code>|</code> “veya” demektir. Her koşulun kendi parantezi olmalıdır; yoksa Python işlemlerin sırasını karıştırır ve hata verir. İndeks özgün satır numaralarını korur; bu satırların daha büyük bir tablodan seçildiğini böyle anlarsınız.</p>
+
+<h3 id="s1-4-sort"><code>df.sort_values()</code></h3>
+<p><code>sort_values()</code> bir sütuna göre, en küçük önce olacak şekilde sıralar. En büyük önce olsun diye <code>ascending=False</code> verin:</p>
+<div class="cell"><textarea>orders.sort_values('revenue', ascending=False)[
+    ['product', 'quantity', 'revenue']].head(3)</textarea></div>
+
+<h3 id="s1-4-groupby"><code>df.groupby()</code></h3>
+<p><code>groupby()</code> satırları gruplara ayırır ve Excel’deki bir pivot tablo gibi her grubu toplar, sayar ya da ortalamasını alır. İşte her şehrin toplam geliri:</p>
+<div class="cell"><textarea>city_revenue = orders.groupby('city')['revenue'].sum()
+city_revenue</textarea></div>
+<p>Satırı soldan sağa okuyun: <code>groupby('city')</code> siparişleri şehir başına bir gruba koyar, <code>['revenue']</code> üzerinde çalışılacak sütunu seçer ve <code>sum()</code> onu her grup içinde toplar. Sonuç, şehirlerin indeks olduğu bir Series’tir. <code>Unknown</code>, şehri kaydedilmemiş siparişleri tutar: gelirleri bilinir ama nereden geldiği bilinmez.</p>
+
+<h3 id="s1-4-vc"><code>s.value_counts()</code></h3>
+<p><code>value_counts()</code>, bir sütunda her değerin kaç kez geçtiğini en yaygından başlayarak sayar:</p>
+<div class="cell"><textarea>orders['product'].value_counts()</textarea></div>
+<p>En sık web kamerası sipariş edildi, ama yukarıdaki sıralama en büyük siparişleri monitörlerin getirdiğini gösterdi. Bir grafik ikisini birden bir bakışta gösterebilir ve hangisini çizeceğinizi seçmek Bölüm 2’nin konusudur.</p>
+
+<h3 id="s1-4-more">Daha fazla tablo aracı</h3>
+<p>Sonraki bölümler birkaç pandas aracı daha kullanıyor. Onları şimdi öğrenmeniz gerekmiyor. Bu kısma göz gezdirin ve bir bölüm buraya işaret ettiğinde geri dönün.</p>
+<p><code>isin()</code>, değeri bir listede olan satırları tutar. Birkaç <code>==</code> koşulunu <code>|</code> ile birleştirmekten daha kısadır:</p>
+<div class="cell"><textarea>two_cities = orders[orders['city'].isin(['Denver', 'Seattle'])]
+two_cities['city'].value_counts()</textarea></div>
+<p><code>set_index()</code> bir sütunu satır etiketlerine, <code>reset_index()</code> ise satır etiketlerini yeniden bir sütuna çevirir. Grafikler etiketleri çoğu zaman indekste ister; plotly ve seaborn ise sıradan sütunlar ister:</p>
+<div class="cell"><textarea>by_city = city_revenue.reset_index()
+by_city.head(3)</textarea></div>
+<p><code>.loc[]</code> satırları ve sütunları etiketlerine göre seçer ve bir koşul da alır. <code>.iloc[]</code> ise onları, yukarıdaki indeks numaralarının saydığı gibi 0’dan sayarak konumlarına göre seçer. <code>0:2</code>, 0 ve 1 konumları demektir (bitiş sayısı dışarıda kalır); yalın bir <code>:</code> ise hepsi demektir:</p>
+<div class="cell"><textarea>orders.loc[orders['revenue'] &gt; 5000, ['product', 'revenue']]</textarea></div>
+<div class="cell"><textarea>orders.iloc[0:2, 0:3]</textarea></div>
+<p><code>drop(columns=)</code> ihtiyacınız olmayan sütunları kaldırır. <code>groupby(..., as_index=False)</code> grupları indeks yerine sıradan bir sütun olarak verir; ardından <code>reset_index()</code> eklemekle aynıdır.</p>
+<p><code>pivot_table()</code>, Excel’in pivot tablosudur. <code>index=</code> satırları, <code>columns=</code> sütunları, <code>values=</code> sayıları ve <code>aggfunc=</code> onların nasıl birleştirileceğini verir. İşte segmente ve ürüne göre gelir:</p>
+<div class="cell"><textarea>orders.pivot_table(index='product', columns='segment',
+                   values='revenue', aggfunc='sum')</textarea></div>
+<p><code>NaN</code>, siparişi olmayan bir çifti işaretler: örneğin segmenti bilinmeyen hiçbir müşteri klavye almamış. <code>pivot()</code> aynı yeniden biçimlendirmeyi hiçbir şeyi birleştirmeden yapar; her satır-sütun çiftinin yalnızca bir kez geçtiği tablolar içindir.</p>
+
+<h3 id="s1-4-python">Karşılaşacağınız Python</h3>
+<p>Grafik kodunda birkaç sade Python parçası tekrar tekrar karşınıza çıkar. İşte hepsi tek bir yerde.</p>
+<p>İki sözcük sürekli geçer. Bir <em>yöntem</em> (method), bir şeye ait olan ve noktayla çağrılan bir fonksiyondur: <code>orders.head()</code>, <code>orders</code> üzerinde <code>head()</code>’i çağırır. Şeyin kendisi, ister bir tablo ister bir grafik ister bir sayı olsun, bir <em>nesnedir</em> (object). <code>np</code> olarak içe aktarılan <code>numpy</code> ise pandas’ın altındaki sayı kütüphanesidir. Kitap onun <code>np.where()</code> ve <code>np.arange()</code> gibi birkaç fonksiyonunu kullanır ve her birini göründüğü yerde açıklar.</p>
+<p>Bir <em>liste</em>, köşeli parantezler içinde değerleri sırayla tutar. Bir <em>sözlük</em> (dictionary), süslü parantezler içinde her anahtarı bir değerle eşleştirir. Bir değeri anahtarıyla bulursunuz:</p>
+<div class="cell"><textarea>colors = {'Online': '#0b3a47', 'In store': '#b26a00'}
+colors['Online']</textarea></div>
+<p>Bir <em>for döngüsü</em>, girintili satırları bir listedeki her değer için bir kez tekrarlar. Burada <code>city</code> her adı sırayla alır:</p>
+<div class="cell"><textarea>for city in ['Denver', 'Seattle']:
+    print(city, city_revenue[city])</textarea></div>
+<p>Bir <em>f-dizgesinin</em> (f-string) açılış tırnağından önce bir <code>f</code> vardır. Python her süslü parantez çiftini içindeki değerle doldurur. Süslü parantezin içindeki iki nokta bir <em>biçim kodu</em> ekler:</p>
+<div class="cell"><textarea>total = orders['revenue'].sum()
+print(f'Total revenue: ${total:,.0f}')</textarea></div>
+<p>Kitabın kullandığı biçim kodları şunlar:</p>
+<div style="overflow-x:auto"><table class="choose">
+<thead><tr><th>Kod</th><th>Ne yapar</th><th>Örnek</th></tr></thead>
+<tbody>
+<tr><td><code>,</code></td><td>Binlik ayraçlar</td><td><code>1234.56</code> → <code>1,234.56</code></td></tr>
+<tr><td><code>.0f</code></td><td>Ondalık yok (yuvarlanmış)</td><td><code>1234.56</code> → <code>1235</code></td></tr>
+<tr><td><code>,.0f</code></td><td>İkisi birden</td><td><code>1234.56</code> → <code>1,235</code></td></tr>
+<tr><td><code>.1f</code></td><td>Bir ondalık basamak</td><td><code>1234.56</code> → <code>1234.6</code></td></tr>
+<tr><td><code>.0%</code></td><td>Bir kesir için ondalıksız yüzde</td><td><code>0.25</code> → <code>25%</code></td></tr>
+</tbody></table></div>
+<p>Aynı kodlar, <code>{x}</code> ya da <code>%{value}</code>’nun sayıyı temsil ettiği matplotlib ve plotly biçim dizgelerinde de çalışır.</p>
+<p>Python iki değer arasında tek satırda da seçim yapabilir: <code>a if koşul else b</code>, koşul doğruysa <code>a</code>’yı, yanlışsa <code>b</code>’yi verir. Bunu, bir <code>for</code> döngüsünden tek satırda liste kuran <em>liste üreteçlerinde</em> (list comprehension) göreceksiniz:</p>
+<div class="cell"><textarea>amounts = [120, 640, 85]
+['big' if a &gt; 100 else 'small' for a in amounts]</textarea></div>
+<p>Satırı ortadan okuyun: <code>amounts</code> içindeki her <code>a</code> için, 100’ün üstündeyse <code>'big'</code>, değilse <code>'small'</code> ver.</p>
+
+<h3 id="s1-4-chart">Bir tablodan bir grafiğe</h3>
+<p>Yukarıdaki tablolar, kitap boyunca çizeceğiniz türden şeyler. <code>city_revenue</code> gibi bir Series kendini çizebilir, çünkü pandas altta matplotlib kullanır. Onu sıralayın, sonra yatay çubuklar için <code>plot.barh()</code>’ı çağırın:</p>
+<div class="cell"><textarea>city_revenue.sort_values().plot.barh()
+plt.show()</textarea></div>
+<p class="figdesc">Şehir başına bir tane olmak üzere yedi yatay çubuk; New York’un yaklaşık 53.000’lik geliri en üstte, Denver en altta olacak şekilde sıralanmış.</p>
+<p>New York diğer şehirlerin herhangi birinin yaklaşık iki katı getirdi ve bunu tek bir sayı okumadan görüyorsunuz. Grafiğin hâlâ bir başlığa ve eksende bir birime ihtiyacı var; Bölüm 3.3 bunları nasıl ekleyeceğinizi gösteriyor, Bölüm 5 de çubuk grafikleri düzgünce ele alıyor.</p>
+</section>
+
+<section>
+<h2 id="s1-5"><span class="num">1.5</span>Bir Şey Çalışmadığında</h2>
+<p>Kurulum sorunlarının çoğu üç hatadan biri olarak görünür. Her durumda önce hatanın son satırını okuyun: sorunu oldukça sade sözcüklerle adlandırır.</p>
+
+<h3 id="s1-5-module">Kurulmamış bir kütüphane</h3>
+<pre class="data">import seaborn as sns
+ModuleNotFoundError: No module named 'seaborn'</pre>
+<p>Ya <code>conda install</code> satırı bitmedi (yeniden çalıştırın) ya da, daha sık olarak, Jupyter onu kurduğunuz ortamdan farklı bir ortamda çalışıyor. Aynı hata, Bölüm 1.3’teki kontrolde hata olmadan, daha eski sürüm numaraları olarak da görünebilir. Bu neredeyse her zaman Jupyter’in Başlat menüsü kısayolundan ya da önce <code>conda activate</code> yapılmadan Anaconda Prompt’tan başlatıldığı anlamına gelir. Jupyter’i kapatın (önce tarayıcı sekmesini, sonra Anaconda Prompt penceresini), Anaconda Prompt’u yeniden açın, <code>conda activate dataviz</code>, ardından <code>jupyter notebook</code> yazın.</p>
+
+<h3 id="s1-5-file">Bulunamayan bir veri dosyası</h3>
+<div class="cell"><textarea>pd.read_csv('orders.csv')</textarea></div>
+<p>Bu hücre bilerek hata verir: <code>FileNotFoundError: [Errno 2] No such file or directory: 'orders.csv'</code>. Ya ad yanlıştır (burada <code>orders_clean.csv</code> olmalı) ya da defteriniz dosyayla aynı klasörde değildir. Her defteri kendi bölüm klasöründe, verinin yanında tutun; dosya adları kendiliğinden çalışır.</p>
+
+<h3 id="s1-5-style">Bulunamayan bir stil dosyası</h3>
+<p>Stil dosyası veri dosyalarıyla aynı kurala uyar: defterin klasöründe durmalıdır. Burada adda bir yazım hatası var:</p>
+<div class="cell"><textarea># Bilerek hatalı: dosya adında yazım hatası
+plt.style.use('book_style.mplstyle')</textarea></div>
+<p>Hata uzundur, ama son satırı <code>OSError: 'book_style.mplstyle' is not a valid package style</code> ile başlar. matplotlib o adda bir dosya ve o adda yerleşik bir stil aradı ve ikisini de bulamadı. Yazımı kontrol edin (<code>book.mplstyle</code>) ve dosyanın defterinizle aynı klasörde olduğunu kontrol edin. Kendinize ait yeni bir klasörde defter yaparsanız <code>book.mplstyle</code>’ı oraya kopyalayın.</p>
+
+<h3 id="s1-5-name">Tanımlanmamış bir ad</h3>
+<p>En yaygın hata <code>NameError: name 'orders' is not defined</code> gibi bir satırla ya da <code>pd</code>, <code>plt</code> veya <code>np</code> ile aynısıyla biter. Python yalnızca daha önce çalıştırdığınız bir hücrenin oluşturduğu adları bilir. Ya bir hücreyi atladınız ya da defter kapatılıp yeniden açıldı; bu her şeyi unutturur. Hata veren hücrenin üstündeki hücreleri çalıştırın ya da <em>Kernel → Restart Kernel and Run All Cells</em>’e tıklayın. (Bu sayfada bir hücreyi çalıştırdığınızda üstündeki çalışmamış hücreler kendiliğinden çalıştırılır.)</p>
+<div class="callout tip"><span class="t">💡 İpucu</span>Bir hata mesajı hâlâ anlamsız geliyorsa son satırını bir arama motoruna kopyalayın ve “matplotlib” ya da “python” ekleyin. Neredeyse her zaman birisi aynı sorunla daha önce karşılaşmıştır.</div>
+</section>
+
+<section>
+<h2 id="ozet">Bölüm Özeti</h2>
+<ul class="summary">
+<li>Kitap üç kütüphane kullanıyor: her türlü grafik için matplotlib, daha az satırda istatistiksel grafikler için seaborn ve etkileşimli grafikler için plotly.</li>
+<li>Her şeyi <code>conda install</code> ile bir <code>dataviz</code> ortamına kurun. Jupyter’i önce <code>conda activate dataviz</code>, sonra <code>jupyter notebook</code> ile başlatın.</li>
+<li>Her defteri kendi bölüm klasöründe, veri dosyalarının ve <code>book.mplstyle</code>’ın yanında tutun.</li>
+<li><code>import matplotlib.pyplot as plt</code>, ardından <code>plt.plot(x_values, y_values)</code> ve <code>plt.show()</code> bir çizgi grafik çizer.</li>
+<li><code>plt.style.use('book.mplstyle')</code>, ondan sonraki her grafiğin bu kitaptakiler gibi görünmesini sağlar.</li>
+<li>Çizmeden önce veriyi pandas ile biçimlendirin: sütun seçin, satır süzün, <code>sort_values()</code>, <code>groupby()</code> ve <code>value_counts()</code>.</li>
+<li><code>ModuleNotFoundError</code> genellikle Jupyter’in yanlış ortamda çalıştığı anlamına gelir; <code>FileNotFoundError</code> ve stil <code>OSError</code>’ı dosyanın defterin klasöründe olmadığı anlamına gelir.</li>
+</ul>
+<p>Araçlarınız hazır. Daha fazlasını öğrenmeden önce Bölüm 2, her grafikten önce gelen soruyu yanıtlamak için koddan bir adım geri çekiliyor: neyi göstermeye çalışıyorsunuz ve onu en iyi hangi tür grafik gösterir?</p>
+
+<h3 id="oyun">Kendi kodunuzu deneyin</h3>
+<p>Aşağıdaki hücre bir oyun alanı. Yukarıdaki tüm değişkenler (<code>orders</code>, <code>city_revenue</code>…) burada kullanılabilir (önceki hücreler otomatik çalıştırılır).</p>
+<div class="cell"><textarea># Örnek: ürün başına toplam gelir, en büyük üstte
+product_revenue = orders.groupby('product')['revenue'].sum().sort_values()
+ax = product_revenue.plot.barh()
+ax.set(title='Monitors bring in the most revenue', xlabel='Revenue ($)', ylabel='')
+plt.show()</textarea></div>
+</section>
+
+<section>
+<h2 id="quiz">Sınav</h2>
+<p>Bir seçeneğe tıklayın; doğru cevap ve açıklama hemen görünür. Puan: <span id="score">0 / 6</span> &nbsp;<button class="btn ghost" id="quizReset">Sıfırla</button></p>
+<div id="quizBox"></div>
+</section>
+
+<div class="chnav"><span></span><div class="all">Bölümler: <a href="bolum01_ortami_kurmak.html" class="cur" title="Görselleştirme Ortamını Kurmak">1</a><a href="bolum02_cizmeden_once_dusunmek.html" class="" title="Çizmeden Önce Düşünmek">2</a><a href="bolum03_matplotlib_temelleri.html" class="" title="matplotlib Temelleri">3</a><a href="bolum04_cizgiler_noktalar.html" class="" title="Çizgiler ve Noktalar">4</a><a href="bolum05_cubuklar_pastalar_tablolar.html" class="" title="Çubuklar, Pastalar ve Tablolar">5</a><a href="bolum06_dagilimlar_izgaralar.html" class="" title="Dağılımlar ve Değer Izgaraları">6</a><a href="bolum07_ozellestirme.html" class="" title="Bir Grafiğin Her Parçasını Özelleştirmek">7</a><a href="bolum08_yerlesimler.html" class="" title="Yerleşimler: Bir Figürde Birçok Grafik">8</a><a href="bolum09_iletisim_kuran_tasarim.html" class="" title="İletişim Kuran Tasarım">9</a><a href="bolum10_yalan_soyleyen_grafikler.html" class="" title="Yalan Söyleyen Grafikler">10</a><a href="bolum11_seaborn_temelleri.html" class="" title="seaborn Temelleri">11</a><a href="bolum12_iliskiler_regresyon.html" class="" title="İlişkiler ve Regresyon">12</a><a href="bolum13_kategoriler.html" class="" title="Kategoriler">13</a><a href="bolum14_dagilimlar.html" class="" title="Dağılımlar">14</a><a href="bolum15_izgaralar_matrisler.html" class="" title="Izgaralar ve Matrisler">15</a><a href="bolum16_plotly_express.html" class="" title="plotly express ile Etkileşimli Grafikler">16</a><a href="bolum17_haritalar_is_grafikleri.html" class="" title="Haritalar ve İş Grafikleri">17</a></div><a href="bolum02_cizmeden_once_dusunmek.html">Bölüm 2 →</a></div>
+</main>
+</div>
+<footer>Bölüm 1 · Görselleştirme Ortamını Kurmak — Pyodide ile etkileşimli Türkçe sürüm</footer>
+
+<script>
+window.EXTRA_PKGS=['plotly==5.24.1'];
+const DATA = {"orders_clean.csv": "order_id,order_date,product,city,quantity,unit_price,revenue,segment\nORD-1001,2025-03-08,Webcam,Los Angeles,5,259.0,1295.0,Consumer\nORD-1003,2025-03-22,Webcam,Philadelphia,2,259.0,518.0,Consumer\nORD-1004,2025-04-15,USB Cable,San Francisco,3,19.9,59.7,Consumer\nORD-1005,2025-05-01,Monitor,Los Angeles,4,1099.0,4396.0,Consumer\nORD-1006,2025-01-16,Headset,New York,1,189.0,189.0,Business\nORD-1007,2025-04-30,Mouse,New York,1,49.9,49.9,Business\nORD-1008,2025-06-17,Webcam,New York,2,259.0,518.0,Consumer\nORD-1009,2025-01-28,Webcam,Philadelphia,1,259.0,259.0,Business\nORD-1010,2025-03-30,Headset,Seattle,3,189.0,567.0,Consumer\nORD-1011,2025-05-27,Keyboard,New York,3,129.0,387.0,Consumer\nORD-1012,2025-01-04,Monitor,San Francisco,2,1099.0,2198.0,Consumer\nORD-1013,2025-02-27,Mouse,Los Angeles,4,49.9,199.6,Consumer\nORD-1016,2025-05-27,Webcam,Seattle,4,259.0,1036.0,Business\nORD-1017,2025-06-13,Keyboard,Seattle,1,129.0,129.0,Consumer\nORD-1018,2025-03-20,Webcam,San Francisco,5,259.0,1295.0,Business\nORD-1019,2025-02-10,Webcam,Philadelphia,4,259.0,1036.0,Consumer\nORD-1020,2025-04-30,Monitor,New York,2,1099.0,2198.0,Consumer\nORD-1021,2025-01-01,Webcam,New York,5,259.0,1295.0,Business\nORD-1022,2025-01-28,Headset,Los Angeles,1,189.0,189.0,Consumer\nORD-1023,2025-02-20,Keyboard,Denver,3,129.0,387.0,Consumer\nORD-1024,2025-01-27,Webcam,New York,1,259.0,259.0,Consumer\nORD-1025,2025-06-25,Mouse,Unknown,3,49.9,149.7,Consumer\nORD-1026,2025-02-06,Webcam,Denver,5,259.0,1295.0,Consumer\nORD-1027,2025-03-20,Mouse,Unknown,2,49.9,99.8,Consumer\nORD-1028,2025-03-30,USB Cable,Seattle,5,19.9,99.5,Consumer\nORD-1029,2025-04-01,Mouse,Los Angeles,1,49.9,49.9,Consumer\nORD-1030,2025-01-26,Headset,Seattle,1,189.0,189.0,Business\nORD-1031,2025-05-14,Headset,Philadelphia,1,189.0,189.0,Consumer\nORD-1032,2025-01-20,Keyboard,Denver,2,129.0,258.0,Consumer\nORD-1033,2025-05-19,USB Cable,San Francisco,3,19.9,59.7,Consumer\nORD-1034,2025-03-09,Webcam,Unknown,2,259.0,518.0,Consumer\nORD-1035,2025-04-07,Keyboard,New York,5,129.0,645.0,Consumer\nORD-1036,2025-01-20,Webcam,Los Angeles,1,259.0,259.0,Business\nORD-1037,2025-02-27,Keyboard,New York,1,129.0,129.0,Consumer\nORD-1038,2025-02-21,USB Cable,New York,4,19.9,79.6,Consumer\nORD-1039,2025-02-05,Keyboard,New York,4,129.0,516.0,Consumer\nORD-1040,2025-03-13,Headset,Philadelphia,4,189.0,756.0,Business\nORD-1041,2025-04-08,Mouse,New York,2,49.9,99.8,Business\nORD-1044,2025-01-18,Webcam,Seattle,2,259.0,518.0,Consumer\nORD-1045,2025-04-15,Headset,Los Angeles,1,189.0,189.0,Consumer\nORD-1046,2025-04-08,Keyboard,San Francisco,4,129.0,516.0,Consumer\nORD-1047,2025-05-05,USB Cable,New York,3,19.9,59.7,Consumer\nORD-1048,2025-03-17,USB Cable,Philadelphia,4,19.9,79.6,Business\nORD-1049,2025-03-20,Monitor,Los Angeles,5,1099.0,5495.0,Business\nORD-1050,2025-06-15,Webcam,New York,5,259.0,1295.0,Consumer\nORD-1051,2025-03-30,USB Cable,San Francisco,4,19.9,79.6,Consumer\nORD-1052,2025-02-22,Keyboard,New York,3,129.0,387.0,Consumer\nORD-1053,2025-06-16,Mouse,Los Angeles,4,49.9,199.6,Business\nORD-1054,2025-01-16,USB Cable,New York,1,19.9,19.9,Consumer\nORD-1055,2025-03-15,USB Cable,Denver,5,19.9,99.5,Consumer\nORD-1056,2025-02-15,Headset,New York,1,189.0,189.0,Consumer\nORD-1057,2025-01-24,USB Cable,Los Angeles,3,19.9,59.7,Consumer\nORD-1058,2025-05-19,Webcam,Philadelphia,1,259.0,259.0,Business\nORD-1059,2025-06-02,Mouse,New York,4,49.9,199.6,Consumer\nORD-1060,2025-03-17,Webcam,Los Angeles,4,259.0,1036.0,Consumer\nORD-1061,2025-05-28,Headset,New York,2,189.0,378.0,Consumer\nORD-1062,2025-01-29,Webcam,Seattle,4,259.0,1036.0,Consumer\nORD-1063,2025-01-24,Headset,Los Angeles,4,189.0,756.0,Consumer\nORD-1064,2025-03-28,Mouse,Seattle,5,49.9,249.5,Consumer\nORD-1065,2025-03-18,Mouse,San Francisco,1,49.9,49.9,Business\nORD-1066,2025-04-17,Mouse,New York,4,49.9,199.6,Consumer\nORD-1067,2025-03-20,Keyboard,Philadelphia,2,129.0,258.0,Consumer\nORD-1068,2025-06-16,Headset,New York,1,189.0,189.0,Business\nORD-1069,2025-05-04,Keyboard,San Francisco,5,129.0,645.0,Consumer\nORD-1070,2025-05-01,Mouse,New York,5,49.9,249.5,Consumer\nORD-1071,2025-02-14,Keyboard,New York,1,129.0,129.0,Consumer\nORD-1072,2025-06-14,Keyboard,Unknown,1,129.0,129.0,Consumer\nORD-1073,2025-05-29,USB Cable,San Francisco,5,19.9,99.5,Consumer\nORD-1074,2025-01-11,Headset,Seattle,5,189.0,945.0,Consumer\nORD-1075,2025-05-29,Webcam,New York,1,259.0,259.0,Business\nORD-1076,2025-04-02,USB Cable,Los Angeles,3,19.9,59.7,Consumer\nORD-1077,2025-05-28,Headset,New York,4,189.0,756.0,Consumer\nORD-1078,2025-06-27,Headset,New York,1,189.0,189.0,Consumer\nORD-1079,2025-02-09,Webcam,Denver,1,259.0,259.0,Consumer\nORD-1080,2025-02-03,Monitor,Philadelphia,2,1099.0,2198.0,Business\nORD-1081,2025-06-07,USB Cable,New York,2,19.9,39.8,Business\nORD-1082,2025-04-15,USB Cable,Los Angeles,1,19.9,19.9,Consumer\nORD-1083,2025-03-25,USB Cable,Philadelphia,1,19.9,19.9,Business\nORD-1084,2025-01-25,Webcam,New York,4,259.0,1036.0,Consumer\nORD-1085,2025-03-14,USB Cable,Philadelphia,2,19.9,39.8,Unknown\nORD-1086,2025-04-17,USB Cable,New York,3,19.9,59.7,Business\nORD-1087,2025-01-27,Keyboard,Unknown,4,129.0,516.0,Consumer\nORD-1088,2025-04-28,USB Cable,New York,2,19.9,39.8,Consumer\nORD-1089,2025-02-05,Monitor,Los Angeles,3,1099.0,3297.0,Consumer\nORD-1090,2025-05-14,USB Cable,Seattle,4,19.9,79.6,Consumer\nORD-1091,2025-02-18,Headset,New York,3,189.0,567.0,Consumer\nORD-1092,2025-01-21,Mouse,San Francisco,1,49.9,49.9,Business\nORD-1093,2025-04-13,Monitor,New York,4,1099.0,4396.0,Business\nORD-1094,2025-01-03,Monitor,San Francisco,4,1099.0,4396.0,Consumer\nORD-1095,2025-02-13,USB Cable,New York,5,19.9,99.5,Consumer\nORD-1096,2025-06-30,Monitor,New York,1,1099.0,1099.0,Consumer\nORD-1097,2025-05-17,Monitor,Los Angeles,2,1099.0,2198.0,Consumer\nORD-1098,2025-04-06,Monitor,Unknown,5,1099.0,5495.0,Consumer\nORD-1099,2025-06-23,USB Cable,San Francisco,1,19.9,19.9,Consumer\nORD-1100,2025-03-23,Webcam,New York,1,259.0,259.0,Consumer\nORD-1101,2025-03-28,Monitor,Unknown,5,1099.0,5495.0,Consumer\nORD-1103,2025-05-11,Monitor,New York,5,1099.0,5495.0,Consumer\nORD-1104,2025-04-26,USB Cable,Los Angeles,4,19.9,79.6,Consumer\nORD-1105,2025-05-12,Monitor,Philadelphia,5,1099.0,5495.0,Consumer\nORD-1106,2025-03-29,USB Cable,San Francisco,3,19.9,59.7,Consumer\nORD-1107,2025-02-25,USB Cable,San Francisco,3,19.9,59.7,Consumer\nORD-1108,2025-04-07,USB Cable,Philadelphia,4,19.9,79.6,Business\nORD-1109,2025-03-12,Keyboard,New York,1,129.0,129.0,Consumer\nORD-1110,2025-06-17,Headset,New York,3,189.0,567.0,Business\nORD-1111,2025-03-17,Keyboard,Unknown,5,129.0,645.0,Consumer\nORD-1112,2025-04-23,Webcam,Denver,3,259.0,777.0,Consumer\nORD-1113,2025-02-21,Webcam,Denver,1,259.0,259.0,Business\nORD-1114,2025-05-13,Headset,Los Angeles,3,189.0,567.0,Business\nORD-1115,2025-01-20,Webcam,New York,4,259.0,1036.0,Consumer\nORD-1116,2025-03-04,Mouse,New York,5,49.9,249.5,Business\nORD-1117,2025-06-08,Webcam,Philadelphia,3,259.0,777.0,Consumer\nORD-1118,2025-05-24,USB Cable,Los Angeles,2,19.9,39.8,Consumer\nORD-1119,2025-03-22,Headset,New York,1,189.0,189.0,Consumer\nORD-1120,2025-01-20,Webcam,Denver,1,259.0,259.0,Consumer\nORD-1121,2025-05-14,Headset,San Francisco,2,189.0,378.0,Consumer\nORD-1122,2025-04-23,Keyboard,New York,2,129.0,258.0,Consumer\nORD-1123,2025-04-07,Mouse,Philadelphia,4,49.9,199.6,Consumer\nORD-1125,2025-05-09,USB Cable,Philadelphia,5,19.9,99.5,Business\nORD-1126,2025-02-03,Headset,New York,3,189.0,567.0,Unknown\nORD-1127,2025-04-07,Webcam,New York,1,259.0,259.0,Consumer\nORD-1128,2025-04-15,Keyboard,Denver,1,129.0,129.0,Business\nORD-1129,2025-03-31,Webcam,Philadelphia,2,259.0,518.0,Business\nORD-1131,2025-06-09,Monitor,Philadelphia,4,1099.0,4396.0,Consumer\nORD-1132,2025-04-08,Webcam,San Francisco,3,259.0,777.0,Consumer\nORD-1133,2025-06-11,Webcam,Philadelphia,3,259.0,777.0,Consumer\nORD-1134,2025-04-29,Mouse,New York,1,49.9,49.9,Consumer\nORD-1135,2025-03-04,Webcam,New York,4,259.0,1036.0,Consumer\nORD-1136,2025-05-22,USB Cable,Philadelphia,3,19.9,59.7,Consumer\nORD-1137,2025-02-16,Headset,Seattle,1,189.0,189.0,Consumer\nORD-1138,2025-04-12,Keyboard,Los Angeles,4,129.0,516.0,Business\nORD-1139,2025-06-19,Monitor,New York,1,1099.0,1099.0,Consumer\nORD-1140,2025-01-08,Mouse,New York,2,49.9,99.8,Consumer\nORD-1141,2025-05-24,Keyboard,New York,2,129.0,258.0,Business\nORD-1142,2025-01-11,Webcam,New York,3,259.0,777.0,Consumer\nORD-1144,2025-01-01,Mouse,Philadelphia,3,49.9,149.7,Consumer\nORD-1145,2025-04-10,Headset,San Francisco,2,189.0,378.0,Business\nORD-1146,2025-02-13,Webcam,Los Angeles,4,259.0,1036.0,Consumer\nORD-1147,2025-02-14,Webcam,New York,4,259.0,1036.0,Consumer\nORD-1148,2025-01-28,USB Cable,New York,1,19.9,19.9,Business\nORD-1149,2025-06-18,Keyboard,New York,4,129.0,516.0,Consumer\nORD-1150,2025-02-13,Mouse,Los Angeles,3,49.9,149.7,Consumer\nORD-1151,2025-02-20,Webcam,Los Angeles,4,259.0,1036.0,Consumer\nORD-1152,2025-06-04,Keyboard,Seattle,5,129.0,645.0,Consumer\nORD-1153,2025-06-14,Webcam,Philadelphia,2,259.0,518.0,Consumer\nORD-1154,2025-05-25,Mouse,New York,4,49.9,199.6,Consumer\nORD-1155,2025-05-30,Mouse,New York,1,49.9,49.9,Consumer\nORD-1156,2025-01-30,USB Cable,Denver,5,19.9,99.5,Consumer\nORD-1157,2025-01-23,Webcam,Los Angeles,1,259.0,259.0,Consumer\nORD-1159,2025-06-17,Mouse,Seattle,1,49.9,49.9,Consumer\nORD-1160,2025-06-12,Mouse,Philadelphia,1,49.9,49.9,Consumer\nORD-1161,2025-05-11,Mouse,Los Angeles,4,49.9,199.6,Consumer\nORD-1162,2025-06-01,Keyboard,Los Angeles,5,129.0,645.0,Consumer\nORD-1163,2025-06-01,Keyboard,Los Angeles,2,129.0,258.0,Consumer\nORD-1164,2025-05-03,USB Cable,Los Angeles,4,19.9,79.6,Consumer\nORD-1165,2025-01-28,Monitor,Philadelphia,4,1099.0,4396.0,Consumer\nORD-1166,2025-04-05,Monitor,New York,4,1099.0,4396.0,Business\nORD-1167,2025-01-29,Headset,New York,1,189.0,189.0,Consumer\nORD-1168,2025-02-06,Webcam,Seattle,2,259.0,518.0,Consumer\nORD-1169,2025-06-09,Headset,San Francisco,3,189.0,567.0,Business\nORD-1170,2025-05-15,USB Cable,Denver,3,19.9,59.7,Consumer\nORD-1171,2025-05-21,Webcam,San Francisco,1,259.0,259.0,Consumer\nORD-1172,2025-02-06,Monitor,New York,5,1099.0,5495.0,Consumer\nORD-1173,2025-05-26,Headset,San Francisco,2,189.0,378.0,Business\nORD-1174,2025-04-21,USB Cable,Philadelphia,3,19.9,59.7,Unknown\nORD-1175,2025-04-02,Monitor,New York,2,1099.0,2198.0,Consumer\nORD-1176,2025-01-24,Keyboard,Los Angeles,1,129.0,129.0,Consumer\nORD-1177,2025-05-12,Keyboard,New York,5,129.0,645.0,Consumer\nORD-1178,2025-02-20,Monitor,New York,1,1099.0,1099.0,Consumer\nORD-1179,2025-03-24,Keyboard,New York,5,129.0,645.0,Consumer\nORD-1180,2025-04-29,Headset,New York,1,189.0,189.0,Consumer\nORD-1181,2025-02-26,Headset,San Francisco,5,189.0,945.0,Business\nORD-1182,2025-06-27,Monitor,New York,5,1099.0,5495.0,Consumer\nORD-1183,2025-02-10,USB Cable,New York,4,19.9,79.6,Consumer\nORD-1184,2025-04-09,USB Cable,New York,1,19.9,19.9,Consumer\nORD-1185,2025-03-09,USB Cable,Denver,2,19.9,39.8,Consumer\nORD-1186,2025-03-15,Mouse,Denver,4,49.9,199.6,Consumer\nORD-1187,2025-03-15,Mouse,San Francisco,2,49.9,99.8,Consumer\nORD-1188,2025-06-03,USB Cable,Philadelphia,1,19.9,19.9,Consumer\nORD-1189,2025-06-09,Headset,San Francisco,2,189.0,378.0,Consumer\nORD-1190,2025-04-07,Headset,New York,1,189.0,189.0,Consumer\nORD-1191,2025-01-14,Webcam,Denver,3,259.0,777.0,Consumer\nORD-1192,2025-04-06,Monitor,Philadelphia,2,1099.0,2198.0,Consumer\nORD-1193,2025-02-03,Webcam,Philadelphia,1,259.0,259.0,Consumer\nORD-1194,2025-04-11,Webcam,New York,2,259.0,518.0,Consumer\n", "book.mplstyle": "# Chart style for \"Master Data Visualization\".\n# Load it with plt.style.use('book.mplstyle') so your charts match the book.\n# Chapter 7 explains every line; delete one and see what changes.\n\n# Four colors that stay different when printed in black and white:\n# dark teal, amber, light teal, sand. Lines also change style\n# (solid, dashed, dotted, dash-dot) so they can be told apart in gray.\naxes.prop_cycle: cycler('color', ['0b3a47', 'b26a00', '6fb3c2', 'f0c987']) + cycler('linestyle', ['-', '--', ':', '-.'])\n\n# Size in inches (fits a printed book page) and text sizes in points\nfigure.figsize: 5.5, 3.4\nfont.size: 9.5\naxes.titlesize: 11\naxes.titlelocation: left\naxes.labelsize: 9.5\nlegend.fontsize: 9\n\n# Thicker lines; if you turn the grid on (ax.grid()), it is light and sits behind the data\nlines.linewidth: 2\naxes.axisbelow: True\ngrid.color: d9dde1\n"};
+</script>
+<script>
+// ---------------- Quiz -----------------
+const QUIZ = [
+ {q:"Bu kitap, üzerine gelip yakınlaştırabileceğiniz etkileşimli grafikler için hangi kütüphaneyi kullanıyor?",
+  o:["matplotlib","seaborn","plotly","pandas"],a:2,
+  e:"plotly, Bölüm 16 ve 17’de etkileşimli grafikler için kullanılır."},
+ {q:"Kütüphaneleri <code>dataviz</code> ortamına kurdunuz, ardından Jupyter’i Başlat menüsü kısayolundan başlattınız. <code>import seaborn as sns</code> <code>ModuleNotFoundError</code> veriyor. Çözüm nedir?",
+  o:["Anaconda Prompt’ta <code>dataviz</code>’i etkinleştirip Jupyter’i orada başlatmak","Anaconda’yı yeniden kurup Jupyter’i açmadan önce bilgisayarı yeniden başlatmak","Defterin adını <code>.ipynb</code> yerine <code>.py</code> ile bitecek şekilde değiştirmek","Önce <code>import matplotlib</code>, sonra <code>import seaborn as sns</code> çalıştırmak"],a:0,
+  e:"Kısayol Anaconda’nın özgün ortamını açar; kütüphaneler orada yoktur (1.5)."},
+ {q:"<code>plt.style.use('book.mplstyle')</code> neyi değiştirir?",
+  o:["Grafikteki sayıları, stile uyacak şekilde yuvarlanmış olarak","Yalnızca aynı hücrede çizilen grafiğin görünümünü","Sonradan her grafiğin kaydedildiği dosya biçimini","Ondan sonra çizilen her grafiğin görünümünü"],a:3,
+  e:"Stil, siz değiştirene ya da çekirdeği yeniden başlatana kadar sonraki tüm grafiklere uygulanır."},
+ {q:"Hangi satır yalnızca geliri 1.000’in üstünde olan New York siparişlerini tutar?",
+  o:["<code>orders[orders['city'] == 'New York' &amp; orders['revenue'] &gt; 1000]</code>","<code>orders[(orders['city'] == 'New York') and (orders['revenue'] &gt; 1000)]</code>","<code>orders[(orders['city'] == 'New York') &amp; (orders['revenue'] &gt; 1000)]</code>","<code>orders.groupby('city')['revenue'] &gt; 1000</code>"],a:2,
+  e:"pandas’ta “ve” için <code>&amp;</code> kullanılır ve her koşulun kendi parantezi olmalıdır."},
+ {q:"<code>orders.groupby('city')['revenue'].sum()</code> ne döndürür?",
+  o:["Şehirlerin indeks olduğu, şehir başına bir toplam gelir","Her şehirdeki sipariş sayısı","Gelir sütunu toplanmış, şehre göre sıralı siparişler","Her şehrin toplamını tutan yeni bir sütunla sipariş başına bir satır"],a:0,
+  e:"Sonuç, şehirlerin indeks olduğu bir Series’tir (1.4)."},
+ {q:"Defteriniz <code>Documents</code>’ta, <code>orders_clean.csv</code> ise <code>Documents/master-data-visualization-main/chapter-01</code>’de. <code>pd.read_csv('orders_clean.csv')</code> çalıştırınca ne olur?",
+  o:["pandas her klasörü arar ve dosyayı bulur","pandas o adda boş bir dosya oluşturur","İki klasör de Documents içinde olduğu için çalışır","<code>FileNotFoundError</code> verir"],a:3,
+  e:"Bir defter yalnızca kendi klasöründeki dosyaları adlarıyla açabilir."}
+];
+
+function buildQuiz(){
+  const box=document.getElementById('quizBox'); box.innerHTML='';
+  const L='ABCD';
+  QUIZ.forEach((it,i)=>{
+    const d=document.createElement('div'); d.className='q'; d.id='q'+(i+1);
+    d.innerHTML=`<div class="qt">${i+1}. ${it.q}</div>`+
+      it.o.map((o,j)=>`<label><input type="radio" name="q${i}" value="${j}"><strong>${L[j]}.</strong> ${o}</label>`).join('')+
+      `<div class="fb"></div>`;
+    d.querySelectorAll('input').forEach(inp=>inp.addEventListener('change',()=>{
+      if(d.dataset.done) return; d.dataset.done=1;
+      const j=+inp.value, labs=d.querySelectorAll('label');
+      labs[it.a].classList.add('ok'); if(j!==it.a) labs[j].classList.add('no');
+      d.querySelectorAll('input').forEach(x=>x.disabled=true);
+      const fb=d.querySelector('.fb'); fb.classList.add('show');
+      fb.innerHTML=(j===it.a?'✅ <strong>Doğru.</strong> ':'❌ <strong>Doğru cevap '+L[it.a]+'.</strong> ')+it.e;
+      if(j===it.a) d.dataset.ok=1; updateScore();
+    }));
+    box.appendChild(d);
+  });
+  updateScore();
+}
+function updateScore(){
+  const ok=document.querySelectorAll('.q[data-ok]').length, done=document.querySelectorAll('.q[data-done]').length;
+  document.getElementById('score').textContent=`${ok} / ${QUIZ.length}`+(done?` (cevaplanan: ${done})`:'');
+}
+document.getElementById('quizReset').onclick=buildQuiz;
+buildQuiz();
+
+// ---------------- Data list -----------------
+function csvToTable(txt,max=200){
+  const rows=txt.trim().split(/\r?\n/).map(r=>r.split(','));
+  const h=rows.shift();
+  return '<table><thead><tr>'+h.map(x=>`<th>${x}</th>`).join('')+'</tr></thead><tbody>'+
+    rows.slice(0,max).map(r=>'<tr>'+r.map(x=>`<td>${x}</td>`).join('')+'</tr>').join('')+'</tbody></table>';
+}
+(function(){
+  const host=document.getElementById('dataList');
+  Object.entries(DATA).forEach(([name,txt])=>{
+    const n=txt.trim().split(/\r?\n/).length-1;
+    const url=URL.createObjectURL(new Blob([txt],{type:'text/csv'}));
+    const d=document.createElement('details'); d.className='data';
+    const isCsv=name.endsWith('.csv');
+    d.innerHTML=`<summary>${name} <span style="font-weight:400;color:#5f6b72">— ${isCsv?n+' satır':'stil dosyası'}</span> · <a href="${url}" download="${name}">indir</a></summary><div class="tbl">${isCsv?csvToTable(txt):'<pre style="font-size:12px;white-space:pre-wrap">'+txt.replace(/</g,'&lt;')+'</pre>'}</div>`;
+    host.appendChild(d);
+  });
+})();
+
+// ---------------- Code cells -----------------
+const cells=[];
+document.querySelectorAll('.cell').forEach((el,i)=>{
+  const ta=el.querySelector('textarea'); const src=ta.value;
+  const bar=document.createElement('div'); bar.className='bar';
+  bar.innerHTML=`<span class="lbl">In [<span class="cnt"> </span>]:</span><span class="sp"></span>
+    <button class="btn ghost reset" title="Orijinal koda dön">↺ Orijinal</button>
+    <button class="btn run" disabled>▶ Çalıştır</button>`;
+  el.insertBefore(bar,ta);
+  const cm=CodeMirror.fromTextArea(ta,{mode:'python',lineNumbers:false,indentUnit:4,viewportMargin:Infinity,
+     extraKeys:{'Shift-Enter':()=>runCell(i),'Ctrl-Enter':()=>runCell(i),Tab:c=>c.replaceSelection('    ')}});
+  const out=document.createElement('div'); out.className='out'; el.appendChild(out);
+  const c={el,cm,out,src,ran:false,idx:i,btn:bar.querySelector('.run'),cnt:bar.querySelector('.cnt')};
+  bar.querySelector('.run').onclick=()=>runCell(i);
+  bar.querySelector('.reset').onclick=()=>cm.setValue(src);
+  el.id='hucre-'+(i+1);
+  cells.push(c);
+});
+
+// ---------------- Pyodide -----------------
+let py=null, execCount=0, busy=false;
+const st=document.getElementById('status'), stT=document.getElementById('statusText');
+window.__currentOut=null;
+window.renderPlot=function(json){
+  const spec=JSON.parse(json); const div=document.createElement('div'); div.className='plot';
+  const inner=document.createElement('div'); div.appendChild(inner);
+  window.__currentOut.appendChild(div);
+  Plotly.newPlot(inner,spec.data,spec.layout||{},{responsive:true,displaylogo:false,locale:'tr'});
+};
+const PY_SETUP=`
+import os
+os.environ['MPLBACKEND'] = 'Agg'
+import matplotlib
+matplotlib.use('Agg')
+import sys, io, ast, contextlib, base64
+import pandas as pd
+import matplotlib.pyplot as plt
+_CAPTURED = []
+def _grab_figs():
+    for n in plt.get_fignums():
+        f = plt.figure(n); b = io.BytesIO()
+        f.savefig(b, format='png', dpi=120, bbox_inches='tight')
+        _CAPTURED.append(base64.b64encode(b.getvalue()).decode())
+    plt.close('all')
+plt.show = lambda *a, **k: _grab_figs()
+# matplotlib 3.8 (Pyodide) için kitap kodunun 3.10+ parametrelerine uyum katmanı
+from matplotlib.axes import Axes as _Axes
+_orig_boxplot = _Axes.boxplot
+def _boxplot(self, *a, tick_labels=None, orientation=None, **k):
+    if tick_labels is not None: k['labels'] = tick_labels
+    if orientation is not None: k['vert'] = (orientation == 'vertical')
+    return _orig_boxplot(self, *a, **k)
+_Axes.boxplot = _boxplot
+import warnings
+warnings.simplefilter('ignore', FutureWarning)
+pd.set_option('display.width', 120)
+SKIP = ('.csv', '.mplstyle')
+def _written(src):
+    import re
+    return re.findall(r"savefig\\(\\s*['\\"]([^'\\"]+)['\\"]", src)
+def __run_cell(src, ns):
+    buf = io.StringIO()
+    before = set(f for f in os.listdir('.') if not f.endswith(SKIP))
+    _CAPTURED.clear()
+    res = {'stdout':'', 'html':None, 'text':None, 'files':[], 'imgs':[]}
+    val = None
+    try:
+        with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(buf):
+            tree = ast.parse(src)
+            last = None
+            if tree.body and isinstance(tree.body[-1], ast.Expr):
+                last = ast.Expression(tree.body.pop().value)
+            exec(compile(tree, '<hücre>', 'exec'), ns)
+            val = eval(compile(last, '<hücre>', 'eval'), ns) if last is not None else None
+    finally:
+        _grab_figs()
+        res['imgs'] = list(_CAPTURED)
+        _CAPTURED.clear()
+    res['stdout'] = buf.getvalue()
+    if val is not None:
+        if isinstance(val, (pd.DataFrame, pd.Series)):
+            df = val.to_frame() if isinstance(val, pd.Series) else val
+            res['html'] = df.to_html(max_rows=30, border=0)
+        elif hasattr(val, '_repr_html_') and type(val).__name__ == 'Styler':
+            res['html'] = val._repr_html_()
+        else:
+            res['text'] = repr(val)
+    after = set(f for f in os.listdir('.') if not f.endswith(SKIP))
+    res['files'] = sorted((after - before) | (set(_written(src)) & after))
+    return res
+def __new_ns():
+    plt.close('all'); matplotlib.rcdefaults()
+    return {'__name__':'__main__'}
+`;
+async function initPy(){
+  try{
+    stT.textContent='Pyodide yükleniyor…';
+    py=await loadPyodide();
+    stT.textContent='pandas, matplotlib yükleniyor…';
+    await py.loadPackage(['pandas','matplotlib','scipy','jinja2','micropip']);
+    stT.textContent='seaborn yükleniyor…';
+    const mp=py.pyimport('micropip');
+    await mp.install(['seaborn'].concat(window.EXTRA_PKGS||[]));
+    for(const [n,t] of Object.entries(DATA)) py.FS.writeFile(n,t);
+    await py.runPythonAsync(PY_SETUP);
+    window.__ns=py.runPython('__new_ns()');
+    st.className='ready'; stT.textContent='Python hazır';
+    cells.forEach(c=>c.btn.disabled=false);
+  }catch(e){ st.className='err'; stT.textContent='Yükleme hatası'; console.error(e);
+    alert('Pyodide yüklenemedi. İnternet bağlantınızı kontrol edin.\n'+e); }
+}
+async function execOne(c){
+  c.out.innerHTML=''; c.out.classList.add('show'); window.__currentOut=c.out;
+  c.el.style.opacity=1;
+  try{
+    const fn=py.globals.get('__run_cell');
+    const r=fn(c.cm.getValue(), window.__ns).toJs({dict_converter:Object.fromEntries});
+    fn.destroy();
+    if(r.stdout){const p=document.createElement('pre');p.className='txt';p.textContent=r.stdout;c.out.prepend(p);}
+    if(r.html){const d=document.createElement('div');d.style.overflowX='auto';d.innerHTML=r.html;c.out.appendChild(d);}
+    if(r.text){const p=document.createElement('pre');p.className='txt';p.textContent=r.text;c.out.appendChild(p);}
+    for(const im of (r.imgs||[])){const d=document.createElement('div');d.className='plot';const g=document.createElement('img');g.src='data:image/png;base64,'+im;g.alt='Grafik';d.appendChild(g);c.out.appendChild(d);}
+    for(const f of (r.files||[])){
+      const bytes=py.FS.readFile(f); const url=URL.createObjectURL(new Blob([bytes],{type:f.endsWith('.html')?'text/html':'application/octet-stream'}));
+      const d=document.createElement('div');d.className='dl';
+      d.innerHTML=`<a href="${url}" download="${f}">⬇ ${f} dosyasını indir (${(bytes.length/1048576).toFixed(1)} MB)</a> &nbsp;<a href="${url}" target="_blank" style="background:#0b3a47">Yeni sekmede aç</a>`;
+      c.out.appendChild(d);
+    }
+    if(!c.out.children.length){const p=document.createElement('pre');p.className='txt';p.style.color='#8a9296';p.textContent='✓ Çalıştı (çıktı yok)';c.out.appendChild(p);}
+    c.ran=true; c.cnt.textContent=++execCount; return true;
+  }catch(e){
+    let msg=String(e.message||e); const k=msg.lastIndexOf('File "<hücre>"');
+    if(k>0) msg=msg.slice(k);
+    const p=document.createElement('pre');p.className='txt err';p.textContent=msg;c.out.appendChild(p);
+    c.cnt.textContent='!'; return false;
+  }
+}
+async function runCell(i){
+  if(!py||busy) return; busy=true;
+  const target=cells[i];
+  target.btn.disabled=true; target.btn.textContent='⏳';
+  await new Promise(r=>setTimeout(r,20));
+  for(let k=0;k<i;k++){ if(!cells[k].ran){ cells[k].btn.textContent='⏳'; await new Promise(r=>setTimeout(r,10)); await execOne(cells[k]); cells[k].btn.textContent='▶ Çalıştır'; } }
+  await execOne(target);
+  target.btn.disabled=false; target.btn.textContent='▶ Çalıştır'; busy=false;
+}
+document.getElementById('runAll').onclick=async()=>{ if(!py)return; for(let i=0;i<cells.length;i++){ cells[i].ran=false; } await runCell(cells.length-1); };
+document.getElementById('resetNs').onclick=()=>{ if(!py)return; window.__ns=py.runPython('__new_ns()'); execCount=0;
+  cells.forEach(c=>{c.ran=false;c.cnt.textContent=' ';c.out.innerHTML='';c.out.classList.remove('show');}); };
+initPy();
+
+// ---------------- TOC -----------------
+const toc=document.getElementById('tocLinks');
+const heads=[...document.querySelectorAll('main h2[id], main h3[id]')];
+heads.forEach(h=>{const a=document.createElement('a');a.href='#'+h.id;a.innerHTML=h.innerHTML.replace(/<span class="num">(.*?)<\/span>/,'$1 ');if(h.tagName==='H3')a.className='sub';toc.appendChild(a);});
+const tocLinks=[...toc.querySelectorAll('a')];
+const io2=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){tocLinks.forEach(a=>a.classList.toggle('active',a.getAttribute('href')==='#'+e.target.id));}})},{rootMargin:'-80px 0px -70% 0px'});
+heads.forEach(h=>io2.observe(h));
+
+// ---------------- Search -----------------
+const norm=s=>s.toLocaleLowerCase('tr').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/ı/g,'i');
+const index=[];
+(function buildIndex(){
+  let sec='Giriş';
+  document.querySelectorAll('main h1, main h2, main h3, main p, main li, main .callout, main .cell, main .q, main pre.data').forEach(el=>{
+    if(el.closest('.callout')&&el.tagName!=='DIV') return;
+    if(el.closest('#datasets')) return;
+    if(el.matches('.q')){ index.push({el,sec:'Sınav',kind:'soru',text:el.querySelector('.qt').textContent+' '+[...el.querySelectorAll('label')].map(l=>l.textContent).join(' ')}); return; }
+    if(el.closest('.q')) return;
+    if(el.matches('h2,h3')){ sec=el.textContent; }
+    let kind='metin', text=el.textContent;
+    if(el.matches('.cell')){ kind='kod'; const c=cells.find(c=>c.el===el); text=c?c.cm.getValue():text; }
+    else if(el.matches('h1,h2,h3')) kind='başlık';
+    else if(el.matches('.callout')) kind='kutu';
+    else if(el.matches('.figdesc')) kind='grafik';
+    else if(el.matches('pre.data')) kind='veri';
+    index.push({el,sec,kind,text:text.replace(/\s+/g,' ').trim()});
+  });
+  index.forEach(x=>x.n=norm(x.text));
+})();
+const si=document.getElementById('search'), res=document.getElementById('results');
+let hits=[], act=-1;
+function esc(s){return s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+function snippet(text,terms){
+  const n=norm(text); let pos=-1;
+  for(const t of terms){const p=n.indexOf(t);if(p>=0){pos=p;break;}}
+  let s=Math.max(0,pos-60), e=Math.min(text.length,(pos<0?0:pos)+140);
+  let out=(s>0?'…':'')+text.slice(s,e)+(e<text.length?'…':'');
+  // highlight (norm keeps length for Turkish chars after NFD strip mostly; do case-insensitive regex)
+  let h=esc(out);
+  terms.forEach(t=>{ if(!t) return;
+    const re=new RegExp(t.split('').map(ch=>{const m={'i':'[iıİI]','s':'[sşŞS]','c':'[cçÇC]','g':'[gğĞG]','o':'[oöÖO]','u':'[uüÜU]'}; return m[ch]||ch.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}).join(''),'gi');
+    h=h.replace(re,m=>`<mark>${m}</mark>`); });
+  return h;
+}
+function doSearch(){
+  const q=si.value.trim();
+  if(q.length<2){res.classList.remove('open');res.innerHTML='';return;}
+  const terms=norm(q).split(/\s+/).filter(Boolean);
+  hits=index.map(x=>{let sc=0;for(const t of terms){const c=x.n.split(t).length-1;if(!c)return null;sc+=c;} if(x.kind==='başlık')sc+=5; if(x.kind==='kod')sc+=1; return {x,sc};}).filter(Boolean).sort((a,b)=>b.sc-a.sc).slice(0,40);
+  act=-1;
+  res.innerHTML=hits.length?`<div class="count">${hits.length} sonuç · <kbd>↑</kbd><kbd>↓</kbd> ile gez, <kbd>Enter</kbd> ile git</div>`+hits.map((h,i)=>`<div class="r" data-i="${i}"><div class="sec">${esc(h.x.sec)}<span class="kind">${h.x.kind}</span></div><div class="snip">${snippet(h.x.text,terms)}</div></div>`).join('')
+    :'<div class="empty">Sonuç bulunamadı.</div>';
+  res.classList.add('open');
+  res.querySelectorAll('.r').forEach(r=>r.onclick=()=>go(+r.dataset.i));
+}
+function go(i){
+  const el=hits[i].x.el; res.classList.remove('open');
+  const det=el.closest('details'); if(det) det.open=true;
+  el.scrollIntoView({behavior:'smooth',block:'center'});
+  el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
+}
+si.addEventListener('input',doSearch);
+si.addEventListener('focus',()=>{if(si.value.trim().length>=2)doSearch();});
+si.addEventListener('keydown',e=>{
+  const rs=[...res.querySelectorAll('.r')];
+  if(e.key==='ArrowDown'){act=Math.min(rs.length-1,act+1);}
+  else if(e.key==='ArrowUp'){act=Math.max(0,act-1);}
+  else if(e.key==='Enter'){ if(hits.length) go(act<0?0:act); return; }
+  else if(e.key==='Escape'){res.classList.remove('open');si.blur();return;}
+  else return;
+  e.preventDefault(); rs.forEach((r,k)=>r.classList.toggle('act',k===act)); if(rs[act]) rs[act].scrollIntoView({block:'nearest'});
+});
+document.addEventListener('keydown',e=>{ if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();si.focus();si.select();}
+  else if(e.key==='/'&&document.activeElement.tagName!=='INPUT'&&!document.activeElement.closest('.CodeMirror')){e.preventDefault();si.focus();}});
+document.addEventListener('click',e=>{if(!e.target.closest('.search-wrap'))res.classList.remove('open');});
+</script>
+</body>
+</html>

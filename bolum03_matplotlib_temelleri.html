@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bölüm 3: matplotlib Temelleri</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+<script src="https://cdn.jsdelivr.net/pyodide/v0.27.7/full/pyodide.js"></script>
+<style>
+:root{
+  --teal:#0b3a47; --amber:#b26a00; --lteal:#6fb3c2; --sand:#f0c987;
+  --bg:#f7f6f2; --paper:#ffffff; --ink:#1f2a30; --muted:#5f6b72; --line:#e2e0d8;
+  --code-bg:#fbfaf6;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:80px}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.65 "Segoe UI",system-ui,-apple-system,Roboto,sans-serif}
+header.top{position:sticky;top:0;z-index:50;background:var(--teal);color:#fff;display:flex;align-items:center;gap:16px;padding:10px 20px;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+header.top .brand{font-weight:600;white-space:nowrap}
+header.top .brand small{opacity:.7;font-weight:400;margin-left:6px}
+.search-wrap{position:relative;flex:1;max-width:560px;margin-left:auto}
+#search{width:100%;padding:9px 14px 9px 36px;border-radius:8px;border:none;font-size:15px;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235f6b72' stroke-width='2.5'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E") no-repeat 11px center}
+#search:focus{outline:3px solid var(--sand)}
+#results{position:absolute;top:44px;left:0;right:0;background:#fff;color:var(--ink);border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,.2);max-height:70vh;overflow:auto;display:none}
+#results.open{display:block}
+#results .r{padding:10px 14px;border-bottom:1px solid var(--line);cursor:pointer}
+#results .r:hover,#results .r.act{background:#eef5f6}
+#results .r .sec{font-size:12px;color:var(--amber);font-weight:600;text-transform:uppercase;letter-spacing:.03em}
+#results .r .kind{font-size:11px;background:var(--line);border-radius:4px;padding:0 5px;margin-left:6px;color:var(--muted);text-transform:none;letter-spacing:0}
+#results .r .snip{font-size:14px}
+#results .empty,#results .count{padding:10px 14px;color:var(--muted);font-size:13px}
+mark{background:#ffe08a;color:inherit;border-radius:2px;padding:0 1px}
+#status{font-size:13px;white-space:nowrap;display:flex;align-items:center;gap:8px}
+#status .dot{width:10px;height:10px;border-radius:50%;background:#f0c987;box-shadow:0 0 0 0 rgba(240,201,135,.7);animation:pulse 1.4s infinite}
+#status.ready .dot{background:#7bd88f;animation:none}
+#status.err .dot{background:#ff6b6b;animation:none}
+@keyframes pulse{70%{box-shadow:0 0 0 8px rgba(240,201,135,0)}100%{box-shadow:0 0 0 0 rgba(240,201,135,0)}}
+.layout{display:grid;grid-template-columns:260px minmax(0,1fr);gap:28px;max-width:1240px;margin:0 auto;padding:24px 20px 80px}
+nav.toc{position:sticky;top:76px;align-self:start;max-height:calc(100vh - 96px);overflow:auto;font-size:14px}
+nav.toc h4{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+nav.toc a{display:block;color:var(--ink);text-decoration:none;padding:4px 10px;border-left:3px solid transparent;border-radius:0 4px 4px 0}
+nav.toc a.sub{padding-left:24px;font-size:13px;color:var(--muted)}
+nav.toc a:hover{background:#ece9df}
+nav.toc a.active{border-left-color:var(--amber);background:#fff;font-weight:600;color:var(--teal)}
+nav.toc .tools{margin-top:16px;display:flex;flex-direction:column;gap:6px}
+main{background:var(--paper);border-radius:12px;padding:36px 48px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+h1{font-size:2rem;color:var(--teal);margin:0 0 4px;line-height:1.25}
+.subtitle{color:var(--muted);margin:0 0 24px}
+h2{font-size:1.45rem;color:var(--teal);border-bottom:2px solid var(--sand);padding-bottom:6px;margin:48px 0 16px}
+h2 .num{color:var(--amber);margin-right:8px}
+h3{font-size:1.12rem;margin:30px 0 10px;color:var(--ink)}
+code{font-family:"JetBrains Mono",Consolas,Menlo,monospace;font-size:.88em;background:#f1efe8;padding:1px 5px;border-radius:4px;color:#7a3e00}
+.lead{font-size:1.08rem;border-left:4px solid var(--amber);padding:4px 0 4px 16px;color:#33424a}
+.goals{background:#eef5f6;border-radius:10px;padding:16px 22px}
+.goals ul{margin:6px 0 0;padding-left:20px}
+.callout{border-radius:10px;padding:12px 18px;margin:18px 0;border-left:5px solid}
+.callout .t{font-weight:700;display:block;margin-bottom:2px}
+.callout.warn{background:#fff4e5;border-color:var(--amber)}
+.callout.warn .t{color:var(--amber)}
+.callout.tip{background:#eaf6f1;border-color:#2f8f6b}
+.callout.tip .t{color:#2f8f6b}
+.callout.note{background:#eef2f7;border-color:#4b6a8a}
+.callout.note .t{color:#4b6a8a}
+pre.data{background:var(--code-bg);border:1px dashed var(--line);border-radius:8px;padding:10px 14px;font-size:13px;overflow:auto}
+/* code cells */
+.cell{border:1px solid var(--line);border-radius:10px;margin:18px 0;overflow:hidden;background:var(--code-bg)}
+.cell .bar{display:flex;align-items:center;gap:8px;padding:6px 10px;background:#f1efe8;border-bottom:1px solid var(--line);font-size:12px;color:var(--muted)}
+.cell .bar .lbl{font-family:Consolas,monospace}
+.cell .bar .sp{flex:1}
+button{font:inherit;cursor:pointer;border-radius:6px;border:1px solid transparent}
+.btn{background:var(--teal);color:#fff;padding:4px 12px;font-size:13px}
+.btn:hover{filter:brightness(1.2)}
+.btn:disabled{opacity:.5;cursor:wait}
+.btn.ghost{background:transparent;color:var(--teal);border-color:#c9d3d6}
+.btn.ghost:hover{background:#fff}
+.btn.amber{background:var(--amber)}
+.CodeMirror{height:auto;font-size:14px;background:var(--code-bg);font-family:"JetBrains Mono",Consolas,Menlo,monospace}
+.CodeMirror-scroll{min-height:30px}
+.cm-s-default .cm-keyword{color:#8a3ffc}.cm-s-default .cm-string{color:#0b7a4b}.cm-s-default .cm-number{color:#b26a00}.cm-s-default .cm-comment{color:#8a9296;font-style:italic}.cm-s-default .cm-builtin{color:#0b5f7a}
+.out{border-top:1px solid var(--line);background:#fff;padding:0;display:none}
+.out.show{display:block}
+.out .txt{margin:0;padding:10px 14px;font:13px/1.5 Consolas,Menlo,monospace;white-space:pre-wrap;color:#333}
+.out .txt.err{color:#b00020;background:#fff5f5}
+.out .plot{padding:6px;overflow-x:auto}
+.out table{border-collapse:collapse;margin:10px 14px;font-size:13px}
+.out th,.out td{border:1px solid var(--line);padding:4px 10px;text-align:right}
+.out th{background:#f1efe8}
+.out .dl{margin:10px 14px}
+.out .dl a{display:inline-block;background:var(--amber);color:#fff;text-decoration:none;padding:5px 12px;border-radius:6px;font-size:13px}
+.figdesc{font-size:14px;color:var(--muted);background:#f6f5f0;border-radius:8px;padding:8px 14px;margin:-8px 0 14px;border:1px solid var(--line)}
+.figdesc::before{content:"🖼 Beklenen grafik: ";font-weight:600;color:var(--teal)}
+.flash{animation:flash 2.2s ease}
+@keyframes flash{0%,40%{background:#fff1bf;box-shadow:0 0 0 6px #fff1bf}100%{background:transparent;box-shadow:none}}
+details.data{border:1px solid var(--line);border-radius:8px;margin:8px 0;background:#fff}
+details.data summary{cursor:pointer;padding:8px 14px;font-weight:600;color:var(--teal)}
+details.data .tbl{max-height:260px;overflow:auto;padding:0 14px 10px}
+details.data table{border-collapse:collapse;font-size:13px}
+details.data td,details.data th{border:1px solid var(--line);padding:3px 8px}
+details.data th{background:#f1efe8;position:sticky;top:0}
+/* quiz */
+.q{border:1px solid var(--line);border-radius:10px;padding:14px 18px;margin:14px 0}
+.q .qt{font-weight:600;margin-bottom:8px}
+.q label{display:block;padding:6px 10px;border-radius:6px;cursor:pointer;border:1px solid transparent}
+.q label:hover{background:#f4f2ea}
+.q label.ok{background:#e3f4ea;border-color:#2f8f6b}
+.q label.no{background:#fde8e8;border-color:#d05353}
+.q input{margin-right:8px}
+.q .fb{font-size:14px;margin-top:6px;display:none}
+.q .fb.show{display:block}
+#score{font-weight:700;color:var(--teal)}
+.out img{max-width:100%;height:auto;display:block;margin:6px auto}
+table.choose{border-collapse:collapse;width:100%;font-size:14px;margin:10px 0}table.choose th,table.choose td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}table.choose th{background:#eef5f6;color:var(--teal)}
+.chnav{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:14px;margin:0 0 18px}.chnav a{color:var(--teal);text-decoration:none;border:1px solid var(--line);border-radius:6px;padding:4px 10px}.chnav a:hover{background:#eef5f6}.chnav .all{display:flex;gap:4px;flex-wrap:wrap}.chnav .all a.cur{background:var(--teal);color:#fff}
+.summary li{margin-bottom:6px}
+footer{text-align:center;color:var(--muted);font-size:13px;padding:30px}
+kbd{border:1px solid #bbb;border-bottom-width:2px;border-radius:4px;padding:0 5px;font-size:12px;background:#fff;color:#333}
+@media (max-width:900px){.layout{grid-template-columns:1fr}nav.toc{display:none}main{padding:22px 18px}header.top .brand small{display:none}#status span{display:none}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">Bölüm 3 <small>matplotlib Temelleri</small></div>
+  <div class="search-wrap">
+    <input id="search" type="search" placeholder="Bölümde ara… (ör. subplots, ax.plot, savefig)   Ctrl+K" autocomplete="off">
+    <div id="results"></div>
+  </div>
+  <div id="status"><div class="dot"></div><span id="statusText">Python yükleniyor…</span></div>
+</header>
+
+<div class="layout">
+<nav class="toc" id="toc">
+  <h4>İçindekiler</h4>
+  <div id="tocLinks"></div>
+  <div class="tools">
+    <button class="btn" id="runAll">▶ Tüm hücreleri çalıştır</button>
+    <button class="btn ghost" id="resetNs">↺ Python ortamını sıfırla</button>
+  </div>
+</nav>
+
+<main id="content">
+<div class="chnav"><a href="bolum02_cizmeden_once_dusunmek.html">← Bölüm 2</a><div class="all">Bölümler: <a href="bolum01_ortami_kurmak.html" class="" title="Görselleştirme Ortamını Kurmak">1</a><a href="bolum02_cizmeden_once_dusunmek.html" class="" title="Çizmeden Önce Düşünmek">2</a><a href="bolum03_matplotlib_temelleri.html" class="cur" title="matplotlib Temelleri">3</a><a href="bolum04_cizgiler_noktalar.html" class="" title="Çizgiler ve Noktalar">4</a><a href="bolum05_cubuklar_pastalar_tablolar.html" class="" title="Çubuklar, Pastalar ve Tablolar">5</a><a href="bolum06_dagilimlar_izgaralar.html" class="" title="Dağılımlar ve Değer Izgaraları">6</a><a href="bolum07_ozellestirme.html" class="" title="Bir Grafiğin Her Parçasını Özelleştirmek">7</a><a href="bolum08_yerlesimler.html" class="" title="Yerleşimler: Bir Figürde Birçok Grafik">8</a><a href="bolum09_iletisim_kuran_tasarim.html" class="" title="İletişim Kuran Tasarım">9</a><a href="bolum10_yalan_soyleyen_grafikler.html" class="" title="Yalan Söyleyen Grafikler">10</a><a href="bolum11_seaborn_temelleri.html" class="" title="seaborn Temelleri">11</a><a href="bolum12_iliskiler_regresyon.html" class="" title="İlişkiler ve Regresyon">12</a><a href="bolum13_kategoriler.html" class="" title="Kategoriler">13</a><a href="bolum14_dagilimlar.html" class="" title="Dağılımlar">14</a><a href="bolum15_izgaralar_matrisler.html" class="" title="Izgaralar ve Matrisler">15</a><a href="bolum16_plotly_express.html" class="" title="plotly express ile Etkileşimli Grafikler">16</a><a href="bolum17_haritalar_is_grafikleri.html" class="" title="Haritalar ve İş Grafikleri">17</a></div><a href="bolum04_cizgiler_noktalar.html">Bölüm 4 →</a></div>
+<h1>Bölüm 3: matplotlib Temelleri</h1>
+<p class="subtitle">Kod hücreleri tarayıcınızda <strong>Pyodide</strong> ile çalışır; Python kurmanıza gerek yok. Kodu değiştirip yeniden çalıştırabilirsiniz (<kbd>Shift</kbd>+<kbd>Enter</kbd>). Grafikler matplotlib ile resim olarak çizilir.</p>
+
+<p class="lead">Pazartesi sabahı ve yöneticiniz saat 15.00’teki toplantı için bir grafik istiyor: bu yılın aylık satışları geçen yıla karşı, bir slayta yapıştırılmaya hazır. Bölüm 1’de üç satır kodla bir çizgi çizdiniz. O grafiğin başlığı, etiketleri ve göstergesi yoktu ve yalnızca defterinizin içinde vardı.</p>
+
+<p>Bu bölüm o hızlı taslağı gönderebileceğiniz bir grafiğe dönüştürüyor. matplotlib’in bir grafiğin her parçasına verdiği adları, ona ne çizeceğini söylemenin iki yolunu ve bir başlık, eksen etiketleri, sınırlar ve gösterge eklemeyi öğreneceksiniz. Sonra sonucu bir resim dosyası olarak kaydedecek ve pandas’ın aynı grafiği doğrudan bir DataFrame’den nasıl çizebildiğini göreceksiniz.</p>
+
+<div class="goals">
+<strong>Bu bölümün sonunda şunları yapabileceksiniz:</strong>
+<ul>
+<li>Bir grafiğin parçalarını adlandırmak: figür (figure), eksenler (axes), eksen (axis), işaret etiketleri, başlık ve gösterge</li>
+<li>pyplot fonksiyonlarıyla ve <code>fig, ax = plt.subplots()</code> ile grafik çizmek</li>
+<li><code>ax.set_title()</code>, <code>ax.set_xlabel()</code> ve <code>ax.set_ylim()</code> ile başlık, eksen etiketleri ve sınırlar eklemek</li>
+<li><code>ax.legend()</code> ile bir gösterge ekleyip yerleştirmek</li>
+<li><code>fig.savefig()</code> ile bir grafiği PNG, SVG ya da PDF dosyası olarak kaydetmek</li>
+<li><code>df.plot()</code> ile bir DataFrame’den hızlı grafikler çizmek</li>
+</ul>
+</div>
+
+<details class="data" id="datasets">
+<summary>📁 Bu bölümün veri dosyaları (sayfaya gömülü — Python’da doğrudan <code>pd.read_csv()</code> ile okunur)</summary>
+<div id="dataList" style="padding:0 14px 10px"></div>
+</details>
+
+<section>
+<h2 id="s3-1"><span class="num">3.1</span>Bir Grafiğin Parçaları</h2>
+<p>matplotlib’in bir grafiğin her parçası için bir adı vardır ve bu adlarla her fonksiyonda, hata mesajında ve çevrimiçi yanıtta karşılaşırsınız. Onları bir kez öğrenin, kitabın geri kalanı kolaylaşır.</p>
+<div class="cell"><textarea># Ek: grafiğin parçalarını etiketleyen bir şekil (kitaptaki şemanın benzeri)
+import matplotlib.pyplot as plt
+plt.style.use('book.mplstyle')
+fig, ax = plt.subplots()
+fig.set_facecolor('#eef0f2')
+ax.plot(['Jan', 'Feb', 'Mar', 'Apr'], [20, 35, 30, 42], label='2025')
+ax.set_title('Title')
+ax.set_xlabel('Axis label (x)')
+ax.set_ylabel('Axis label (y)')
+ax.legend(loc='lower right')
+note = dict(arrowprops={'arrowstyle': '->', 'color': '#b26a00'}, color='#b26a00')
+ax.annotate('Axes', xy=(0.5, 0.75), xycoords='axes fraction', **note)
+ax.annotate('Tick label', xy=(0, 0), xycoords='axes fraction',
+            xytext=(0.15, 0.25), textcoords='axes fraction', **note)
+ax.annotate('Legend', xy=(0.85, 0.12), xycoords='axes fraction',
+            xytext=(0.55, 0.35), textcoords='axes fraction', **note)
+fig.text(0.01, 0.97, 'Figure (gray area)', va='top', color='#5f6b72')
+plt.show()</textarea></div>
+<p class="figdesc">Bir matplotlib grafiğinin parçaları. Figür, gri alanın tamamıdır; eksenler (axes) onun içindeki çerçeveli grafik alanıdır.</p>
+<div style="overflow-x:auto"><table class="choose">
+<thead><tr><th>Ad</th><th>Nedir</th></tr></thead>
+<tbody>
+<tr><td>Figure (figür)</td><td>Resmin tamamı: her şeyin çizildiği tuval</td></tr>
+<tr><td>Axes (eksenler)</td><td>Figürün içinde, kendi verisi, başlığı ve etiketleri olan bir grafik alanı</td></tr>
+<tr><td>Axis (eksen)</td><td>Bir eksenler alanının iki sayı doğrusundan biri: x ekseni ya da y ekseni</td></tr>
+<tr><td>Tick label (işaret etiketi)</td><td>Her işaret çizgisinin yanındaki metin, örneğin <code>Jan</code> ya da <code>40</code></td></tr>
+<tr><td>Axis label (eksen etiketi)</td><td>Bir eksenin neyi ölçtüğünü söyleyen metin, örneğin <em>Month</em></td></tr>
+<tr><td>Legend (gösterge)</td><td>Hangi çizginin ya da çubuğun hangisi olduğunu söyleyen anahtar</td></tr>
+</tbody></table></div>
+<p>Kafa karıştıran <em>axes</em>’tir. Bu, <em>axis</em>’in çoğulu değildir. Bir axes, eksiksiz bir grafiktir: çerçeve, içindeki veri ve iki ekseni. Bir figür bir axes ya da yan yana birkaç axes tutabilir (Bölüm 8.1 bunu yapıyor); matplotlib’in iki fikri ayrı tutmasının nedeni budur. Bu sayfada “axes” için “eksenler” ya da “grafik alanı” diyoruz.</p>
+
+<h3 id="s3-1-setup">Hazırlık</h3>
+<p>Her bölümün eşlik eden dosyalarda kendi klasörü var (Bölüm 1 nasıl indirileceğini gösteriyor). <code>chapter-03</code> klasörü veri dosyalarını, stil dosyasını ve bu bölümdeki her örneği içeren <code>chapter-03.ipynb</code> defterini tutar. İçe aktarmalarla başlayın:</p>
+<div class="cell"><textarea>import matplotlib.pyplot as plt
+import pandas as pd
+
+plt.style.use('book.mplstyle')</textarea></div>
+<p><code>matplotlib.pyplot</code>, matplotlib’in grafik çizmek için kullandığınız parçasıdır ve <code>plt</code> herkesin ona verdiği kısa addır. Son satır, Bölüm 1’deki gibi aynı klasördeki <code>book.mplstyle</code> dosyasından kitabın grafik stilini yükler. Renkleri, grafik boyutunu ve yazı boyutlarını ayarlar; böylece grafikleriniz bu sayfalardakiler gibi görünür.</p>
+<div class="callout note"><span class="t">📝 Not</span>Stil yalnızca grafiğin nasıl göründüğünü değiştirir, arkasındaki sayıları asla. Satırı çıkarırsanız matplotlib’in varsayılan stilini alırsınız: mavi ve turuncu çizgiler, biraz daha büyük bir grafik. Bölüm 7.5 dosyadaki her ayarı açıklıyor ve kendinizinkini nasıl yapacağınızı gösteriyor.</div>
+<p>Bu bölümün verisi, çevrimiçi bir elektronik mağazasının aylık satışlarından oluşan küçük bir dosya: <code>monthly_sales.csv</code>. Not Defteri gibi bir metin düzenleyicide açıldığında şöyle görünür:</p>
+<pre class="data">month,sales_2024,sales_2025
+Jan,33100,38200
+Feb,31800,35900
+Mar,36900,42800
+...
+Nov,59800,68300
+Dec,66200,74600</pre>
+<p>Bölüm 1’deki gibi <code>pd.read_csv()</code> ile yükleyin:</p>
+<div class="cell"><textarea>sales = pd.read_csv('monthly_sales.csv')
+sales.head()</textarea></div>
+<p>Her satır bir ay; 2024 ve 2025 için dolar cinsinden satışlarla. Bu <code>sales</code> DataFrame’ini bölümün tamamında kullanacaksınız.</p>
+</section>
+
+<section>
+<h2 id="s3-2"><span class="num">3.2</span>Grafik Çizmenin İki Yolu</h2>
+<p>matplotlib aynı grafiği kurmanın iki yolunu verir. Birincisi <code>plt.</code> ile başlayan fonksiyonları kullanır ve yazması hızlıdır. İkincisi size figür ve eksenler için adlandırılmış nesneler verir ve bu kitabın bundan sonra kullandığı yoldur. İkisini de öğreticilerde ve çevrimiçi yanıtlarda göreceksiniz; bu yüzden nasıl ilişkili olduklarını bilmeye değer.</p>
+
+<h3 id="s3-2-plot"><code>plt.plot()</code></h3>
+<p><code>plt.plot()</code> bir nokta kümesinden geçen bir çizgi çizer. Önce x değerlerini, sonra y değerlerini verin:</p>
+<div class="cell"><textarea>plt.plot(sales['month'], sales['sales_2025'])
+plt.title('Monthly sales, 2025')
+plt.show()</textarea></div>
+<p class="figdesc">2025 aylık satışlarının çizgisi; Ocak’ta yaklaşık 38.000’den Aralık’ta yaklaşık 75.000’e yükseliyor.</p>
+<p>Ay adları x ekseni boyunca DataFrame’de göründükleri sırayla gider ve satış değerleri her noktanın yüksekliğini belirler. <code>plt.title()</code> aynı grafiğe bir başlık ekler.</p>
+<p><code>plt.title()</code>’a başlığı hangi grafiğe koyacağını hiç söylemediniz. pyplot perde arkasında bir “geçerli” grafiği izler ve her <code>plt.</code> fonksiyonu o anda geçerli olanı değiştirir. Bu, tek bir hızlı grafik için kullanışlıdır, birkaç grafiğiniz olduğunda ise kafa karıştırıcıdır, çünkü her satırda hangisinin geçerli olduğunu hatırlamanız gerekir.</p>
+
+<h3 id="s3-2-show"><code>plt.show()</code></h3>
+<p><code>plt.show()</code> grafiği gösterir ve bitirir. Jupyter’de grafik onsuz da görünürdü, ama üstünde fazladan bir metin satırı, hücrenin son satırının değerini de alırdınız: <code>[&lt;matplotlib.lines.Line2D at 0x1f3a8c2d590&gt;]</code>.</p>
+<p>Bu metin, matplotlib’in çizdiği çizgiyi tarif etmesidir (uzun sayı bir bellek adresidir ve her bilgisayarda farklıdır). Bir hata değildir, ama gürültüdür. Bu kitap her grafik hücresini bunu dışarıda tutmak için <code>plt.show()</code> ile bitirir. Jupyter dışında çalıştırılan bir Python betiğinde <code>plt.show()</code> zorunludur: o olmadan hiç grafik penceresi açılmaz. Bir betik ayrıca siz o pencereyi kapatana kadar bekler ve <code>print()</code> kullanmadıkça hiçbir şey yazdırmaz.</p>
+<p>Bir grafiğin tüm satırlarını tek bir hücrede tutun. Bir hücre bittiğinde Jupyter grafiği gösterir ve sonraki bir hücredeki değişiklikler, örneğin bir başlık, onun üzerinde görünmez.</p>
+
+<h3 id="s3-2-subplots"><code>plt.subplots()</code></h3>
+<p><code>plt.subplots()</code> tek adımda bir figür ve bir eksenler alanı oluşturur ve ikisini de size verir:</p>
+<div class="cell"><textarea>fig, ax = plt.subplots()
+ax.plot(sales['month'], sales['sales_2025'])
+ax.set_title('Monthly sales, 2025')
+plt.show()</textarea></div>
+<p class="figdesc">Aynı 2025 satış çizgisi, <code>fig, ax = plt.subplots()</code> ile çizilmiş.</p>
+<p>Grafik aynı. Değişen, onunla nasıl konuştuğunuz. <code>plt.subplots()</code> iki şey döndürür ve <code>fig, ax =</code> onları aynı anda iki değişkende saklar: <code>fig</code> figür, <code>ax</code> eksenlerdir. Bundan sonra yöntemleri doğrudan <code>ax</code> üzerinde çağırırsınız; böylece her satırın hangi grafiği değiştirdiğinden şüphe kalmaz.</p>
+<p>Adlar bir uzlaşımdır. <code>figure, chart = plt.subplots()</code> yazabilirdiniz, ama her yerde göreceğiniz <code>fig</code> ve <code>ax</code>’tir; onlara bağlı kalın.</p>
+<p>Çoğu pyplot fonksiyonunun neredeyse aynı adda bir eksen yöntemi vardır. Ayarlayıcılar başa bir <code>set_</code> alır:</p>
+<div style="overflow-x:auto"><table class="choose">
+<thead><tr><th>pyplot</th><th>Axes yöntemi</th></tr></thead>
+<tbody>
+<tr><td><code>plt.plot()</code></td><td><code>ax.plot()</code></td></tr>
+<tr><td><code>plt.title()</code></td><td><code>ax.set_title()</code></td></tr>
+<tr><td><code>plt.xlabel()</code>, <code>plt.ylabel()</code></td><td><code>ax.set_xlabel()</code>, <code>ax.set_ylabel()</code></td></tr>
+<tr><td><code>plt.xlim()</code>, <code>plt.ylim()</code></td><td><code>ax.set_xlim()</code>, <code>ax.set_ylim()</code></td></tr>
+<tr><td><code>plt.legend()</code></td><td><code>ax.legend()</code></td></tr>
+</tbody></table></div>
+<p>Bu kitap her grafik için <code>fig, ax</code> yolunu kullanır. Bir satır fazla tutar ve bir figür tek grafik de tutsa altı grafik de tutsa aynı şekilde çalışır.</p>
+<p>Figürün boyutu, inç cinsinden genişlik ve yükseklik için bir sayı çifti olan <code>figsize=</code> ile ayarlanır:</p>
+<div class="cell"><textarea>fig, ax = plt.subplots(figsize=(5.5, 2.2))
+ax.plot(sales['month'], sales['sales_2025'])
+ax.set_title('Monthly sales, 2025')
+plt.show()</textarea></div>
+<p class="figdesc">Aynı grafiğin geniş, kısa bir sürümü, 5,5 × 2,2 inç.</p>
+<p>Geniş, kısa bir şekil, zaman içinde değişen bir çizgiye uyar ve bir slayta düzgünce yayılır. Kitabın stili, <code>figsize=</code> vermediğinizde 5,5 × 3,4 inç kullanır.</p>
+
+<h3 id="s3-2-figure"><code>plt.figure()</code></h3>
+<p><code>plt.figure()</code> eksensiz boş bir figür oluşturur. Onu pyplot tarzı kodda, genellikle ilk <code>plt.plot()</code>’tan önce boyutu ayarlamak için görürsünüz:</p>
+<div class="cell"><textarea>plt.figure(figsize=(5.5, 2.2))
+plt.plot(sales['month'], sales['sales_2024'])
+plt.title('Monthly sales, 2024')
+plt.show()</textarea></div>
+<p class="figdesc">Geniş bir figürde 2024 satış çizgisi, <code>plt.figure()</code> ve <code>plt.plot()</code> ile çizilmiş.</p>
+<p><code>plt.plot()</code> henüz eksen olmadığını fark eder ve yeni figüre bir tane ekler. <code>plt.subplots()</code> ile figürü ve eksenleri birlikte alırsınız; bu yüzden <code>plt.figure()</code>’a kendiniz nadiren ihtiyaç duyarsınız.</p>
+</section>
+
+<section>
+<h2 id="s3-3"><span class="num">3.3</span>Başlıklar, Etiketler ve Sınırlar</h2>
+<p>Bölüm 3.2’deki grafiğin bir başlığı var ama okuyucuyu hâlâ tahminde bırakıyor: bu dolar mı, adet mi? Y ekseni sıfırdan mı başlıyor? Bu kısım bu soruları yanıtlayan parçaları ekliyor.</p>
+
+<h3 id="s3-3-title"><code>ax.set_title()</code></h3>
+<p><code>set_title()</code> eksenlerin üstüne metin koyar. Metin her şey olabilir; onu yararlı yapın. “Monthly sales, 2025” grafiğin neyi gösterdiğini söyler; “Sales doubled between January and December” gibi bulguyu söyleyen bir başlık ise meşgul bir okuyucuya neye dikkat edeceğini söyler. Bölüm 9.4 bunlara çıkarım başlıkları diyor ve nasıl yazılacağını gösteriyor.</p>
+<p><code>loc=</code> başlığı <code>'left'</code>, <code>'center'</code> ya da <code>'right'</code>’a taşır. Kitabın stili başlıkları, gözün okumaya başladığı sola koyar:</p>
+<div class="cell"><textarea>fig, ax = plt.subplots()
+ax.plot(sales['month'], sales['sales_2025'])
+ax.set_title('Monthly sales, 2025', loc='center')
+plt.show()</textarea></div>
+<p class="figdesc">Başlığı grafiğin üstünde ortalanmış 2025 satış çizgisi.</p>
+
+<h3 id="s3-3-labels"><code>ax.set_xlabel()</code> ve <code>ax.set_ylabel()</code></h3>
+<p>Eksen etiketleri her eksenin neyi ölçtüğünü söyler. Birimi etikete koyun, çünkü kimse onu yalnızca sayılardan tahmin edemez:</p>
+<div class="cell"><textarea>fig, ax = plt.subplots()
+ax.plot(sales['month'], sales['sales_2025'])
+ax.set_title('Monthly sales, 2025')
+ax.set_xlabel('Month')
+ax.set_ylabel('Sales ($)')
+plt.show()</textarea></div>
+<p class="figdesc">x ekseninin altında “Month”, y ekseninin yanında “Sales ($)” yazan 2025 satış çizgisi.</p>
+<p>Y etiketi yer kazanmak için yan çevrilir. Bir eksen alttaki aylar gibi apaçıksa etiketini çıkarabilirsiniz; daha az sözcüklü bir grafik daha hızlı okunur.</p>
+
+<h3 id="s3-3-ylim"><code>ax.set_ylim()</code></h3>
+<p>matplotlib her eksenin aralığını verinize sıkıca oturacak şekilde seçer. Burada y ekseni 35.000 civarında başlıyor; bu da Ocak’tan Aralık’a tırmanışı olduğundan daha dik gösteriyor. <code>set_ylim()</code> aralığı, önce alt sonra üst değer olarak kendiniz ayarlamanızı sağlar:</p>
+<div class="cell"><textarea>fig, ax = plt.subplots()
+ax.plot(sales['month'], sales['sales_2025'])
+ax.set_title('Monthly sales, 2025')
+ax.set_ylabel('Sales ($)')
+ax.set_ylim(0, 80000)
+plt.show()</textarea></div>
+<p class="figdesc">0’dan 80.000’e giden bir y ekseni üzerinde 2025 satış çizgisi. Yükseliş öncekinden daha yumuşak görünüyor.</p>
+<p>Sıfırdan başlamak değişimin gerçek boyutunu gösterir: Aralık satışları Ocak’ınkinin yaklaşık iki katı ve grafik artık öyle görünüyor. Yalnızca bir ucu sabitlemek için onu adlandırın ve diğerini matplotlib’e bırakın: <code>ax.set_ylim(bottom=0)</code>.</p>
+<p>Bir çizgi grafiğin sıfırdan başlamak zorunda olup olmadığı gerçek bir tartışmadır (bir çubuk grafik için zorunludur). Bölüm 10.1 kesilmiş bir eksenin ne zaman yanılttığını ve ne zaman dürüst seçim olduğunu ele alıyor.</p>
+
+<h3 id="s3-3-xlim"><code>ax.set_xlim()</code></h3>
+<p><code>set_xlim()</code> aynısını x ekseni için yapar. Ay adları gibi metin etiketleriyle matplotlib onları 0, 1, 2 vb. konumlara yerleştirir; böylece <code>Jan</code> 0’da, <code>Dec</code> 11’de durur. Yalnızca yılın ilk yarısını göstermek için sınırları 0–5 konumlarının etrafına koyun:</p>
+<div class="cell"><textarea>fig, ax = plt.subplots()
+ax.plot(sales['month'], sales['sales_2025'])
+ax.set_title('Monthly sales, 2025: January to June')
+ax.set_ylabel('Sales ($)')
+ax.set_xlim(-0.5, 5.5)
+plt.show()</textarea></div>
+<p class="figdesc">Yalnızca Ocak–Haziran görünüyor. Çizgi yaklaşık 38.000’den 47.000’e yükseliyor.</p>
+<p>Yarım adımlar her iki yanda biraz boşluk bırakır; böylece ilk ve son noktalar çerçevenin üstüne oturmaz. Çizgi Haziran’dan sonra da devam eder; <code>set_xlim()</code> yalnızca içinden baktığınız pencereyi kaydırır. Ayları kalıcı olarak dışarıda bırakmak için önce DataFrame’i süzün, örneğin <code>sales.head(6)</code> ile.</p>
+
+<h3 id="s3-3-set"><code>ax.set()</code></h3>
+<p>Birkaç şeyi aynı anda ayarladığınızda <code>ax.set()</code> hepsini <code>title=</code> gibi adlandırılmış ayarlar olarak alır. Adlar, <code>set_</code> olmadan yöntem adlarıdır:</p>
+<div class="cell"><textarea>fig, ax = plt.subplots()
+ax.plot(sales['month'], sales['sales_2025'])
+ax.set(title='Monthly sales, 2025', ylabel='Sales ($)',
+       ylim=(0, 80000))
+plt.show()</textarea></div>
+<p class="figdesc">Başlık, y etiketi ve sınırların hepsi <code>ax.set()</code> ile ayarlanmış, öncekiyle aynı grafik.</p>
+<p>Bu bir zevk meselesidir. Ayrı <code>set_</code> çağrılarını okumak daha kolaydır ve <code>loc=</code> gibi ek seçeneklere izin verir; bu yüzden kitap çoğu zaman onları kullanır.</p>
+</section>
+
+<section>
+<h2 id="s3-4"><span class="num">3.4</span>Göstergeler</h2>
+<p>Yöneticiniz bu yılı geçen yıla karşı istedi; bu da iki çizgi demek. Her çizgi için <code>ax.plot()</code>’u bir kez çağırın; her çağrı aynı eksenlere bir çizgi daha ekler:</p>
+<div class="cell"><textarea>fig, ax = plt.subplots()
+ax.plot(sales['month'], sales['sales_2024'])
+ax.plot(sales['month'], sales['sales_2025'])
+ax.set_title('Monthly sales')
+ax.set_ylabel('Sales ($)')
+plt.show()</textarea></div>
+<p class="figdesc">İki satış çizgisi, biri düz koyu, biri kesikli kehribar; hangisinin hangi yıl olduğunu anlamanın yolu yok.</p>
+<p>matplotlib her çizgiye kendi rengini ve kitabın stili sayesinde kendi çizgi desenini verdi. Yine de hangi çizginin hangi yıl olduğunu hiçbir şey söylemiyor. Bu göstergenin işidir.</p>
+
+<h3 id="s3-4-legend"><code>ax.legend()</code></h3>
+<p><code>legend()</code>, etiketi olan her çizgi için bir anahtar çizer. Her çizgiye çizerken <code>label=</code> ile bir ad verin, sonra <code>ax.legend()</code>’ı çağırın:</p>
+<div class="cell"><textarea>fig, ax = plt.subplots()
+ax.plot(sales['month'], sales['sales_2024'], label='2024')
+ax.plot(sales['month'], sales['sales_2025'], label='2025')
+ax.set_title('Monthly sales')
+ax.set_ylabel('Sales ($)')
+ax.legend()
+plt.show()</textarea></div>
+<p class="figdesc">Sol üst köşede göstergesi olan iki satış çizgisi: 2024 düz, 2025 kesikli.</p>
+<p>Varsayılan olarak matplotlib göstergeyi en az veriyi örttüğü yere, burada sol üst köşeye koyar. Girişlerin sırası çizgileri çizdiğiniz sırayı izler.</p>
+<p>Yeri kendiniz seçmek için bir konum adıyla <code>loc=</code> verin: <code>'upper left'</code>, <code>'upper right'</code>, <code>'lower left'</code>, <code>'lower right'</code>, <code>'center'</code> ve birkaç tane daha. Varsayılan <code>'best'</code>’tir.</p>
+<div class="cell"><textarea>fig, ax = plt.subplots()
+ax.plot(sales['month'], sales['sales_2024'], label='2024')
+ax.plot(sales['month'], sales['sales_2025'], label='2025')
+ax.set_title('Monthly sales')
+ax.set_ylabel('Sales ($)')
+ax.legend(loc='lower right')
+plt.show()</textarea></div>
+<p class="figdesc">Gösterge artık grafiğin sağ alt köşesinde duruyor.</p>
+<div class="callout warn"><span class="t">⚠ Dikkat</span><code>ax.legend()</code> yalnızca <code>label=</code>’ı olan çizgileri gösterir. Etiketleri unutursanız matplotlib yalnızca minik boş bir gösterge kutusu çizer ve bir uyarı yazdırır: “No artists with labels found to put in legend.”</div>
+
+<h3 id="s3-4-outside">Göstergeyi grafiğin dışına taşımak</h3>
+<p>Boş köşe olmadığında göstergeyi eksenlerin yanına koyun. <code>bbox_to_anchor=</code>, göstergenin sabitleneceği, eksenlerin kesirleriyle ölçülen bir nokta verir: <code>(0, 0)</code> çerçevenin sol alt köşesi, <code>(1, 1)</code> sağ üst köşesidir. <code>loc=</code> ise göstergenin hangi köşesinin o noktaya oturacağını söyler:</p>
+<div class="cell"><textarea>fig, ax = plt.subplots()
+ax.plot(sales['month'], sales['sales_2024'], label='2024')
+ax.plot(sales['month'], sales['sales_2025'], label='2025')
+ax.set_title('Monthly sales')
+ax.set_ylabel('Sales ($)')
+ax.legend(loc='upper left', bbox_to_anchor=(1, 1))
+plt.show()</textarea></div>
+<p class="figdesc">Gösterge grafiğin dışında, sağ üst köşenin sağında duruyor.</p>
+<p>Şöyle okuyun: “göstergenin sol üst köşesini eksenlerin sağ üst köşesine koy”. Jupyter, gösterge sığsın diye resmi genişletir; grafiği kaydettiğinizde <code>bbox_inches='tight'</code> (Bölüm 3.5) aynısını yapar.</p>
+<p>Yalnızca birkaç çizgili bir grafik için çoğu zaman her göstergeden daha iyi bir seçenek vardır: adı her çizginin ucuna, okuyucunun zaten baktığı yere yazın. Bölüm 7.3 ve 9.3 nasıl yapılacağını gösteriyor.</p>
+</section>
+
+<section>
+<h2 id="s3-5"><span class="num">3.5</span>Grafikleri Kaydetmek ve Göstermek</h2>
+<p>Defterdeki bir grafik sizin için yeterli. Yöneticinizin bir slayta koyacak bir dosyaya ihtiyacı var. matplotlib figürü tek satırla resim olarak kaydeder.</p>
+
+<h3 id="s3-5-savefig"><code>fig.savefig()</code></h3>
+<p><code>savefig()</code> figürü bir dosyaya yazar. Dosya türü addaki uzantıdan gelir ve dosya defterinizle aynı klasöre düşer:</p>
+<div class="cell"><textarea>fig, ax = plt.subplots()
+ax.plot(sales['month'], sales['sales_2024'], label='2024')
+ax.plot(sales['month'], sales['sales_2025'], label='2025')
+ax.set_title('2025 beat 2024 in every month')
+ax.set_ylabel('Sales ($)')
+ax.set_ylim(bottom=0)
+ax.legend(loc='lower right')
+fig.savefig('monthly_sales.png', dpi=200, bbox_inches='tight')
+plt.show()</textarea></div>
+<p class="figdesc">Bitmiş grafik: sıfırdan başlayan bir y ekseni üzerinde Ocak’tan Aralık’a iki çizgi ve bulguyu söyleyen bir başlık.</p>
+<p>Klasöre bakın, <code>monthly_sales.png</code>’yi bulacaksınız (bu sayfada hücrenin altında bir indirme düğmesi çıkar). Her seferinde kullanmaya değer iki parametre:</p>
+<ul>
+<li><code>dpi=</code> inç başına nokta cinsinden keskinliği ayarlar. Varsayılan 100’dür; bu bir projektörde bulanık görünür. Slaytlar için 200, basılan her şey için 300 kullanın.</li>
+<li><code>bbox_inches='tight'</code> boş kenarlığı kırpar ve uzun işaret etiketleri ya da eksenlerin dışına konmuş bir gösterge gibi hiçbir şeyin kesilmemesini sağlar. Jupyter bir grafiği gösterirken bunu sizin için yapar; defter iyi görünse bile onsuz kaydedilmiş bir dosyanın kırpılmış görünebilmesinin nedeni budur.</li>
+</ul>
+<p>En çok kullanacağınız üç biçim:</p>
+<div style="overflow-x:auto"><table class="choose">
+<thead><tr><th>Uzantı</th><th>Ne için iyi</th></tr></thead>
+<tbody>
+<tr><td><code>.png</code></td><td>Slaytlar, e-posta, belgeler ve web sayfaları. Her yerde çalışır</td></tr>
+<tr><td><code>.svg</code></td><td>Web sayfaları ve tasarım araçları. Her boyutta keskin kalır</td></tr>
+<tr><td><code>.pdf</code></td><td>Basılı raporlar. Her boyutta keskin kalır</td></tr>
+</tbody></table></div>
+<p>SVG ve PDF piksel yerine şekilleri ve metni saklar; bu yüzden büyütüldüklerinde asla bulanıklaşmazlar ve <code>dpi=</code> içlerindeki çizgilerde fark yaratmaz.</p>
+<div class="callout warn"><span class="t">⚠ Dikkat</span><code>plt.show()</code>’dan sonra <code>plt.savefig()</code> boş bir resim kaydeder ve hücre ipucu olarak <code>&lt;Figure size 550x340 with 0 Axes&gt;</code> yazdırır. Bir grafik gösterildikten sonra pyplot’un “geçerli” figürü yeni, boş bir figürdür ve <code>plt.savefig()</code>’in kaydettiği odur. <code>fig.savefig()</code> her hücrede güvenlidir, çünkü <code>fig</code> her zaman grafiğinizi gösterir. Aynı hücrede <code>plt.show()</code>’dan önce kaydetmek ikisiyle de çalışır.</div>
+
+<h3 id="s3-5-close"><code>plt.close()</code></h3>
+<p>Bazen dosyayı istersiniz ama grafiği ekranda istemezsiniz, örneğin kodunuz ürün başına bir grafik kaydettiğinde. <code>plt.close()</code> bir figürü göstermeden kapatır:</p>
+<div class="cell"><textarea>fig, ax = plt.subplots()
+ax.plot(sales['month'], sales['sales_2025'])
+ax.set_title('Monthly sales, 2025')
+fig.savefig('sales_2025.svg', bbox_inches='tight')
+plt.close(fig)</textarea></div>
+<p>Hücrenin altında grafik görünmez, ama <code>sales_2025.svg</code> artık klasörde (bu sayfada indirme düğmesi çıkar). Kapatmak istediğiniz figürü verin; <code>plt.close('all')</code> açık olan her figürü kapatır.</p>
+<p>Kapatmak, tek seferde çok sayıda grafik yaptığınızda önemlidir. Açık her figür bellek kullanır ve 20 tanesinden sonra matplotlib bununla ilgili bir <code>RuntimeWarning</code> yazdırmaya başlar.</p>
+</section>
+
+<section>
+<h2 id="s3-6"><span class="num">3.6</span><code>df.plot()</code> ile Hızlı Grafikler</h2>
+<p>pandas, altta matplotlib kullanarak kendisi grafik çizebilir. Veriniz zaten bir DataFrame’deyse bu yazmaktan tasarruf sağlar.</p>
+
+<h3 id="s3-6-plot"><code>df.plot()</code></h3>
+<p><code>plot()</code> seçtiğiniz her sütun için bir çizgi çizer. x ekseni sütununu <code>x=</code>, çizilecek sütunları <code>y=</code> ile adlandırın:</p>
+<div class="cell"><textarea>sales.plot(x='month', y=['sales_2024', 'sales_2025'])
+plt.show()</textarea></div>
+<p class="figdesc">pandas’ın çizdiği iki satış çizgisi; göstergede sütun adları sales_2024 ve sales_2025 kullanılıyor.</p>
+<p>pandas göstergeyi sizin için, sütun adlarını etiket olarak kullanarak ekledi ve x etiketi olarak <code>month</code>’u kullandı. Etiketler birbirini sıkıştırmasın diye ay adlarının yalnızca her ikincisini de gösteriyor. <code>y=</code>’yi çıkarırsanız her sayı sütununu çizer.</p>
+<p><code>plot()</code> çizdiği eksenleri döndürür; böylece onu bir değişkende tutup grafiği zaten bildiğiniz yöntemlerle bitirebilirsiniz:</p>
+<div class="cell"><textarea>ax = sales.plot(x='month', y=['sales_2024', 'sales_2025'])
+ax.set_title('Monthly sales')
+ax.set_xlabel('')
+ax.set_ylabel('Sales ($)')
+ax.legend(['2024', '2025'])
+plt.show()</textarea></div>
+<p class="figdesc">Başlığı, y etiketi olan, x etiketi olmayan ve göstergesinde 2024 ile 2025 yazan pandas grafiği.</p>
+<p>İçinde iki numara var: boş bir dizge x etiketini kaldırır ve adlardan oluşan bir listeyle <code>ax.legend()</code> göstergedeki sütun adlarının yerini alır. Liste çizgilerin sırasını izlemelidir.</p>
+<p><code>df.plot()</code> ayrıca <code>title=</code>, <code>ylabel=</code> ve <code>figsize=</code> gibi birkaç grafik seçeneğini doğrudan alır. Zaten yaptığınız bir eksen alanına çizmek için onu <code>ax=</code> ile verin:</p>
+<div class="cell"><textarea>fig, ax = plt.subplots(figsize=(5.5, 2.2))
+sales.plot(x='month', y='sales_2025', ax=ax, legend=False,
+           title='Monthly sales, 2025', ylabel='Sales ($)')
+plt.show()</textarea></div>
+<p class="figdesc"><code>plt.subplots()</code> ile yapılmış bir eksen alanına pandas’ın çizdiği geniş bir 2025 satış çizgisi.</p>
+<p><code>legend=False</code>, tek çizgili bir grafiğin ihtiyaç duymadığı göstergeyi atar.</p>
+
+<h3 id="s3-6-kinds">Diğer grafik türleri</h3>
+<p><code>kind=</code> grafiğin türünü değiştirir. Varsayılan çizgidir; bu kitapta kullanacağınız diğer türler şunlar:</p>
+<div style="overflow-x:auto"><table class="choose">
+<thead><tr><th><code>kind=</code></th><th>Grafik</th><th>Bölüm</th></tr></thead>
+<tbody>
+<tr><td><code>'line'</code></td><td>Çizgi grafik</td><td>3</td></tr>
+<tr><td><code>'bar'</code>, <code>'barh'</code></td><td>Dikey ve yatay çubuklar</td><td>5</td></tr>
+<tr><td><code>'area'</code></td><td>Yığılmış alan</td><td>5</td></tr>
+<tr><td><code>'hist'</code></td><td>Histogram</td><td>6</td></tr>
+<tr><td><code>'box'</code></td><td>Kutu grafiği</td><td>6</td></tr>
+</tbody></table></div>
+<p>Her türün kendi yöntemi de vardır; yani <code>sales.plot(kind='bar')</code> ile <code>sales.plot.bar()</code> aynı şeyi yapar. İşte aylara göre 2025 satışlarının bir çubuk grafiği:</p>
+<div class="cell"><textarea>ax = sales.plot.bar(x='month', y='sales_2025', legend=False)
+ax.set_title('Monthly sales, 2025')
+ax.set_xlabel('')
+ax.set_ylabel('Sales ($)')
+plt.show()</textarea></div>
+<p class="figdesc">Ay başına bir tane olmak üzere on iki dikey çubuk; ay adları yan çevrilmiş.</p>
+<p>pandas ay adlarını üst üste binmesinler diye yan çevirdi. Bölüm 5.1, etiketlerin okunur tutulması dahil çubuk grafikleri düzgünce ele alıyor.</p>
+<p><code>df.plot()</code>, çalışırken verinize bakmanın en hızlı yoludur. Başkasının okuyacağı bir grafiği yine de <code>ax.</code> yöntemleriyle bitirirsiniz; bu yüzden kitabın bu kısmının geri kalanı önce matplotlib’i öğretir ve pandas kısayolunu yanında gösterir.</p>
+</section>
+
+<section>
+<h2 id="ozet">Bölüm Özeti</h2>
+<ul class="summary">
+<li>Bir <em>figür</em> resmin tamamıdır; bir <em>axes</em> onun içinde kendi verisi, başlığı ve etiketleri olan bir grafik alanıdır. Bir axis, onun iki sayı doğrusundan biridir.</li>
+<li><code>fig, ax = plt.subplots()</code> size iki nesneyi de verir ve sonraki her grafik değişikliği <code>ax</code> üzerinden gider. Kitap bu yolu baştan sona kullanır.</li>
+<li><code>plt.plot()</code> ve <code>plt.title()</code> gibi pyplot fonksiyonları “geçerli” grafiği değiştirir. Eksen sürümleri genellikle <code>set_</code> alır: <code>plt.title()</code>, <code>ax.set_title()</code> olur.</li>
+<li>Grafiği fazladan metin satırı olmadan göstermek için her grafik hücresini <code>plt.show()</code> ile bitirin.</li>
+<li><code>set_title()</code>, <code>set_xlabel()</code> ve <code>set_ylabel()</code> metin ekler; birimleri eksen etiketlerine koyun. <code>set_ylim()</code> ve <code>set_xlim()</code> görünen aralığı ayarlar.</li>
+<li>Her çizgiye bir <code>label=</code> verin ve <code>ax.legend()</code>’ı çağırın. <code>loc=</code> ile ya da <code>bbox_to_anchor=(1, 1)</code> ile eksenlerin dışına taşıyın.</li>
+<li><code>fig.savefig('name.png', dpi=200, bbox_inches='tight')</code> grafiği kaydeder. Onu aynı hücrede <code>plt.show()</code>’dan önce çağırın.</li>
+<li><code>df.plot()</code> doğrudan bir DataFrame’den çizer ve alışılmış yöntemlerle bitirebileceğiniz bir eksen alanı döndürür.</li>
+</ul>
+<p>Şimdiye kadar her grafik ay adları arasında bir çizgiydi. Bölüm 4 çizgilere ve noktalara daha yakından bakıyor: x ekseninde gerçek tarihler, saçılım grafikleri ve gölgeli aralıklar.</p>
+
+<h3 id="oyun">Kendi kodunuzu deneyin</h3>
+<p>Aşağıdaki hücre bir oyun alanı. <code>sales</code> burada kullanılabilir (önceki hücreler otomatik çalıştırılır).</p>
+<div class="cell"><textarea># Örnek: iki yıl arasındaki fark, sıfırdan başlayan çubuklar
+sales['growth'] = sales['sales_2025'] - sales['sales_2024']
+fig, ax = plt.subplots()
+ax.bar(sales['month'], sales['growth'])
+ax.set_title('2025 minus 2024, by month')
+ax.set_ylabel('Extra sales ($)')
+fig.savefig('growth.png', dpi=200, bbox_inches='tight')
+plt.show()</textarea></div>
+</section>
+
+<section>
+<h2 id="quiz">Sınav</h2>
+<p>Bir seçeneğe tıklayın; doğru cevap ve açıklama hemen görünür. Puan: <span id="score">0 / 10</span> &nbsp;<button class="btn ghost" id="quizReset">Sıfırla</button></p>
+<div id="quizBox"></div>
+</section>
+
+<div class="chnav"><a href="bolum02_cizmeden_once_dusunmek.html">← Bölüm 2</a><div class="all">Bölümler: <a href="bolum01_ortami_kurmak.html" class="" title="Görselleştirme Ortamını Kurmak">1</a><a href="bolum02_cizmeden_once_dusunmek.html" class="" title="Çizmeden Önce Düşünmek">2</a><a href="bolum03_matplotlib_temelleri.html" class="cur" title="matplotlib Temelleri">3</a><a href="bolum04_cizgiler_noktalar.html" class="" title="Çizgiler ve Noktalar">4</a><a href="bolum05_cubuklar_pastalar_tablolar.html" class="" title="Çubuklar, Pastalar ve Tablolar">5</a><a href="bolum06_dagilimlar_izgaralar.html" class="" title="Dağılımlar ve Değer Izgaraları">6</a><a href="bolum07_ozellestirme.html" class="" title="Bir Grafiğin Her Parçasını Özelleştirmek">7</a><a href="bolum08_yerlesimler.html" class="" title="Yerleşimler: Bir Figürde Birçok Grafik">8</a><a href="bolum09_iletisim_kuran_tasarim.html" class="" title="İletişim Kuran Tasarım">9</a><a href="bolum10_yalan_soyleyen_grafikler.html" class="" title="Yalan Söyleyen Grafikler">10</a><a href="bolum11_seaborn_temelleri.html" class="" title="seaborn Temelleri">11</a><a href="bolum12_iliskiler_regresyon.html" class="" title="İlişkiler ve Regresyon">12</a><a href="bolum13_kategoriler.html" class="" title="Kategoriler">13</a><a href="bolum14_dagilimlar.html" class="" title="Dağılımlar">14</a><a href="bolum15_izgaralar_matrisler.html" class="" title="Izgaralar ve Matrisler">15</a><a href="bolum16_plotly_express.html" class="" title="plotly express ile Etkileşimli Grafikler">16</a><a href="bolum17_haritalar_is_grafikleri.html" class="" title="Haritalar ve İş Grafikleri">17</a></div><a href="bolum04_cizgiler_noktalar.html">Bölüm 4 →</a></div>
+</main>
+</div>
+<footer>Bölüm 3 · matplotlib Temelleri — Pyodide ile etkileşimli Türkçe sürüm</footer>
+
+<script>
+
+const DATA = {"monthly_sales.csv": "month,sales_2024,sales_2025\nJan,33100,38200\nFeb,31800,35900\nMar,36900,42800\nApr,38400,44100\nMay,41000,47600\nJun,40200,46300\nJul,42700,49800\nAug,39100,45200\nSep,44300,51700\nOct,47000,54900\nNov,59800,68300\nDec,66200,74600\n", "book.mplstyle": "# Chart style for \"Master Data Visualization\".\n# Load it with plt.style.use('book.mplstyle') so your charts match the book.\n# Chapter 7 explains every line; delete one and see what changes.\n\n# Four colors that stay different when printed in black and white:\n# dark teal, amber, light teal, sand. Lines also change style\n# (solid, dashed, dotted, dash-dot) so they can be told apart in gray.\naxes.prop_cycle: cycler('color', ['0b3a47', 'b26a00', '6fb3c2', 'f0c987']) + cycler('linestyle', ['-', '--', ':', '-.'])\n\n# Size in inches (fits a printed book page) and text sizes in points\nfigure.figsize: 5.5, 3.4\nfont.size: 9.5\naxes.titlesize: 11\naxes.titlelocation: left\naxes.labelsize: 9.5\nlegend.fontsize: 9\n\n# Thicker lines; if you turn the grid on (ax.grid()), it is light and sits behind the data\nlines.linewidth: 2\naxes.axisbelow: True\ngrid.color: d9dde1\n"};
+</script>
+<script>
+// ---------------- Quiz -----------------
+const QUIZ = [
+ {q:"matplotlib’de bir “axes” nedir?",
+  o:["x ekseni ile y ekseninin birlikte adı","Bir figürün içinde, kendi başlığı ve etiketleri olan bir grafik alanı","Üzerine çizilen her grafik ve başlık dahil resmin tamamı","Bir grafiğin altındaki işaret çizgileri"],a:1,
+  e:"Axes, axis’in çoğulu değildir; eksiksiz bir grafik alanıdır (3.1)."},
+ {q:"<code>fig, ax = plt.subplots()</code> satırı ne yapar?",
+  o:["<code>fig</code> ve <code>ax</code> adlı iki ayrı figür oluşturur","Boş bir çizgi grafik çizip kaydeder","Tek eksenli bir figür oluşturur ve onları iki değişkende saklar","Figür ve eksen araçlarını matplotlib’den içe aktarır"],a:2,
+  e:"<code>fig</code> figürdür, <code>ax</code> eksenlerdir."},
+ {q:"pyplot fonksiyonlarından <code>fig, ax</code>’e geçtiniz. <code>plt.title('Sales')</code>’in yerini hangi satır alır?",
+  o:["<code>ax.title('Sales')</code>","<code>fig.set_title('Sales')</code>","<code>plt.set_title('Sales')</code>","<code>ax.set_title('Sales')</code>"],a:3,
+  e:"Ayarlayıcılar başa <code>set_</code> alır."},
+ {q:"Kitap Jupyter’de grafik hücrelerini neden <code>plt.show()</code> ile bitiriyor?",
+  o:["Grafiği üstünde başıboş bir metin satırı olmadan göstermek için","Jupyter onsuz hiç grafik göstermediği için","Grafiği defterin yanına PNG olarak da kaydettiği için","Grafiği daha yüksek çözünürlükte çizmek için"],a:0,
+  e:"Onsuz son satırın değeri (Line2D …) da görünür."},
+ {q:"İki çizgi çizip <code>ax.legend()</code> çağırıyorsunuz ama gösterge yalnızca minik boş bir kutu. En olası neden nedir?",
+  o:["Göstergenin <code>loc='best'</code>’e ihtiyacı var","<code>ax.legend()</code>, <code>ax.plot()</code>’tan önce gelmeli","<code>ax.plot()</code> çağrılarında <code>label=</code> yok","Göstergeler yalnızca <code>df.plot()</code> ile çalışır"],a:2,
+  e:"Gösterge yalnızca etiketli çizgileri gösterir (3.4)."},
+ {q:"Hangi çağrı göstergeyi grafiğin hemen dışına, sağ üst köşesinin sağına koyar?",
+  o:["<code>ax.legend(loc='upper right')</code>","<code>ax.legend(loc='upper left', bbox_to_anchor=(1, 1))</code>","<code>ax.legend(loc='upper left', bbox_to_anchor=(0, 0))</code>","<code>ax.legend(loc='outside')</code>"],a:1,
+  e:"Göstergenin sol üst köşesi eksenlerin sağ üst köşesine (1, 1) oturur."},
+ {q:"Y ekseniniz 35.000’den başlıyor ve üstü matplotlib seçsin diye sıfırdan başlamasını istiyorsunuz. Hangi satır bunu yapar?",
+  o:["<code>ax.set_ylim(top=0)</code>","<code>ax.set_ylabel(bottom=0)</code>","<code>ax.set_xlim(bottom=0)</code>","<code>ax.set_ylim(bottom=0)</code>"],a:3,
+  e:"Yalnızca bir ucu adlandırın, diğerini matplotlib seçer."},
+ {q:"<code>plt.plot()</code> ile bir grafik çizip <code>plt.show()</code> çağırıyorsunuz. Sonraki hücrede <code>plt.savefig('chart.png')</code> çalıştırıyorsunuz. Ne elde edersiniz?",
+  o:["Beklendiği gibi grafiğin bir kopyasını","Boş bir resim","Figürün var olmadığını söyleyen bir hata","PNG yerine bir PDF"],a:1,
+  e:"Gösterimden sonra “geçerli” figür yeni ve boş bir figürdür; <code>fig.savefig()</code> güvenlidir."},
+ {q:"Hangi dosya biçimi her boyutta keskin kalır ve basılı bir rapora uyar?",
+  o:["<code>dpi=100</code> ile <code>.png</code>","<code>.jpg</code>","<code>.pdf</code>","<code>bbox_inches='tight'</code> olmadan <code>.png</code>"],a:2,
+  e:"PDF ve SVG piksel değil şekil saklar."},
+ {q:"<code>sales.plot(x='month', y=['sales_2024', 'sales_2025'])</code> ne çizer?",
+  o:["İki yılı ay ay toplayan tek bir çizgi","Her yıl için kendi başlığı olan iki ayrı figür","Her ay için yıl başına bir çubuk olan bir çubuk grafik","Sütun adlarını gösteren bir göstergeyle tek eksende iki çizgi"],a:3,
+  e:"pandas göstergeyi sütun adlarıyla ekler (3.6)."}
+];
+
+function buildQuiz(){
+  const box=document.getElementById('quizBox'); box.innerHTML='';
+  const L='ABCD';
+  QUIZ.forEach((it,i)=>{
+    const d=document.createElement('div'); d.className='q'; d.id='q'+(i+1);
+    d.innerHTML=`<div class="qt">${i+1}. ${it.q}</div>`+
+      it.o.map((o,j)=>`<label><input type="radio" name="q${i}" value="${j}"><strong>${L[j]}.</strong> ${o}</label>`).join('')+
+      `<div class="fb"></div>`;
+    d.querySelectorAll('input').forEach(inp=>inp.addEventListener('change',()=>{
+      if(d.dataset.done) return; d.dataset.done=1;
+      const j=+inp.value, labs=d.querySelectorAll('label');
+      labs[it.a].classList.add('ok'); if(j!==it.a) labs[j].classList.add('no');
+      d.querySelectorAll('input').forEach(x=>x.disabled=true);
+      const fb=d.querySelector('.fb'); fb.classList.add('show');
+      fb.innerHTML=(j===it.a?'✅ <strong>Doğru.</strong> ':'❌ <strong>Doğru cevap '+L[it.a]+'.</strong> ')+it.e;
+      if(j===it.a) d.dataset.ok=1; updateScore();
+    }));
+    box.appendChild(d);
+  });
+  updateScore();
+}
+function updateScore(){
+  const ok=document.querySelectorAll('.q[data-ok]').length, done=document.querySelectorAll('.q[data-done]').length;
+  document.getElementById('score').textContent=`${ok} / ${QUIZ.length}`+(done?` (cevaplanan: ${done})`:'');
+}
+document.getElementById('quizReset').onclick=buildQuiz;
+buildQuiz();
+
+// ---------------- Data list -----------------
+function csvToTable(txt,max=200){
+  const rows=txt.trim().split(/\r?\n/).map(r=>r.split(','));
+  const h=rows.shift();
+  return '<table><thead><tr>'+h.map(x=>`<th>${x}</th>`).join('')+'</tr></thead><tbody>'+
+    rows.slice(0,max).map(r=>'<tr>'+r.map(x=>`<td>${x}</td>`).join('')+'</tr>').join('')+'</tbody></table>';
+}
+(function(){
+  const host=document.getElementById('dataList');
+  Object.entries(DATA).forEach(([name,txt])=>{
+    const n=txt.trim().split(/\r?\n/).length-1;
+    const url=URL.createObjectURL(new Blob([txt],{type:'text/csv'}));
+    const d=document.createElement('details'); d.className='data';
+    const isCsv=name.endsWith('.csv');
+    d.innerHTML=`<summary>${name} <span style="font-weight:400;color:#5f6b72">— ${isCsv?n+' satır':'stil dosyası'}</span> · <a href="${url}" download="${name}">indir</a></summary><div class="tbl">${isCsv?csvToTable(txt):'<pre style="font-size:12px;white-space:pre-wrap">'+txt.replace(/</g,'&lt;')+'</pre>'}</div>`;
+    host.appendChild(d);
+  });
+})();
+
+// ---------------- Code cells -----------------
+const cells=[];
+document.querySelectorAll('.cell').forEach((el,i)=>{
+  const ta=el.querySelector('textarea'); const src=ta.value;
+  const bar=document.createElement('div'); bar.className='bar';
+  bar.innerHTML=`<span class="lbl">In [<span class="cnt"> </span>]:</span><span class="sp"></span>
+    <button class="btn ghost reset" title="Orijinal koda dön">↺ Orijinal</button>
+    <button class="btn run" disabled>▶ Çalıştır</button>`;
+  el.insertBefore(bar,ta);
+  const cm=CodeMirror.fromTextArea(ta,{mode:'python',lineNumbers:false,indentUnit:4,viewportMargin:Infinity,
+     extraKeys:{'Shift-Enter':()=>runCell(i),'Ctrl-Enter':()=>runCell(i),Tab:c=>c.replaceSelection('    ')}});
+  const out=document.createElement('div'); out.className='out'; el.appendChild(out);
+  const c={el,cm,out,src,ran:false,idx:i,btn:bar.querySelector('.run'),cnt:bar.querySelector('.cnt')};
+  bar.querySelector('.run').onclick=()=>runCell(i);
+  bar.querySelector('.reset').onclick=()=>cm.setValue(src);
+  el.id='hucre-'+(i+1);
+  cells.push(c);
+});
+
+// ---------------- Pyodide -----------------
+let py=null, execCount=0, busy=false;
+const st=document.getElementById('status'), stT=document.getElementById('statusText');
+window.__currentOut=null;
+window.renderPlot=function(json){
+  const spec=JSON.parse(json); const div=document.createElement('div'); div.className='plot';
+  const inner=document.createElement('div'); div.appendChild(inner);
+  window.__currentOut.appendChild(div);
+  Plotly.newPlot(inner,spec.data,spec.layout||{},{responsive:true,displaylogo:false,locale:'tr'});
+};
+const PY_SETUP=`
+import os
+os.environ['MPLBACKEND'] = 'Agg'
+import matplotlib
+matplotlib.use('Agg')
+import sys, io, ast, contextlib, base64
+import pandas as pd
+import matplotlib.pyplot as plt
+_CAPTURED = []
+def _grab_figs():
+    for n in plt.get_fignums():
+        f = plt.figure(n); b = io.BytesIO()
+        f.savefig(b, format='png', dpi=120, bbox_inches='tight')
+        _CAPTURED.append(base64.b64encode(b.getvalue()).decode())
+    plt.close('all')
+plt.show = lambda *a, **k: _grab_figs()
+# matplotlib 3.8 (Pyodide) için kitap kodunun 3.10+ parametrelerine uyum katmanı
+from matplotlib.axes import Axes as _Axes
+_orig_boxplot = _Axes.boxplot
+def _boxplot(self, *a, tick_labels=None, orientation=None, **k):
+    if tick_labels is not None: k['labels'] = tick_labels
+    if orientation is not None: k['vert'] = (orientation == 'vertical')
+    return _orig_boxplot(self, *a, **k)
+_Axes.boxplot = _boxplot
+import warnings
+warnings.simplefilter('ignore', FutureWarning)
+pd.set_option('display.width', 120)
+SKIP = ('.csv', '.mplstyle')
+def _written(src):
+    import re
+    return re.findall(r"savefig\\(\\s*['\\"]([^'\\"]+)['\\"]", src)
+def __run_cell(src, ns):
+    buf = io.StringIO()
+    before = set(f for f in os.listdir('.') if not f.endswith(SKIP))
+    _CAPTURED.clear()
+    res = {'stdout':'', 'html':None, 'text':None, 'files':[], 'imgs':[]}
+    val = None
+    try:
+        with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(buf):
+            tree = ast.parse(src)
+            last = None
+            if tree.body and isinstance(tree.body[-1], ast.Expr):
+                last = ast.Expression(tree.body.pop().value)
+            exec(compile(tree, '<hücre>', 'exec'), ns)
+            val = eval(compile(last, '<hücre>', 'eval'), ns) if last is not None else None
+    finally:
+        _grab_figs()
+        res['imgs'] = list(_CAPTURED)
+        _CAPTURED.clear()
+    res['stdout'] = buf.getvalue()
+    if val is not None:
+        if isinstance(val, (pd.DataFrame, pd.Series)):
+            df = val.to_frame() if isinstance(val, pd.Series) else val
+            res['html'] = df.to_html(max_rows=30, border=0)
+        elif hasattr(val, '_repr_html_') and type(val).__name__ == 'Styler':
+            res['html'] = val._repr_html_()
+        else:
+            res['text'] = repr(val)
+    after = set(f for f in os.listdir('.') if not f.endswith(SKIP))
+    res['files'] = sorted((after - before) | (set(_written(src)) & after))
+    return res
+def __new_ns():
+    plt.close('all'); matplotlib.rcdefaults()
+    return {'__name__':'__main__'}
+`;
+async function initPy(){
+  try{
+    stT.textContent='Pyodide yükleniyor…';
+    py=await loadPyodide();
+    stT.textContent='pandas, matplotlib yükleniyor…';
+    await py.loadPackage(['pandas','matplotlib','scipy','jinja2','micropip']);
+    stT.textContent='seaborn yükleniyor…';
+    const mp=py.pyimport('micropip');
+    await mp.install(['seaborn'].concat(window.EXTRA_PKGS||[]));
+    for(const [n,t] of Object.entries(DATA)) py.FS.writeFile(n,t);
+    await py.runPythonAsync(PY_SETUP);
+    window.__ns=py.runPython('__new_ns()');
+    st.className='ready'; stT.textContent='Python hazır';
+    cells.forEach(c=>c.btn.disabled=false);
+  }catch(e){ st.className='err'; stT.textContent='Yükleme hatası'; console.error(e);
+    alert('Pyodide yüklenemedi. İnternet bağlantınızı kontrol edin.\n'+e); }
+}
+async function execOne(c){
+  c.out.innerHTML=''; c.out.classList.add('show'); window.__currentOut=c.out;
+  c.el.style.opacity=1;
+  try{
+    const fn=py.globals.get('__run_cell');
+    const r=fn(c.cm.getValue(), window.__ns).toJs({dict_converter:Object.fromEntries});
+    fn.destroy();
+    if(r.stdout){const p=document.createElement('pre');p.className='txt';p.textContent=r.stdout;c.out.prepend(p);}
+    if(r.html){const d=document.createElement('div');d.style.overflowX='auto';d.innerHTML=r.html;c.out.appendChild(d);}
+    if(r.text){const p=document.createElement('pre');p.className='txt';p.textContent=r.text;c.out.appendChild(p);}
+    for(const im of (r.imgs||[])){const d=document.createElement('div');d.className='plot';const g=document.createElement('img');g.src='data:image/png;base64,'+im;g.alt='Grafik';d.appendChild(g);c.out.appendChild(d);}
+    for(const f of (r.files||[])){
+      const bytes=py.FS.readFile(f); const url=URL.createObjectURL(new Blob([bytes],{type:f.endsWith('.html')?'text/html':'application/octet-stream'}));
+      const d=document.createElement('div');d.className='dl';
+      d.innerHTML=`<a href="${url}" download="${f}">⬇ ${f} dosyasını indir (${(bytes.length/1048576).toFixed(1)} MB)</a> &nbsp;<a href="${url}" target="_blank" style="background:#0b3a47">Yeni sekmede aç</a>`;
+      c.out.appendChild(d);
+    }
+    if(!c.out.children.length){const p=document.createElement('pre');p.className='txt';p.style.color='#8a9296';p.textContent='✓ Çalıştı (çıktı yok)';c.out.appendChild(p);}
+    c.ran=true; c.cnt.textContent=++execCount; return true;
+  }catch(e){
+    let msg=String(e.message||e); const k=msg.lastIndexOf('File "<hücre>"');
+    if(k>0) msg=msg.slice(k);
+    const p=document.createElement('pre');p.className='txt err';p.textContent=msg;c.out.appendChild(p);
+    c.cnt.textContent='!'; return false;
+  }
+}
+async function runCell(i){
+  if(!py||busy) return; busy=true;
+  const target=cells[i];
+  target.btn.disabled=true; target.btn.textContent='⏳';
+  await new Promise(r=>setTimeout(r,20));
+  for(let k=0;k<i;k++){ if(!cells[k].ran){ cells[k].btn.textContent='⏳'; await new Promise(r=>setTimeout(r,10)); await execOne(cells[k]); cells[k].btn.textContent='▶ Çalıştır'; } }
+  await execOne(target);
+  target.btn.disabled=false; target.btn.textContent='▶ Çalıştır'; busy=false;
+}
+document.getElementById('runAll').onclick=async()=>{ if(!py)return; for(let i=0;i<cells.length;i++){ cells[i].ran=false; } await runCell(cells.length-1); };
+document.getElementById('resetNs').onclick=()=>{ if(!py)return; window.__ns=py.runPython('__new_ns()'); execCount=0;
+  cells.forEach(c=>{c.ran=false;c.cnt.textContent=' ';c.out.innerHTML='';c.out.classList.remove('show');}); };
+initPy();
+
+// ---------------- TOC -----------------
+const toc=document.getElementById('tocLinks');
+const heads=[...document.querySelectorAll('main h2[id], main h3[id]')];
+heads.forEach(h=>{const a=document.createElement('a');a.href='#'+h.id;a.innerHTML=h.innerHTML.replace(/<span class="num">(.*?)<\/span>/,'$1 ');if(h.tagName==='H3')a.className='sub';toc.appendChild(a);});
+const tocLinks=[...toc.querySelectorAll('a')];
+const io2=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){tocLinks.forEach(a=>a.classList.toggle('active',a.getAttribute('href')==='#'+e.target.id));}})},{rootMargin:'-80px 0px -70% 0px'});
+heads.forEach(h=>io2.observe(h));
+
+// ---------------- Search -----------------
+const norm=s=>s.toLocaleLowerCase('tr').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/ı/g,'i');
+const index=[];
+(function buildIndex(){
+  let sec='Giriş';
+  document.querySelectorAll('main h1, main h2, main h3, main p, main li, main .callout, main .cell, main .q, main pre.data').forEach(el=>{
+    if(el.closest('.callout')&&el.tagName!=='DIV') return;
+    if(el.closest('#datasets')) return;
+    if(el.matches('.q')){ index.push({el,sec:'Sınav',kind:'soru',text:el.querySelector('.qt').textContent+' '+[...el.querySelectorAll('label')].map(l=>l.textContent).join(' ')}); return; }
+    if(el.closest('.q')) return;
+    if(el.matches('h2,h3')){ sec=el.textContent; }
+    let kind='metin', text=el.textContent;
+    if(el.matches('.cell')){ kind='kod'; const c=cells.find(c=>c.el===el); text=c?c.cm.getValue():text; }
+    else if(el.matches('h1,h2,h3')) kind='başlık';
+    else if(el.matches('.callout')) kind='kutu';
+    else if(el.matches('.figdesc')) kind='grafik';
+    else if(el.matches('pre.data')) kind='veri';
+    index.push({el,sec,kind,text:text.replace(/\s+/g,' ').trim()});
+  });
+  index.forEach(x=>x.n=norm(x.text));
+})();
+const si=document.getElementById('search'), res=document.getElementById('results');
+let hits=[], act=-1;
+function esc(s){return s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+function snippet(text,terms){
+  const n=norm(text); let pos=-1;
+  for(const t of terms){const p=n.indexOf(t);if(p>=0){pos=p;break;}}
+  let s=Math.max(0,pos-60), e=Math.min(text.length,(pos<0?0:pos)+140);
+  let out=(s>0?'…':'')+text.slice(s,e)+(e<text.length?'…':'');
+  // highlight (norm keeps length for Turkish chars after NFD strip mostly; do case-insensitive regex)
+  let h=esc(out);
+  terms.forEach(t=>{ if(!t) return;
+    const re=new RegExp(t.split('').map(ch=>{const m={'i':'[iıİI]','s':'[sşŞS]','c':'[cçÇC]','g':'[gğĞG]','o':'[oöÖO]','u':'[uüÜU]'}; return m[ch]||ch.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}).join(''),'gi');
+    h=h.replace(re,m=>`<mark>${m}</mark>`); });
+  return h;
+}
+function doSearch(){
+  const q=si.value.trim();
+  if(q.length<2){res.classList.remove('open');res.innerHTML='';return;}
+  const terms=norm(q).split(/\s+/).filter(Boolean);
+  hits=index.map(x=>{let sc=0;for(const t of terms){const c=x.n.split(t).length-1;if(!c)return null;sc+=c;} if(x.kind==='başlık')sc+=5; if(x.kind==='kod')sc+=1; return {x,sc};}).filter(Boolean).sort((a,b)=>b.sc-a.sc).slice(0,40);
+  act=-1;
+  res.innerHTML=hits.length?`<div class="count">${hits.length} sonuç · <kbd>↑</kbd><kbd>↓</kbd> ile gez, <kbd>Enter</kbd> ile git</div>`+hits.map((h,i)=>`<div class="r" data-i="${i}"><div class="sec">${esc(h.x.sec)}<span class="kind">${h.x.kind}</span></div><div class="snip">${snippet(h.x.text,terms)}</div></div>`).join('')
+    :'<div class="empty">Sonuç bulunamadı.</div>';
+  res.classList.add('open');
+  res.querySelectorAll('.r').forEach(r=>r.onclick=()=>go(+r.dataset.i));
+}
+function go(i){
+  const el=hits[i].x.el; res.classList.remove('open');
+  const det=el.closest('details'); if(det) det.open=true;
+  el.scrollIntoView({behavior:'smooth',block:'center'});
+  el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
+}
+si.addEventListener('input',doSearch);
+si.addEventListener('focus',()=>{if(si.value.trim().length>=2)doSearch();});
+si.addEventListener('keydown',e=>{
+  const rs=[...res.querySelectorAll('.r')];
+  if(e.key==='ArrowDown'){act=Math.min(rs.length-1,act+1);}
+  else if(e.key==='ArrowUp'){act=Math.max(0,act-1);}
+  else if(e.key==='Enter'){ if(hits.length) go(act<0?0:act); return; }
+  else if(e.key==='Escape'){res.classList.remove('open');si.blur();return;}
+  else return;
+  e.preventDefault(); rs.forEach((r,k)=>r.classList.toggle('act',k===act)); if(rs[act]) rs[act].scrollIntoView({block:'nearest'});
+});
+document.addEventListener('keydown',e=>{ if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();si.focus();si.select();}
+  else if(e.key==='/'&&document.activeElement.tagName!=='INPUT'&&!document.activeElement.closest('.CodeMirror')){e.preventDefault();si.focus();}});
+document.addEventListener('click',e=>{if(!e.target.closest('.search-wrap'))res.classList.remove('open');});
+</script>
+</body>
+</html>

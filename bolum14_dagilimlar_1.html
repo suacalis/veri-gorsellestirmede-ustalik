@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bölüm 14: Dağılımlar</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+<script src="https://cdn.jsdelivr.net/pyodide/v0.27.7/full/pyodide.js"></script>
+<style>
+:root{
+  --teal:#0b3a47; --amber:#b26a00; --lteal:#6fb3c2; --sand:#f0c987;
+  --bg:#f7f6f2; --paper:#ffffff; --ink:#1f2a30; --muted:#5f6b72; --line:#e2e0d8;
+  --code-bg:#fbfaf6;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:80px}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.65 "Segoe UI",system-ui,-apple-system,Roboto,sans-serif}
+header.top{position:sticky;top:0;z-index:50;background:var(--teal);color:#fff;display:flex;align-items:center;gap:16px;padding:10px 20px;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+header.top .brand{font-weight:600;white-space:nowrap}
+header.top .brand small{opacity:.7;font-weight:400;margin-left:6px}
+.search-wrap{position:relative;flex:1;max-width:560px;margin-left:auto}
+#search{width:100%;padding:9px 14px 9px 36px;border-radius:8px;border:none;font-size:15px;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235f6b72' stroke-width='2.5'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E") no-repeat 11px center}
+#search:focus{outline:3px solid var(--sand)}
+#results{position:absolute;top:44px;left:0;right:0;background:#fff;color:var(--ink);border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,.2);max-height:70vh;overflow:auto;display:none}
+#results.open{display:block}
+#results .r{padding:10px 14px;border-bottom:1px solid var(--line);cursor:pointer}
+#results .r:hover,#results .r.act{background:#eef5f6}
+#results .r .sec{font-size:12px;color:var(--amber);font-weight:600;text-transform:uppercase;letter-spacing:.03em}
+#results .r .kind{font-size:11px;background:var(--line);border-radius:4px;padding:0 5px;margin-left:6px;color:var(--muted);text-transform:none;letter-spacing:0}
+#results .r .snip{font-size:14px}
+#results .empty,#results .count{padding:10px 14px;color:var(--muted);font-size:13px}
+mark{background:#ffe08a;color:inherit;border-radius:2px;padding:0 1px}
+#status{font-size:13px;white-space:nowrap;display:flex;align-items:center;gap:8px}
+#status .dot{width:10px;height:10px;border-radius:50%;background:#f0c987;box-shadow:0 0 0 0 rgba(240,201,135,.7);animation:pulse 1.4s infinite}
+#status.ready .dot{background:#7bd88f;animation:none}
+#status.err .dot{background:#ff6b6b;animation:none}
+@keyframes pulse{70%{box-shadow:0 0 0 8px rgba(240,201,135,0)}100%{box-shadow:0 0 0 0 rgba(240,201,135,0)}}
+.layout{display:grid;grid-template-columns:260px minmax(0,1fr);gap:28px;max-width:1240px;margin:0 auto;padding:24px 20px 80px}
+nav.toc{position:sticky;top:76px;align-self:start;max-height:calc(100vh - 96px);overflow:auto;font-size:14px}
+nav.toc h4{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+nav.toc a{display:block;color:var(--ink);text-decoration:none;padding:4px 10px;border-left:3px solid transparent;border-radius:0 4px 4px 0}
+nav.toc a.sub{padding-left:24px;font-size:13px;color:var(--muted)}
+nav.toc a:hover{background:#ece9df}
+nav.toc a.active{border-left-color:var(--amber);background:#fff;font-weight:600;color:var(--teal)}
+nav.toc .tools{margin-top:16px;display:flex;flex-direction:column;gap:6px}
+main{background:var(--paper);border-radius:12px;padding:36px 48px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+h1{font-size:2rem;color:var(--teal);margin:0 0 4px;line-height:1.25}
+.subtitle{color:var(--muted);margin:0 0 24px}
+h2{font-size:1.45rem;color:var(--teal);border-bottom:2px solid var(--sand);padding-bottom:6px;margin:48px 0 16px}
+h2 .num{color:var(--amber);margin-right:8px}
+h3{font-size:1.12rem;margin:30px 0 10px;color:var(--ink)}
+code{font-family:"JetBrains Mono",Consolas,Menlo,monospace;font-size:.88em;background:#f1efe8;padding:1px 5px;border-radius:4px;color:#7a3e00}
+.lead{font-size:1.08rem;border-left:4px solid var(--amber);padding:4px 0 4px 16px;color:#33424a}
+.goals{background:#eef5f6;border-radius:10px;padding:16px 22px}
+.goals ul{margin:6px 0 0;padding-left:20px}
+.callout{border-radius:10px;padding:12px 18px;margin:18px 0;border-left:5px solid}
+.callout .t{font-weight:700;display:block;margin-bottom:2px}
+.callout.warn{background:#fff4e5;border-color:var(--amber)}
+.callout.warn .t{color:var(--amber)}
+.callout.tip{background:#eaf6f1;border-color:#2f8f6b}
+.callout.tip .t{color:#2f8f6b}
+.callout.note{background:#eef2f7;border-color:#4b6a8a}
+.callout.note .t{color:#4b6a8a}
+pre.data{background:var(--code-bg);border:1px dashed var(--line);border-radius:8px;padding:10px 14px;font-size:13px;overflow:auto}
+/* code cells */
+.cell{border:1px solid var(--line);border-radius:10px;margin:18px 0;overflow:hidden;background:var(--code-bg)}
+.cell .bar{display:flex;align-items:center;gap:8px;padding:6px 10px;background:#f1efe8;border-bottom:1px solid var(--line);font-size:12px;color:var(--muted)}
+.cell .bar .lbl{font-family:Consolas,monospace}
+.cell .bar .sp{flex:1}
+button{font:inherit;cursor:pointer;border-radius:6px;border:1px solid transparent}
+.btn{background:var(--teal);color:#fff;padding:4px 12px;font-size:13px}
+.btn:hover{filter:brightness(1.2)}
+.btn:disabled{opacity:.5;cursor:wait}
+.btn.ghost{background:transparent;color:var(--teal);border-color:#c9d3d6}
+.btn.ghost:hover{background:#fff}
+.btn.amber{background:var(--amber)}
+.CodeMirror{height:auto;font-size:14px;background:var(--code-bg);font-family:"JetBrains Mono",Consolas,Menlo,monospace}
+.CodeMirror-scroll{min-height:30px}
+.cm-s-default .cm-keyword{color:#8a3ffc}.cm-s-default .cm-string{color:#0b7a4b}.cm-s-default .cm-number{color:#b26a00}.cm-s-default .cm-comment{color:#8a9296;font-style:italic}.cm-s-default .cm-builtin{color:#0b5f7a}
+.out{border-top:1px solid var(--line);background:#fff;padding:0;display:none}
+.out.show{display:block}
+.out .txt{margin:0;padding:10px 14px;font:13px/1.5 Consolas,Menlo,monospace;white-space:pre-wrap;color:#333}
+.out .txt.err{color:#b00020;background:#fff5f5}
+.out .plot{padding:6px;overflow-x:auto}
+.out table{border-collapse:collapse;margin:10px 14px;font-size:13px}
+.out th,.out td{border:1px solid var(--line);padding:4px 10px;text-align:right}
+.out th{background:#f1efe8}
+.out .dl{margin:10px 14px}
+.out .dl a{display:inline-block;background:var(--amber);color:#fff;text-decoration:none;padding:5px 12px;border-radius:6px;font-size:13px}
+.figdesc{font-size:14px;color:var(--muted);background:#f6f5f0;border-radius:8px;padding:8px 14px;margin:-8px 0 14px;border:1px solid var(--line)}
+.figdesc::before{content:"🖼 Beklenen grafik: ";font-weight:600;color:var(--teal)}
+.flash{animation:flash 2.2s ease}
+@keyframes flash{0%,40%{background:#fff1bf;box-shadow:0 0 0 6px #fff1bf}100%{background:transparent;box-shadow:none}}
+details.data{border:1px solid var(--line);border-radius:8px;margin:8px 0;background:#fff}
+details.data summary{cursor:pointer;padding:8px 14px;font-weight:600;color:var(--teal)}
+details.data .tbl{max-height:260px;overflow:auto;padding:0 14px 10px}
+details.data table{border-collapse:collapse;font-size:13px}
+details.data td,details.data th{border:1px solid var(--line);padding:3px 8px}
+details.data th{background:#f1efe8;position:sticky;top:0}
+/* quiz */
+.q{border:1px solid var(--line);border-radius:10px;padding:14px 18px;margin:14px 0}
+.q .qt{font-weight:600;margin-bottom:8px}
+.q label{display:block;padding:6px 10px;border-radius:6px;cursor:pointer;border:1px solid transparent}
+.q label:hover{background:#f4f2ea}
+.q label.ok{background:#e3f4ea;border-color:#2f8f6b}
+.q label.no{background:#fde8e8;border-color:#d05353}
+.q input{margin-right:8px}
+.q .fb{font-size:14px;margin-top:6px;display:none}
+.q .fb.show{display:block}
+#score{font-weight:700;color:var(--teal)}
+.out img{max-width:100%;height:auto;display:block;margin:6px auto}
+table.choose{border-collapse:collapse;width:100%;font-size:14px;margin:10px 0}table.choose th,table.choose td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}table.choose th{background:#eef5f6;color:var(--teal)}
+.chnav{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:14px;margin:0 0 18px}.chnav a{color:var(--teal);text-decoration:none;border:1px solid var(--line);border-radius:6px;padding:4px 10px}.chnav a:hover{background:#eef5f6}.chnav .all{display:flex;gap:4px;flex-wrap:wrap}.chnav .all a.cur{background:var(--teal);color:#fff}
+.summary li{margin-bottom:6px}
+footer{text-align:center;color:var(--muted);font-size:13px;padding:30px}
+kbd{border:1px solid #bbb;border-bottom-width:2px;border-radius:4px;padding:0 5px;font-size:12px;background:#fff;color:#333}
+@media (max-width:900px){.layout{grid-template-columns:1fr}nav.toc{display:none}main{padding:22px 18px}header.top .brand small{display:none}#status span{display:none}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">Bölüm 14 <small>Dağılımlar</small></div>
+  <div class="search-wrap">
+    <input id="search" type="search" placeholder="Bölümde ara… (ör. histplot, kdeplot, displot)   Ctrl+K" autocomplete="off">
+    <div id="results"></div>
+  </div>
+  <div id="status"><div class="dot"></div><span id="statusText">Python yükleniyor…</span></div>
+</header>
+
+<div class="layout">
+<nav class="toc" id="toc">
+  <h4>İçindekiler</h4>
+  <div id="tocLinks"></div>
+  <div class="tools">
+    <button class="btn" id="runAll">▶ Tüm hücreleri çalıştır</button>
+    <button class="btn ghost" id="resetNs">↺ Python ortamını sıfırla</button>
+  </div>
+</nav>
+
+<main id="content">
+<div class="chnav"><a href="bolum13_kategoriler.html">← Bölüm 13</a><div class="all">Bölümler: <a href="bolum01_ortami_kurmak.html" class="" title="Görselleştirme Ortamını Kurmak">1</a><a href="bolum02_cizmeden_once_dusunmek.html" class="" title="Çizmeden Önce Düşünmek">2</a><a href="bolum03_matplotlib_temelleri.html" class="" title="matplotlib Temelleri">3</a><a href="bolum04_cizgiler_noktalar.html" class="" title="Çizgiler ve Noktalar">4</a><a href="bolum05_cubuklar_pastalar_tablolar.html" class="" title="Çubuklar, Pastalar ve Tablolar">5</a><a href="bolum06_dagilimlar_izgaralar.html" class="" title="Dağılımlar ve Değer Izgaraları">6</a><a href="bolum07_ozellestirme.html" class="" title="Bir Grafiğin Her Parçasını Özelleştirmek">7</a><a href="bolum08_yerlesimler.html" class="" title="Yerleşimler: Bir Figürde Birçok Grafik">8</a><a href="bolum09_iletisim_kuran_tasarim.html" class="" title="İletişim Kuran Tasarım">9</a><a href="bolum10_yalan_soyleyen_grafikler.html" class="" title="Yalan Söyleyen Grafikler">10</a><a href="bolum11_seaborn_temelleri.html" class="" title="seaborn Temelleri">11</a><a href="bolum12_iliskiler_regresyon.html" class="" title="İlişkiler ve Regresyon">12</a><a href="bolum13_kategoriler.html" class="" title="Kategoriler">13</a><a href="bolum14_dagilimlar.html" class="cur" title="Dağılımlar">14</a><a href="bolum15_izgaralar_matrisler.html" class="" title="Izgaralar ve Matrisler">15</a><a href="bolum16_plotly_express.html" class="" title="plotly express ile Etkileşimli Grafikler">16</a><a href="bolum17_haritalar_is_grafikleri.html" class="" title="Haritalar ve İş Grafikleri">17</a></div><a href="bolum15_izgaralar_matrisler.html">Bölüm 15 →</a></div>
+<h1>Bölüm 14: Dağılımlar</h1>
+<p class="subtitle">Kod hücreleri tarayıcınızda <strong>Pyodide</strong> ile çalışır; Python kurmanıza gerek yok. Kodu değiştirip yeniden çalıştırabilirsiniz (<kbd>Shift</kbd>+<kbd>Enter</kbd>). Grafikler matplotlib ile resim olarak çizilir.</p>
+
+<p class="lead">Bir yönetici, Batı’daki müşterilerin geç teslimatlardan neden sürekli şikâyet ettiğini soruyor. Bölüm 6 size ilk bakış için araçları vermişti: matplotlib ile çizilmiş, her bölge için bir teslimat süresi histogramı. Çalışırlar, ama kutu sınırlarını kendiniz seçersiniz ve bölgeleri karşılaştırabilmek için tabloyu önce <code>pivot()</code> ile yeniden biçimlendirirsiniz.</p>
+
+<p>seaborn aynı işi tek çağrıda yapar ve matplotlib’de olmayan grafikler ekler: yığılmış histogramlar, düzgün yoğunluk eğrileri ve her iki dağılımı etrafında gösteren bir saçılım grafiği. Bu bölüm Bölüm 6’nın seaborn ortağıdır. <code>histplot()</code>, <code>kdeplot()</code>, <code>displot()</code> ve <code>jointplot()</code>’u ele alır.</p>
+
+<div class="goals">
+<strong>Bu bölümün sonunda şunları yapabileceksiniz:</strong>
+<ul>
+<li>Bir DataFrame’den <code>sns.histplot()</code> ile histogram çizmek ve kutularını <code>bins=</code> ve <code>binwidth=</code> ile ayarlamak</li>
+<li><code>stat=</code> ile sayım, yüzde ve yoğunluk arasında geçiş yapmak</li>
+<li>Grupları <code>hue=</code> ile karşılaştırmak ve siyah-beyazda da okunan bir <code>multiple=</code> kipi seçmek</li>
+<li>İki boyutlu bir histogramla iki sütunu aynı anda göstermek</li>
+<li><code>sns.kdeplot()</code> ile bir yoğunluk eğrisi çizip okumak ve onu <code>bw_adjust=</code> ile düzleştirmek</li>
+<li><code>sns.displot()</code> ile bütün bir histogram ya da yoğunluk figürü yapmak</li>
+<li><code>sns.jointplot()</code> ile iki dağılımı etrafında gösteren bir saçılım grafiği çizmek</li>
+</ul>
+</div>
+
+<details class="data" id="datasets">
+<summary>📁 Bu bölümün veri dosyaları (sayfaya gömülü — Python’da doğrudan <code>pd.read_csv()</code> ile okunur)</summary>
+<div id="dataList" style="padding:0 14px 10px"></div>
+</details>
+
+<section>
+<h2 id="s14-1"><span class="num">14.1</span><code>histplot()</code> ile Histogramlar</h2>
+<p>Bölüm 6.1 histogramın ne olduğunu açıkladı ve burada bununla ilgili hiçbir şey değişmiyor. Değişen, onu nasıl istediğinizdir.</p>
+<p>Bölüm 11.2’deki kurulum bloğuyla başlayın. Son iki satırı bu sırayla tutmalısınız, çünkü stil dosyası en son çalışmalı:</p>
+<div class="cell"><textarea>import matplotlib.pyplot as plt
+import pandas as pd
+import seaborn as sns
+
+sns.set_theme(style='ticks')
+plt.style.use('book.mplstyle')</textarea></div>
+<p><code>orders.csv</code>, Bölüm 6’daki 400 siparişlik tablonun aynısı. Yükleyip ilk satırlara bakın:</p>
+<div class="cell"><textarea>orders = pd.read_csv('orders.csv')
+orders.head(3)</textarea></div>
+
+<h3 id="s14-1-hist"><code>sns.histplot()</code></h3>
+<p><code>sns.histplot()</code>, tabloyu <code>data=</code>, sayılacak sütunu <code>x=</code> olarak alır. Bölüm 11.6’daki eksen düzeyi fonksiyonlar gibi sıradan bir matplotlib <code>Axes</code> döndürür; bu yüzden grafiği <code>ax.set()</code> bitirir:</p>
+<div class="cell"><textarea>ax = sns.histplot(data=orders, x='order_value')
+ax.set(title='Order values', xlabel='Order value ($)',
+       ylabel='Number of orders')
+plt.show()</textarea></div>
+<p class="figdesc">Sipariş değerlerinin histogramı. En uzun çubuklar yaklaşık 100 $ ile 250 $ arasında; çubuklar sağa, 1.500 $’a doğru kısalıyor.</p>
+<p>Bir kutu sayısı seçmediniz. seaborn veriye bakıp birini seçti; bu grafiğin <code>ax.hist()</code>’in 10 kutusundan daha dar çubukları olmasının nedeni budur. Ayrıca çubuklar arasına komşuları birbirinden ayıran ince beyaz kenarlar çizdi. Resim Bölüm 6’dan tanıdığınız resim: siparişlerin çoğu küçük, sağda büyük siparişlerden oluşan ince bir kuyruk var.</p>
+
+<h3 id="s14-1-bins"><code>bins=</code> ve <code>binwidth=</code></h3>
+<p>Ne gördüğünüze hâlâ kutular karar verir. <code>bins=30</code>, Bölüm 6’daki gibi 30 çubuk ister; seaborn ayrıca her çubuğun verinin biriminde ne kadar geniş olduğunu söyleyen <code>binwidth=</code>’i de sunar. Para için daha doğal soru budur: “bana 50 $’lık adımları göster”:</p>
+<div class="cell"><textarea>ax = sns.histplot(data=orders, x='order_value', binwidth=50)
+ax.set(title='Order values in $50 steps', xlabel='Order value ($)',
+       ylabel='Number of orders')
+plt.show()</textarea></div>
+<p class="figdesc">Çubukları tam 50 $ genişliğinde histogram. En uzun çubuklar yaklaşık 65 $ ile 215 $ arasında.</p>
+<p><code>binwidth=50</code> ile <code>np.arange()</code> ile bir sınır listesi kurmazsınız. seaborn ilk çubuğu en küçük siparişte, 16 $’da başlatır; bu yüzden sınırlar yuvarlak sayılara değil 16 $, 66 $, 116 $ vb.’ye düşer. En uzun çubuklar, Bölüm 6’nın zirveyi bulduğu yaklaşık 65 $ ile 215 $ arasında.</p>
+
+<h3 id="s14-1-stat"><code>stat=</code></h3>
+<p>Çubukların yüksekliği varsayılan olarak bir sayımdır. <code>stat=</code> çubukların neyi ölçtüğünü değiştirir ve y ekseni etiketi de onunla değişir:</p>
+<div style="overflow-x:auto"><table class="choose">
+<thead><tr><th><code>stat=</code></th><th>Çubuk yüksekliği</th><th>Ne zaman</th></tr></thead>
+<tbody>
+<tr><td><code>'count'</code></td><td>değer sayısı (varsayılan)</td><td>tek bir grubunuz varsa</td></tr>
+<tr><td><code>'percent'</code></td><td>tüm değerler içindeki pay, toplamı 100</td><td>okuyucular yüzdelerle düşünüyorsa</td></tr>
+<tr><td><code>'density'</code></td><td>pay bölü çubuk genişliği; alan 1 olur</td><td>grupları karşılaştırıyorsanız</td></tr>
+</tbody></table></div>
+<p>Bölüm 6.1 yoğunluğu tanıtmıştı; burada tek bir sözcük. Çoğu okuyucu için en kolayı yüzdedir:</p>
+<div class="cell"><textarea>ax = sns.histplot(data=orders, x='order_value', binwidth=50,
+                  stat='percent')
+ax.set(title='Order values', xlabel='Order value ($)',
+       ylabel='Share of orders (%)')
+plt.show()</textarea></div>
+<p class="figdesc">Y ekseni 0’dan yaklaşık yüzde 17’ye giden aynı histogram. 100 $ civarındaki en uzun çubuk siparişlerin yaklaşık yüzde 16’sını tutuyor.</p>
+<p>Şekil aynı, ama okuyucu artık çubuk saymak yerine “her altı siparişten biri 100 $ civarında” diyebilir.</p>
+
+<h3 id="s14-1-discrete"><code>discrete=True</code></h3>
+<p>Bazı sütunlar, bir teslimatın aldığı gün sayısı gibi tam sayılar tutar. 4,2 ile 4,9 gün arasını kapsayan bir çubuk anlamsızdır. <code>discrete=True</code>, her farklı değere sayının üzerinde ortalanmış kendi çubuğunu verir ve her çubuğu kesin bir gün sayısı olarak okursunuz:</p>
+<div class="cell"><textarea>ax = sns.histplot(data=orders, x='delivery_days', discrete=True)
+ax.set(title='Delivery time', xlabel='Delivery time (days)',
+       ylabel='Number of orders')
+plt.show()</textarea></div>
+<p class="figdesc">3’ten 16’ya her tam gün sayısı için bir çubuk olan histogram; 12 ve 13 günde hiçbir sipariş o kadar sürmediği için çubuk yok. En uzun çubuklar 80–100 siparişle 4, 5 ve 6 günde; 14, 15 ve 16 günde üç küçük çubuk var.</p>
+<p>Bu, Bölüm 6’daki <code>np.arange(0.5, 17)</code> numarasının yerini alır. Teslimatların çoğunun 4–6 gün sürdüğünü, birkaçının ise iki hafta ya da daha uzun sürdüğünü görebilirsiniz.</p>
+</section>
+
+<section>
+<h2 id="s14-2"><span class="num">14.2</span>Grupları Karşılaştırmak</h2>
+<p>Yöneticinin sorusu bölgelerle ilgili; bu yüzden grafiğe bölge başına bir histogram gerekiyor. <code>hue='region'</code> ekleyin; seaborn satırları böler, her grubu renklendirir ve göstergeyi ekler. Döngü yok, <code>pivot()</code> yok.</p>
+<p>Bu kısım teslimat günlerini kullanıyor. İlk grafiği basit tutmak için yalnızca North ve West’i alın:</p>
+<div class="cell"><textarea>two = orders[orders['region'].isin(['North', 'West'])]</textarea></div>
+
+<h3 id="s14-2-layer"><code>multiple='layer'</code></h3>
+<p>Birkaç grup tek bir grafiği paylaştığında, grupların çubuklarının birbiriyle ilişkisine <code>multiple=</code> karar verir. Varsayılan <code>'layer'</code>’dır: Bölüm 6’daki <code>alpha=</code> gibi her grup diğerlerinin üstüne saydam çubuklarla çizilir.</p>
+<p>North’un 130, West’in 71 siparişi var; sayımlar West’i yalnızca daha küçük olduğu için küçük gösterirdi. <code>hue=</code> ile seaborn yüzdeyi 201 satırın tamamına (130 artı 71) göre hesaplar; böylece North’un çubukları %65’e, West’inkiler %35’e toplanır. <code>common_norm=False</code> ekleyin; her bölge kendi %100’ünü alır; şekilleri karşılaştırırken istediğiniz budur:</p>
+<div class="cell"><textarea>ax = sns.histplot(data=two, x='delivery_days', hue='region',
+                  discrete=True, stat='percent', common_norm=False)
+ax.set(title='Delivery time: North vs West',
+       xlabel='Delivery time (days)',
+       ylabel="Share of the region's orders (%)")
+plt.show()</textarea></div>
+<p class="figdesc">Teslimat günlerinin örtüşen iki histogramı. Açık kehribar North 4 günde zirve yapıyor ve çoğunlukla 6 günde bitiyor. Koyu camgöbeği West 7–8 günde zirve yapıyor; 14–16 günde küçük bir sipariş grubu var. İkisi 6 ile 8 gün arasında örtüşüyor.</p>
+<p>North’un çubukları 4 güne tırmanıyor; West’inkiler 7–8 günde zirve yapıyor ve Bölüm 6’daki gibi 14–16 günde küçük bir grup var. “region” başlıklı gösterge sütun adından geldi. Bir sorun fark edeceksiniz: iki grubun örtüştüğü yerde renkler karışıyor ve siyah-beyaz bir baskıda örtüşme çamura dönüşüyor. Bunun yerine her grubun yalnızca dış hattını çizin:</p>
+
+<h3 id="s14-2-step"><code>element='step'</code></h3>
+<p><code>element='step'</code> çubukların yerine onların tepelerini izleyen basamaklı bir çizgi koyar ve <code>fill=False</code> dolguyu tamamen kaldırır. Tüm mürekkep dış hatta gider; böylece örtüşme okunur kalır. Kitabın döngüsü ayrıca her çizgiye kendi kesik stilini verir:</p>
+<div class="cell"><textarea>ax = sns.histplot(data=two, x='delivery_days', hue='region',
+                  discrete=True, stat='percent', common_norm=False,
+                  element='step', fill=False)
+ax.set(title='Delivery time: North vs West',
+       xlabel='Delivery time (days)',
+       ylabel="Share of the region's orders (%)")
+plt.show()</textarea></div>
+<p class="figdesc">Dolgusuz iki basamaklı dış hat. North, 4 günde zirve yapan düz kehribar çizgi. West, 7–8 günde zirve yapan ve 14–16 günde küçük bir basamağı olan kesikli koyu camgöbeği çizgi.</p>
+<p>Artık her grup tek bir dış hat ve birini diğerinin içinden izleyebilirsiniz. Bir çizgi düz, biri kesikli; böylece ikisi griye dönüşünce de ayrı kalır. Birkaç grubun şekillerini karşılaştırmanın en temiz yolu budur.</p>
+
+<h3 id="s14-2-stack"><code>multiple='stack'</code></h3>
+<p>Yığmak farklı bir soruyu yanıtlar. Katmanlı çubuklar grupların şekillerini karşılaştırırken, <em>yığılmış</em> bir histogram grupları üst üste koyar; böylece bir çubuğun toplam yüksekliği o kutudaki tüm siparişlerin sayısıdır ve her parça her grubun ne kadar eklediğini gösterir. Bu kez dört bölgenin hepsini, sabit bir <code>hue_order=</code> ile kullanın:</p>
+<div class="cell"><textarea>regions = ['North', 'East', 'South', 'West']
+ax = sns.histplot(data=orders, x='delivery_days', hue='region',
+                  hue_order=regions, discrete=True,
+                  multiple='stack')
+ax.set(title='Delivery time by region', xlabel='Delivery time (days)',
+       ylabel='Number of orders')
+plt.show()</textarea></div>
+<p class="figdesc">Dört renkli yığılmış teslimat günü histogramı: koyu camgöbeği, kehribar, açık camgöbeği ve kum. Toplam 5 günde, 100 siparişe yakın en yüksek. 8 günün üstünde yığının çoğu kum renginde, yani West.</p>
+<p>Parçaları okumayı daha zor bulacaksınız, çünkü yalnızca en alttaki grup düz bir çizgi üzerinde duruyor. Kum rengindeki West yığının en altında ve 8 günden itibaren siparişlerin çoğunu oluşturuyor. West daha önce koyu camgöbeğiydi: seaborn renkleri <code>hue_order</code> sırasıyla dağıtır; bu yüzden dört bölgeyle dördüncü rengi alır. Bir bölgenin rengini her grafikte aynı tutmak için her seferinde aynı <code>palette=</code> sözlüğünü verin (Bölüm 13.1).</p>
+<p>Dört dolgu siyah-beyazda da bir sorundur, çünkü açık camgöbeği ile kum neredeyse aynı soluk griye dönüşür. Çözüm, her çubuğun içine çizilen bir desen olan <em>taramadır</em> (hatching); Bölüm 4.4 bunu gölgeli bir alanda kullanmıştı. Sonraki bloğu olduğu gibi kopyalayabilirsiniz. Bir <em>container</em> bir çubuk grubudur ve <code>ax.containers</code> onları yığının altından üstüne, yani ters <code>hue_order</code> sırasıyla listeler; döngünün <code>reversed()</code> kullanmasının nedeni budur. Bir <em>handle</em>, göstergedeki küçük renkli karedir ve o da aynı deseni alır. Bu, matplotlib 3.7 ya da daha yenisini gerektirir. Hücre yukarıdaki çağrıyı tekrarlayıp taramayı ekliyor:</p>
+<div class="cell"><textarea>ax = sns.histplot(data=orders, x='delivery_days', hue='region',
+                  hue_order=regions, discrete=True,
+                  multiple='stack')
+ax.set(title='Delivery time by region', xlabel='Delivery time (days)',
+       ylabel='Number of orders')
+hatches = ['', '//', '..', 'xx']
+for bars, hatch in zip(reversed(ax.containers), hatches):
+    for bar in bars:
+        bar.set_hatch(hatch)
+for handle, hatch in zip(ax.get_legend().legend_handles, hatches):
+    handle.set_hatch(hatch)
+plt.show()</textarea></div>
+<p class="figdesc">Aynı yığılmış histogram, şimdi desenli: North düz koyu camgöbeği, East çapraz çizgili, South noktalı, West çarpılı. Gösterge aynı desenleri gösteriyor.</p>
+<p>Her bölgenin artık kendi rengi ve kendi deseni var ve gösterge bunlarla eşleşiyor. Bu, Bölüm 11.4’te <code>hue=</code> ile <code>style=</code>’a aynı sütunu vermekle aynı fikirdir.</p>
+
+<h3 id="s14-2-fill"><code>multiple='fill'</code></h3>
+<p>Bir kip daha başka bir soruyu yanıtlar. <code>multiple='fill'</code> grupları yığar ve sonra her çubuğu 1’lik aynı yüksekliğe uzatır. Yükseklikler artık kaç sipariş olduğunu göstermez; her kutudaki her grubun payını gösterir. Burada North ve West’ten oluşan <code>two</code>’yu kullanıyor ve <code>sns.move_legend()</code> göstergeyi çubukları örtemeyeceği dışarıya koyuyor (Bölüm 15.2 bunun daha fazlasını gösteriyor):</p>
+<div class="cell"><textarea>ax = sns.histplot(data=two, x='delivery_days', hue='region',
+                  hue_order=['North', 'West'], discrete=True,
+                  multiple='fill')
+ax.set(title='Who delivers in how many days?',
+       xlabel='Delivery time (days)', ylabel='Share of the bin')
+sns.move_legend(ax, 'upper left', bbox_to_anchor=(1, 1))
+plt.show()</textarea></div>
+<p class="figdesc">Her çubuğun tepeye ulaştığı, göstergesi sağda dışarıda bir histogram. 3–5 gün arası çubukların hepsi koyu camgöbeği, yani North. Kehribar West ilk olarak 6 günde çubuğun yaklaşık üçte biriyle beliriyor. 9 günden itibaren çubukların hepsi kehribar; hiç siparişin olmadığı 12 ve 13 günde boşluk var.</p>
+<p>Sağdan okuyun: 9 günden itibaren her geç sipariş West’ten geliyor. 10 günün üstündeki çubuklar her biri yalnızca birkaç sipariş tutuyor; onları fazla yorumlamayın. Doldurulmuş bir histogram grup büyüklüklerini gizler; en iyisi sayımları gösteren bir histogramın yanında durmasıdır.</p>
+</section>
+
+<section>
+<h2 id="s14-3"><span class="num">14.3</span>İki Boyutlu Histogramlar</h2>
+<p>Şimdiye kadar histogram tek bir sütuna baktı. <code>histplot()</code>’a hem <code>x=</code> hem <code>y=</code> verin, iki yönde sayar: grafiği dikdörtgenlere böler, her birindeki siparişleri sayar ve dikdörtgeni sayıma göre renklendirir. Fikir, Bölüm 6.3’teki <code>imshow()</code> ısı haritasıyla aynıdır, ama ızgarayı seaborn sizin için kurar.</p>
+<p>İşte sipariş değeri ve teslimat günleri. İki yöne uygulanan seçenekler, her eksen için bir tane olmak üzere parantez içinde yazılmış bir değer çifti alır. <code>binwidth=(100, 1)</code> dikdörtgenleri 100 $ genişliğinde ve 1 gün yüksekliğinde yapar. Günler tam sayı olduğundan <code>discrete=(False, True)</code> ayrık kuralı yalnızca y için açar. <code>cbar=True</code> renk çubuğunu ekler:</p>
+<div class="cell"><textarea>ax = sns.histplot(data=orders, x='order_value', y='delivery_days',
+                  binwidth=(100, 1), discrete=(False, True),
+                  cmap='Blues', cbar=True,
+                  cbar_kws={'label': 'Number of orders'})
+ax.set(title='Order value and delivery time',
+       xlabel='Order value ($)', ylabel='Delivery time (days)')
+plt.show()</textarea></div>
+<p class="figdesc">Mavi dikdörtgenlerden bir ızgara. En koyu dikdörtgenler soldan ikinci sütunda, 4–6 günde, her birinde yaklaşık 28 sipariş. Renk sağa ve yukarı doğru soluyor; 15 gün civarında birkaç soluk hücre var.</p>
+<p>İlk sütun en küçük sipariş olan 16 $’da başlıyor; bu yüzden sınırları 16 $, 116 $, 216 $ vb. En koyu bloklar ikinci sütunda: 4–6 günde ulaşan 116 $ ile 216 $ arası siparişler. Sipariş değeri ya da teslimat süresi arttıkça renk soluyor ve bir eğim yok: pahalı siparişler ucuz olanlardan daha hızlı ya da daha yavaş teslim edilmiyor.</p>
+<p>İki boyutlu histogram, bir saçılım grafiğinin üst üste binen noktalardan oluşan bir lekeye dönüştüğü, çok noktalı veriler içindir. Renk size bir dikdörtgeni kaç siparişin paylaştığını söyler; üst üste binen noktalar bunu söyleyemez. Bölüm 6.3’ün önerdiği gibi sıralı bir renk haritası gri baskıda da ayakta kalır.</p>
+</section>
+
+<section>
+<h2 id="s14-4"><span class="num">14.4</span><code>kdeplot()</code> ile Yoğunluk Eğrileri</h2>
+<p>Bir histogram çubuktan çubuğa sıçrar ve sıçramalar kutuların nerede başladığına bağlıdır. Bir <em>yoğunluk eğrisi</em>, aynı bilgiyi kutusuz gösteren düzgün bir çizgidir. Çekirdek yoğunluk tahmininin (kernel density estimate) kısaltmasıyla KDE de denir.</p>
+
+<h3 id="s14-4-read">Bir yoğunluk eğrisi nasıl okunur?</h3>
+<p>Her siparişi sayı doğrusu üzerinde, değerinin üzerinde ortalanmış küçük bir tepe olarak düşünün. Birçok siparişin birbirine yakın durduğu yerde tepeleri üst üste yığılıp yüksek bir dağ olur. Tüm tepeleri toplamak eğriyi verir. Eğri, veri hakkında düzleştirilmiş bir tahmindir; bu yüzden gerçekte olmayan bir tümsek gösterebilir ve verinin uçlarının ötesine taşabilir.</p>
+<p>Okumanıza iki olgu yardımcı olur:</p>
+<ul>
+<li>Eğrinin yüksek bir kısmı, tıpkı uzun bir çubuk gibi, orada birçok değerin bulunduğu anlamına gelir.</li>
+<li>Tüm eğrinin altındaki alan 1’dir. Y ekseni bir sayım değil yoğunluktur; bu yüzden sayıları değil şekli ve tepelerin konumlarını okursunuz.</li>
+</ul>
+<p>Alan, sayılara da bir anlam verir. 150 $ civarında aşağıdaki grafikteki eğri dolar başına yaklaşık 0,003’tür. Orada 100 $ genişliğindeki bir dilimin alanı yaklaşık 0,003 × 100 = 0,3’tür; yani tüm siparişlerin yaklaşık %30’u böyle bir dilime düşer. Veri de bunu doğruluyor: siparişlerin %33’ü 100 $ ile 200 $ arasında.</p>
+
+<h3 id="s14-4-kde"><code>sns.kdeplot()</code></h3>
+<p><code>sns.kdeplot()</code> eğriyi çizer. <code>histplot()</code> gibi <code>data=</code> ve <code>x=</code> alır. Ek <code>linestyle='-'</code> grafiğin altında açıklanıyor:</p>
+<div class="cell"><textarea>ax = sns.kdeplot(data=orders, x='order_value', linestyle='-')
+ax.set(title='Order values', xlabel='Order value ($)',
+       ylabel='Density')
+plt.show()</textarea></div>
+<p class="figdesc">Sipariş değerlerinin düzgün, düz bir eğrisi: 150 $ civarında tek bir tepe, sağa uzun bir kuyruk ve 870 $ civarında küçük bir tümsek. Eğri solda 0 $’ın altından başlıyor.</p>
+<p>Tepe 150 $ civarında; histogramlarda gördüğünüz uzun kuyruk sağda. Kitabın stil dosyası düz, kesikli ve noktalı çizgiler arasında döner (Bölüm 7.5) ve seaborn çizmeden önce ilkini tüketir. <code>linestyle='-'</code> olmadan tek bir eğri kesikli çıkar. Bölüm 13.1 aynı etkiyi hata çubuklarında, Bölüm 12.5 de <code>regplot()</code>’un çizgisinde gösteriyor. Ama sol uca bakın: eğri 0 $’ın altına devam ediyor ve hiçbir siparişin değeri negatif değil. Düzleştirme verinin kenarlarından taşıyor. <code>cut=0</code> eğriyi en küçük ve en büyük değerde durdurur:</p>
+<div class="cell"><textarea>ax = sns.kdeplot(data=orders, x='order_value', cut=0,
+                 linestyle='-')
+ax.set(title='Order values', xlabel='Order value ($)',
+       ylabel='Density')
+plt.show()</textarea></div>
+<p class="figdesc">Aynı düz eğri, şimdi en küçük sipariş olan 16 $’da başlıyor ve en büyük sipariş olan 1.470 $’da bitiyor.</p>
+<p>Çubukları ve eğriyi tek grafikte görmek için <code>histplot()</code>’a <code>kde=True</code> ekleyin, örneğin <code>sns.histplot(data=orders, x='order_value', stat='density', kde=True)</code>. seaborn, hangi <code>stat=</code>’ı seçerseniz seçin eğriyi çubuklara uyacak şekilde ölçekler; bu yüzden eğri çubukların tepelerini izlemelidir; bu, uyduğunun iyi bir kontrolüdür. Deneyin:</p>
+<div class="cell"><textarea># Deneme: histogram ve yoğunluk eğrisi birlikte
+ax = sns.histplot(data=orders, x='order_value', stat='density', kde=True,
+                  kde_kws={'cut': 0}, line_kws={'linestyle': '-'})
+ax.set(title='Bars and curve agree', xlabel='Order value ($)',
+       ylabel='Density')
+plt.show()</textarea></div>
+
+<h3 id="s14-4-bw"><code>bw_adjust=</code></h3>
+<p>Eğrinin şeklini değiştiren tek ayar, her küçük tepenin genişliği olan <em>bant genişliğidir</em> (bandwidth). Verinin biriminde ölçülür; burada bir dolar miktarıdır. Geniş tepeler ayrıntıyı düzleştirip yok eder. Dar tepeler her değeri tümsek tümsek izler. Bu, Bölüm 6.1’deki kutu sayısıyla aynı ödünleşimdir.</p>
+<p>seaborn sizin için makul bir bant genişliği seçer. <code>bw_adjust=</code> onu ölçekler: daha dar tepeler için 1’in altı, daha genişleri için 1’in üstü. Yeni başlayan biri olarak 1’den başlayın ve yalnızca eğri çok tümsekli ya da çok düz görünürse değiştirin. Bu döngü aynı grafiğe üç sürüm çiziyor. Her çizgi kendi kesik stilini alıyor; böylece griye dönüşünce de ayrışıyorlar:</p>
+<div class="cell"><textarea>fig, ax = plt.subplots()
+for bw, dash in zip([0.3, 1, 3], ['-', '--', ':']):
+    sns.kdeplot(data=orders, x='order_value', cut=0, bw_adjust=bw,
+                linestyle=dash, label=f'bw_adjust={bw}', ax=ax)
+ax.set(title='Three bandwidths', xlabel='Order value ($)',
+       ylabel='Density')
+ax.legend()
+plt.show()</textarea></div>
+<p class="figdesc">Sipariş değerlerinin üç yoğunluk eğrisi. bw_adjust 0.3 olan düz çizginin çok sayıda küçük tümseği var. 1 olan kesikli çizginin 150 $ civarında tek düzgün tepesi ve 870 $ civarında küçük bir tümseği var. 3 olan noktalı çizgi, tepesi 100–400 $’a yayılmış alçak düz bir tepe.</p>
+<p>Pürüzlü çizgi fazla dar, çünkü gürültüyü bir desen gibi gösteriyor; düz olan fazla geniş, çünkü tepeyi gizliyor. Ortadaki varsayılan olandır. 870 $ civarındaki küçük tümseği gerçek: on siparişin fiyatı 827 $ ile 940 $ arasında ve histogramlar onları küçük bir çubuk olarak gösteriyor.</p>
+
+<h3 id="s14-4-hue"><code>hue=</code> ile grupları karşılaştırmak</h3>
+<p><code>hue=</code>, <code>histplot()</code>’taki gibi çalışır ve <code>two</code> hâlâ Bölüm 14.2’deki North ve West tablosu. Grupların büyüklükleri farklı olduğu için her eğrinin alanı kendi başına 1 olsun diye <code>common_norm=False</code> ekleyin. <code>fill=True</code> eğrilerin altını gölgeler; bu, yalnızca iki eğri olduğunda yardımcı olur:</p>
+<div class="cell"><textarea>ax = sns.kdeplot(data=two, x='delivery_days', hue='region',
+                 common_norm=False, fill=True)
+ax.set(title='Delivery time: North vs West',
+       xlabel='Delivery time (days)', ylabel='Density')
+plt.show()</textarea></div>
+<p class="figdesc">Gölgeli iki yoğunluk eğrisi. Açık kehribar North’un 4–5 günde uzun, dar bir tepesi var. Koyu camgöbeği West’in 7–8 günde daha alçak, daha geniş bir tepesi ve 15 günde küçük ikinci bir tümseği var. İki eğri de verilerinin biraz ötesine taşıyor.</p>
+<p>Resim yöneticinizin bilmek istediğini söylüyor: West’in eğrisi North’unkinin sağında duruyor ve 15 gündeki küçük ikinci tümseği geç siparişlerin uzun kuyruğu. İki eğri, tek bir grafik için aşağı yukarı sınırdır. Koyu ve açık bir renk onları griye dönüşünce de ayrı tutar.</p>
+<p>Teslimat günleri tam sayı; bu yüzden eğri günlerin arasına taşıyor. Tam sayılar için <code>discrete=True</code> ile bir histogram daha dürüst grafiktir; yoğunluk eğrisi para gibi düzgün ölçümlere uyar.</p>
+</section>
+
+<section>
+<h2 id="s14-5"><span class="num">14.5</span><code>displot()</code> ile Figür Düzeyi Histogramlar</h2>
+<p>Bölüm 11.6, seaborn’un iki fonksiyon ailesi olduğunu açıkladı. <code>histplot()</code> ve <code>kdeplot()</code> eksen düzeyidir: verdiğiniz bir eksene çizerler. <code>displot()</code> onların figür düzeyi ortağıdır. Kendi figürünü yapar, göstergeyi grafiğin dışına koyar ve bir <code>FacetGrid</code> döndürür.</p>
+
+<h3 id="s14-5-displot"><code>sns.displot()</code></h3>
+<p><code>kind=</code> grafiği seçer: <code>histplot()</code> için <code>'hist'</code> (varsayılan), <code>kdeplot()</code> için <code>'kde'</code>. Yukarıdaki kısımlardaki her seçenek önceki gibi çalışır; <code>height=</code> ve <code>aspect=</code> ise <code>figsize=</code>’ın yerini alır. İşte Bölüm 14.2’deki basamak grafiği, <code>displot()</code> ile çizilmiş. Bu kez dolgu, her dış hattın altında açık bir gölge olarak kalıyor:</p>
+<div class="cell"><textarea>g = sns.displot(data=two, x='delivery_days', hue='region',
+                kind='hist', discrete=True, stat='percent',
+                common_norm=False, element='step',
+                height=3, aspect=1.5)
+g.set_axis_labels('Delivery time (days)', "Share of orders (%)")
+plt.show()</textarea></div>
+<p class="figdesc">Göstergesi sağda dışarıda olan ve üst ile sağ çerçeve çizgileri olmayan bir figürde, açık dolgulu iki basamaklı histogram. North kehribar ve 4 günde zirve yapıyor. West koyu camgöbeği ve 7–8 günde zirve yapıyor. 6 ile 8 gün arasında örtüşüyorlar.</p>
+<p>Gösterge artık sağda dışarıda duruyor, üst ve sağ çerçeve çizgileri gitti ve grafik alanı <code>height=3</code> ile <code>aspect=1.5</code>’ten (3 inç yüksekliğinde, 4,5 inç genişliğinde) geliyor; figür gösterge için genişliyor. <code>g.set_axis_labels()</code> iki eksen etiketini tek çağrıda ayarlar. <code>FacetGrid</code>’e aittir ve Bölüm 15.2 onun diğer yöntemlerini gösteriyor. <code>kind='hist'</code>’i <code>kind='kde'</code> yapın; aynı çağrı yoğunluk eğrileri çizer.</p>
+
+<h3 id="s14-5-when"><code>displot()</code> ne zaman kullanılır?</h3>
+<p>Tek bir grafik için, Bölüm 8’deki herhangi bir yerleşime <code>ax=</code> ile koyabileceğiniz eksen düzeyi fonksiyonu kullanın. <code>displot()</code>, grafiği bir sütuna göre bölmek istediğinizde yerini hak eder: <code>col='region'</code> her bölge için bir panel çizer. Bunu Bölüm 15.1 ele alıyor. Hemen bir göz atın:</p>
+<div class="cell"><textarea># Deneme: col='region' ile bölge başına bir panel
+g = sns.displot(data=orders, x='delivery_days', col='region',
+                col_order=['North', 'East', 'South', 'West'],
+                discrete=True, stat='percent', common_norm=False,
+                height=2.2, aspect=0.9)
+g.set_axis_labels('Days', 'Share (%)')
+plt.show()</textarea></div>
+<div class="callout warn"><span class="t">⚠ Dikkat</span>Bölüm 11.6’nın söylediği gibi <code>displot()</code>’a <code>ax=</code> vermeyin; seaborn onu yok sayar. Kendi yerleşiminiz için <code>histplot()</code> ya da <code>kdeplot()</code> kullanın.</div>
+</section>
+
+<section>
+<h2 id="s14-6"><span class="num">14.6</span><code>jointplot()</code> ile İki Dağılım Birden</h2>
+<p>Bir saçılım grafiği iki sütunun birlikte nasıl hareket ettiğini gösterir, ama her sütunun nasıl yayıldığını göstermez. Bir histogram bir sütunun yayılımını gösterir ve diğeri hakkında hiçbir şey söylemez. <code>jointplot()</code> ikisini birden verir: ortada bir ana grafik ve kenarlarda her sütunun dağılımı.</p>
+
+<h3 id="s14-6-joint"><code>sns.jointplot()</code></h3>
+<p><code>sns.jointplot()</code>, bir saçılım grafiğiyle aynı <code>data=</code>, <code>x=</code> ve <code>y=</code>’yi alır. Başka bir şey olmadan, üstte ve sağda birer histogramla bir saçılım grafiği çizer:</p>
+<div class="cell"><textarea>g = sns.jointplot(data=orders, x='order_value', y='delivery_days',
+                  height=4)
+g.set_axis_labels('Order value ($)', 'Delivery time (days)')
+plt.show()</textarea></div>
+<p class="figdesc">Sipariş değerine karşı teslimat süresinin saçılım grafiği; üstünde sipariş değeri histogramı, sağında teslimat günleri histogramı. Noktalar en yoğun solda, 4 ile 6 gün arasında. Üstteki histogram sağa doğru düşüyor, sağdaki histogram 4–6 günde zirve yapıyor.</p>
+<p>Orta kısım her siparişi bir nokta olarak, kenarlar ise her sütunun nasıl yayıldığını gösterir. Size tek başına bir saçılım grafiğinin gizlediğini söylerler: siparişlerin çoğu küçük ve çoğu 4–6 günde ulaşıyor. Teslimat günleri tam sayı olduğundan noktalar sıralar hâlinde diziliyor ve birçoğu örtüşüyor.</p>
+<p><code>jointplot()</code> figür düzeyidir ve bir <code>JointGrid</code> döndürür. <code>g.set_axis_labels()</code> ortadaki grafiği etiketler, <code>height=</code> kare figürün boyutunu ayarlar.</p>
+
+<h3 id="s14-6-kind"><code>kind=</code></h3>
+<p>Burada olduğu gibi noktalar örtüştüğünde, ortayı <code>kind='hist'</code> ile iki boyutlu bir histograma çevirin. Bu, Bölüm 14.3’teki grafiğin etrafına kenar çubuklarının eklenmiş hâlidir:</p>
+<div class="cell"><textarea>g = sns.jointplot(data=orders, x='order_value', y='delivery_days',
+                  kind='hist', cmap='Blues', height=4)
+g.set_axis_labels('Order value ($)', 'Delivery time (days)')
+plt.show()</textarea></div>
+<p class="figdesc">Sipariş değeri ve teslimat süresinin maviyle çizilmiş iki boyutlu histogramı; üstünde ve sağında birer histogram. En koyu hücreler solda, 4–6 günde.</p>
+<p>En koyu hücreler noktaların sıkıştığı yerler. <code>kind=</code>’ın diğer değerleri <code>'kde'</code> ve eğilim çizgili bir saçılım grafiği olan <code>'reg'</code>’dir (Bölüm 12.5).</p>
+
+<h3 id="s14-6-hue">Bir jointplot’ta <code>hue=</code></h3>
+<p><code>hue=</code> bir grup ekler ve kenarlar her grup için bir tane olmak üzere yoğunluk eğrilerine dönüşür. Her grup için bir şekil gri baskıda yardımcı olur. <code>jointplot()</code>’un kendi <code>style=</code>’ı yoktur; bu yüzden onu <code>joint_kws=</code> ile ortadaki grafiğe geçirin. Bu sözlük doğrudan, tablonuzdan hiç haberi olmayan saçılım fonksiyonuna gider; bu yüzden bir sütun adını arayamaz. Ona sütunun kendisini, <code>two['region']</code>’u verirsiniz:</p>
+<div class="cell"><textarea>g = sns.jointplot(data=two, x='order_value', y='delivery_days',
+                  hue='region', joint_kws={'style': two['region']},
+                  height=4)
+g.set_axis_labels('Order value ($)', 'Delivery time (days)')
+plt.show()</textarea></div>
+<p class="figdesc">Üstünde ve sağında birer yoğunluk eğrisi olan bir saçılım grafiği. West siparişleri koyu camgöbeği daireler, North siparişleri kehribar çarpılar. Camgöbeği daireler, West için 900 $ civarında biten sipariş değeri aralığının tamamında, 6 gün ve üzerinde, daha yukarıda duruyor. Sağdaki eğriler North’un 4–5 günde, West’in 7–8 günde zirve yaptığını gösteriyor.</p>
+<p>West’in daireleri, yargıda bulunmaya yetecek kadar siparişin olduğu her yerde grafikte daha yukarıda duruyor. West siparişlerinin çoğu 500 $’dan ucuz, yalnızca dördü daha pahalı; ama ucuz ve orta fiyatlı siparişlerde bile West daha yavaş. Yani gecikmenin nedeni büyük siparişler değil. Yöneticinize yanıtınız bu: sipariş büyüklüğü ne olursa olsun West daha yavaş.</p>
+</section>
+
+<section>
+<h2 id="ozet">Bölüm Özeti</h2>
+<ul class="summary">
+<li><code>sns.histplot()</code> bir DataFrame’den histogram çizer. Kutuları <code>bins=</code> ya da <code>binwidth=</code> ile ayarlayın; tam sayılar için <code>discrete=True</code> kullanın.</li>
+<li><code>stat=</code> çubukların neyi ölçtüğünü değiştirir: <code>'count'</code>, <code>'percent'</code> ya da <code>'density'</code>. <code>hue=</code> ile farklı büyüklükteki grupları karşılaştırmak için <code>common_norm=False</code> ekleyin.</li>
+<li><code>multiple=</code>, grupların bir grafiği nasıl paylaştığını ayarlar: <code>'layer'</code>, <code>'stack'</code> ve <code>'fill'</code>. Gri baskı için dış hatlarda <code>element='step'</code> kullanın ya da yığılmış çubuklara <code>set_hatch()</code> ile tarama ekleyin.</li>
+<li>Hem <code>x=</code> hem <code>y=</code> verilen <code>histplot()</code>, iki boyutlu bir histogram, yani sayımların ısı haritasını yapar. Sıralı bir renk haritası ve <code>cbar=True</code> kullanın.</li>
+<li><code>sns.kdeplot()</code> alanı 1 olan düzgün bir yoğunluk eğrisi çizer. Kesin sınırı olan veri için <code>cut=0</code>, düz tek bir eğri için <code>linestyle='-'</code> ve eğriyi daha düz ya da daha ayrıntılı yapmak için <code>bw_adjust=</code> kullanın.</li>
+<li><code>sns.displot()</code> figür düzeyi sürümdür. Grafiği <code>kind='hist'</code> ya da <code>kind='kde'</code> ile seçin, boyutunu <code>height=</code> ve <code>aspect=</code> ile ayarlayın. Ona <code>ax=</code> vermeyin.</li>
+<li><code>sns.jointplot()</code>, her sütunun dağılımını kenarlarda gösteren bir saçılım grafiği çizer. Noktalar örtüştüğünde <code>kind='hist'</code> kullanın.</li>
+</ul>
+<p>Bölüm 15 grafikleri <code>col=</code> ve <code>row=</code> ile panellere bölüyor, <code>pairplot()</code> ile her sütun çiftini çiziyor ve bir korelasyon tablosunu ısı haritasına çeviriyor.</p>
+
+<h3 id="oyun">Kendi kodunuzu deneyin</h3>
+<p>Aşağıdaki hücre bir oyun alanı. Yukarıdaki tüm değişkenler (<code>orders</code>, <code>two</code>, <code>regions</code>…) burada kullanılabilir (önceki hücreler otomatik çalıştırılır).</p>
+<div class="cell"><textarea># Örnek: dört bölgenin yoğunluk eğrileri, aynı renk sözlüğüyle
+colors = {'North': '#b26a00', 'East': '#6fb3c2', 'South': '#c4c9ce',
+          'West': '#0b3a47'}
+ax = sns.kdeplot(data=orders, x='delivery_days', hue='region',
+                 hue_order=regions, palette=colors, common_norm=False,
+                 cut=0, bw_adjust=1.5)
+ax.set(title='Only the West has a long tail', xlabel='Delivery time (days)',
+       ylabel='Density')
+plt.show()</textarea></div>
+</section>
+
+<section>
+<h2 id="quiz">Sınav</h2>
+<p>Bir seçeneğe tıklayın; doğru cevap ve açıklama hemen görünür. Puan: <span id="score">0 / 10</span> &nbsp;<button class="btn ghost" id="quizReset">Sıfırla</button></p>
+<div id="quizBox"></div>
+</section>
+
+<div class="chnav"><a href="bolum13_kategoriler.html">← Bölüm 13</a><div class="all">Bölümler: <a href="bolum01_ortami_kurmak.html" class="" title="Görselleştirme Ortamını Kurmak">1</a><a href="bolum02_cizmeden_once_dusunmek.html" class="" title="Çizmeden Önce Düşünmek">2</a><a href="bolum03_matplotlib_temelleri.html" class="" title="matplotlib Temelleri">3</a><a href="bolum04_cizgiler_noktalar.html" class="" title="Çizgiler ve Noktalar">4</a><a href="bolum05_cubuklar_pastalar_tablolar.html" class="" title="Çubuklar, Pastalar ve Tablolar">5</a><a href="bolum06_dagilimlar_izgaralar.html" class="" title="Dağılımlar ve Değer Izgaraları">6</a><a href="bolum07_ozellestirme.html" class="" title="Bir Grafiğin Her Parçasını Özelleştirmek">7</a><a href="bolum08_yerlesimler.html" class="" title="Yerleşimler: Bir Figürde Birçok Grafik">8</a><a href="bolum09_iletisim_kuran_tasarim.html" class="" title="İletişim Kuran Tasarım">9</a><a href="bolum10_yalan_soyleyen_grafikler.html" class="" title="Yalan Söyleyen Grafikler">10</a><a href="bolum11_seaborn_temelleri.html" class="" title="seaborn Temelleri">11</a><a href="bolum12_iliskiler_regresyon.html" class="" title="İlişkiler ve Regresyon">12</a><a href="bolum13_kategoriler.html" class="" title="Kategoriler">13</a><a href="bolum14_dagilimlar.html" class="cur" title="Dağılımlar">14</a><a href="bolum15_izgaralar_matrisler.html" class="" title="Izgaralar ve Matrisler">15</a><a href="bolum16_plotly_express.html" class="" title="plotly express ile Etkileşimli Grafikler">16</a><a href="bolum17_haritalar_is_grafikleri.html" class="" title="Haritalar ve İş Grafikleri">17</a></div><a href="bolum15_izgaralar_matrisler.html">Bölüm 15 →</a></div>
+</main>
+</div>
+<footer>Bölüm 14 · Dağılımlar — Pyodide ile etkileşimli Türkçe sürüm</footer>
+
+<script>
+
+const DATA = {"orders.csv": "order_id,weekday,hour,region,order_value,delivery_days\n1001,Thu,20,East,88,7\n1002,Wed,15,East,93,4\n1003,Wed,18,South,246,6\n1004,Wed,20,West,259,6\n1005,Sun,14,East,165,4\n1006,Fri,20,North,82,3\n1007,Fri,21,South,115,5\n1008,Wed,14,East,827,4\n1009,Fri,15,East,64,7\n1010,Mon,21,North,215,4\n1011,Mon,21,South,365,5\n1012,Sat,11,East,318,6\n1013,Mon,20,East,1059,4\n1014,Sun,14,East,252,8\n1015,Sat,12,North,136,4\n1016,Sat,13,West,109,7\n1017,Mon,20,East,153,4\n1018,Tue,20,South,534,7\n1019,Sat,18,South,81,6\n1020,Thu,19,South,228,6\n1021,Fri,21,North,101,4\n1022,Mon,19,West,173,7\n1023,Tue,21,East,856,4\n1024,Thu,12,East,226,5\n1025,Sat,18,North,264,4\n1026,Thu,20,South,128,6\n1027,Mon,22,North,58,5\n1028,Sat,21,East,98,5\n1029,Mon,15,South,133,8\n1030,Thu,20,South,182,8\n1031,Fri,22,North,42,8\n1032,Wed,18,North,169,6\n1033,Thu,20,North,566,7\n1034,Sun,22,East,131,6\n1035,Thu,11,East,338,5\n1036,Thu,15,West,226,9\n1037,Sun,21,East,184,4\n1038,Wed,18,East,156,6\n1039,Sun,14,West,332,8\n1040,Wed,12,East,690,7\n1041,Wed,20,North,49,5\n1042,Sun,12,West,423,7\n1043,Mon,22,South,143,6\n1044,Sat,14,East,253,4\n1045,Sat,12,North,440,5\n1046,Sun,19,West,222,10\n1047,Mon,20,North,850,6\n1048,Tue,11,West,442,8\n1049,Sat,12,West,155,7\n1050,Thu,10,East,379,6\n1051,Mon,18,East,64,6\n1052,Fri,10,North,237,6\n1053,Sat,20,West,129,9\n1054,Sun,22,North,104,3\n1055,Tue,20,North,431,4\n1056,Tue,20,South,236,6\n1057,Sat,22,South,137,6\n1058,Mon,14,West,260,7\n1059,Wed,12,West,185,7\n1060,Thu,19,West,179,7\n1061,Thu,22,West,59,8\n1062,Fri,20,South,134,6\n1063,Sat,19,East,298,7\n1064,Fri,11,West,267,14\n1065,Fri,11,South,210,6\n1066,Fri,13,East,83,4\n1067,Tue,12,West,112,9\n1068,Thu,20,South,32,6\n1069,Sun,19,East,90,4\n1070,Sun,19,North,515,4\n1071,Sat,14,North,732,5\n1072,Thu,21,West,212,7\n1073,Sat,13,North,198,5\n1074,Fri,20,West,67,7\n1075,Wed,20,East,236,5\n1076,Thu,13,North,132,4\n1077,Tue,19,North,1018,4\n1078,Fri,12,East,295,4\n1079,Wed,13,East,187,8\n1080,Sat,18,East,62,5\n1081,Sat,20,South,615,6\n1082,Sun,21,North,214,4\n1083,Sat,20,South,989,5\n1084,Mon,20,North,336,7\n1085,Sat,13,South,182,5\n1086,Sat,15,East,358,6\n1087,Sun,13,North,377,4\n1088,Thu,12,North,134,6\n1089,Thu,19,West,581,8\n1090,Thu,14,East,903,6\n1091,Tue,13,East,123,6\n1092,Sun,19,East,34,5\n1093,Sun,12,North,364,5\n1094,Tue,20,East,227,7\n1095,Sun,14,East,210,9\n1096,Tue,12,North,103,4\n1097,Mon,14,North,668,5\n1098,Sat,13,North,41,4\n1099,Sat,19,North,537,3\n1100,Tue,20,East,142,4\n1101,Sun,13,North,41,4\n1102,Wed,20,West,109,9\n1103,Tue,14,North,197,3\n1104,Wed,20,West,940,9\n1105,Mon,20,East,495,5\n1106,Sat,12,East,179,6\n1107,Wed,20,South,208,6\n1108,Fri,19,North,561,4\n1109,Thu,20,East,377,8\n1110,Mon,17,North,1122,5\n1111,Fri,21,East,121,4\n1112,Sun,20,South,281,6\n1113,Tue,19,East,133,5\n1114,Sun,13,North,226,4\n1115,Mon,20,South,65,6\n1116,Fri,20,South,206,5\n1117,Tue,12,North,67,5\n1118,Sun,20,South,264,6\n1119,Fri,14,South,622,5\n1120,Sun,20,East,245,5\n1121,Sat,14,East,229,4\n1122,Thu,13,East,180,9\n1123,Tue,21,North,71,5\n1124,Sun,13,North,117,5\n1125,Sun,13,North,145,5\n1126,Sat,14,East,91,5\n1127,Sat,14,East,457,5\n1128,Mon,20,North,48,5\n1129,Tue,20,West,88,6\n1130,Fri,13,North,99,3\n1131,Mon,13,North,156,3\n1132,Fri,13,East,83,7\n1133,Sun,21,North,67,7\n1134,Wed,18,East,75,6\n1135,Fri,12,South,115,8\n1136,Tue,21,North,66,6\n1137,Sat,13,East,442,6\n1138,Sun,21,East,193,6\n1139,Sat,20,North,501,4\n1140,Thu,13,North,125,4\n1141,Wed,13,North,307,5\n1142,Mon,20,West,186,8\n1143,Sat,22,South,227,7\n1144,Sun,22,East,650,4\n1145,Fri,13,East,341,5\n1146,Sat,21,East,239,4\n1147,Tue,13,North,176,5\n1148,Sat,15,North,51,4\n1149,Tue,14,East,166,5\n1150,Sat,15,North,120,5\n1151,Mon,10,East,777,4\n1152,Wed,20,South,132,9\n1153,Tue,9,North,221,4\n1154,Mon,13,West,179,15\n1155,Tue,11,West,122,11\n1156,Sun,20,East,427,7\n1157,Wed,22,North,86,4\n1158,Mon,18,North,306,4\n1159,Fri,11,North,47,5\n1160,Sat,15,West,127,8\n1161,Wed,19,North,706,8\n1162,Sun,13,North,170,4\n1163,Fri,21,East,236,5\n1164,Thu,22,North,246,7\n1165,Sun,13,West,205,8\n1166,Sat,21,East,27,6\n1167,Fri,21,East,61,4\n1168,Tue,14,North,387,5\n1169,Thu,12,North,218,5\n1170,Fri,13,West,67,7\n1171,Sun,12,West,70,8\n1172,Sun,12,South,495,7\n1173,Mon,19,South,133,6\n1174,Thu,20,North,162,8\n1175,Sun,15,West,137,8\n1176,Thu,16,South,104,6\n1177,Sat,13,East,241,4\n1178,Tue,12,East,281,4\n1179,Sun,19,South,159,6\n1180,Tue,14,North,182,4\n1181,Tue,12,North,103,5\n1182,Tue,14,North,517,5\n1183,Tue,18,East,63,6\n1184,Fri,12,East,237,6\n1185,Sat,20,North,323,6\n1186,Tue,21,South,452,6\n1187,Tue,21,East,198,4\n1188,Wed,21,East,281,6\n1189,Wed,14,North,165,4\n1190,Fri,13,South,103,5\n1191,Mon,21,East,210,6\n1192,Fri,12,West,417,7\n1193,Thu,11,North,324,5\n1194,Mon,16,North,77,7\n1195,Thu,20,North,201,4\n1196,Wed,13,East,510,4\n1197,Mon,14,East,257,5\n1198,Wed,18,South,585,6\n1199,Fri,12,East,207,5\n1200,Sun,21,North,174,3\n1201,Sun,22,South,16,6\n1202,Sat,12,North,523,4\n1203,Thu,21,East,56,4\n1204,Tue,22,North,138,3\n1205,Fri,12,South,94,8\n1206,Fri,19,East,111,7\n1207,Sat,19,East,362,5\n1208,Tue,20,East,58,4\n1209,Fri,14,West,247,15\n1210,Mon,19,North,76,8\n1211,Wed,13,South,190,5\n1212,Thu,20,South,266,6\n1213,Sat,10,South,166,5\n1214,Wed,22,East,154,5\n1215,Fri,18,West,173,7\n1216,Sun,15,East,169,4\n1217,Sun,11,West,307,7\n1218,Thu,17,North,261,6\n1219,Tue,9,East,142,5\n1220,Fri,14,North,1046,4\n1221,Sat,20,West,116,7\n1222,Fri,20,North,759,4\n1223,Sat,22,South,170,6\n1224,Tue,20,East,525,4\n1225,Wed,19,North,435,5\n1226,Tue,14,East,153,4\n1227,Mon,20,East,360,6\n1228,Thu,11,North,917,5\n1229,Sat,21,South,60,6\n1230,Wed,20,West,74,8\n1231,Sun,13,West,107,9\n1232,Wed,10,South,775,5\n1233,Wed,18,East,291,4\n1234,Sat,19,South,118,6\n1235,Fri,19,South,173,5\n1236,Thu,18,West,245,7\n1237,Tue,20,West,106,9\n1238,Mon,12,South,164,6\n1239,Tue,15,East,217,4\n1240,Tue,11,East,290,4\n1241,Thu,14,West,413,8\n1242,Wed,22,East,140,5\n1243,Fri,19,East,173,5\n1244,Tue,12,North,77,6\n1245,Fri,20,East,183,5\n1246,Sun,12,North,218,5\n1247,Sat,20,South,191,5\n1248,Fri,13,West,281,9\n1249,Tue,12,East,90,6\n1250,Sat,16,East,464,4\n1251,Sat,11,South,227,6\n1252,Mon,13,North,492,4\n1253,Sat,20,North,98,3\n1254,Sun,22,North,174,4\n1255,Tue,14,South,218,5\n1256,Tue,19,North,124,7\n1257,Sat,21,South,452,5\n1258,Thu,18,North,200,5\n1259,Mon,13,North,71,7\n1260,Fri,22,South,413,6\n1261,Sat,15,North,125,7\n1262,Sat,20,South,249,6\n1263,Mon,14,South,369,7\n1264,Mon,22,East,93,5\n1265,Thu,21,South,557,5\n1266,Fri,22,North,362,4\n1267,Sun,20,South,63,5\n1268,Sat,11,West,482,8\n1269,Fri,21,South,107,6\n1270,Sun,12,North,114,4\n1271,Thu,12,North,675,5\n1272,Tue,12,North,70,4\n1273,Mon,18,West,29,6\n1274,Wed,14,East,227,4\n1275,Sat,21,North,169,5\n1276,Fri,12,North,100,5\n1277,Mon,12,North,418,5\n1278,Sun,9,West,64,7\n1279,Sat,21,West,96,8\n1280,Mon,17,North,355,5\n1281,Sat,20,North,118,6\n1282,Tue,14,North,97,3\n1283,Mon,20,East,149,6\n1284,Wed,20,South,78,5\n1285,Sat,13,East,75,4\n1286,Tue,12,West,180,15\n1287,Thu,14,East,134,8\n1288,Sat,14,West,174,8\n1289,Mon,9,South,104,6\n1290,Fri,10,East,227,5\n1291,Wed,12,South,265,7\n1292,Mon,20,East,344,4\n1293,Sat,14,West,123,6\n1294,Fri,22,West,118,6\n1295,Thu,19,North,80,4\n1296,Thu,22,West,237,16\n1297,Wed,19,South,372,6\n1298,Fri,14,North,380,5\n1299,Mon,13,East,340,5\n1300,Mon,14,West,460,8\n1301,Mon,12,West,701,7\n1302,Mon,11,North,230,3\n1303,Fri,13,South,312,6\n1304,Thu,15,West,111,9\n1305,Fri,15,North,272,6\n1306,Thu,13,East,384,4\n1307,Sat,14,East,128,4\n1308,Sat,11,East,879,7\n1309,Mon,15,West,305,8\n1310,Mon,13,South,371,6\n1311,Fri,13,North,253,4\n1312,Sat,12,East,888,5\n1313,Sat,22,East,245,7\n1314,Mon,20,North,406,4\n1315,Fri,19,South,253,5\n1316,Tue,20,South,154,6\n1317,Wed,11,North,191,5\n1318,Sat,14,South,141,8\n1319,Fri,12,North,165,4\n1320,Sat,13,East,393,8\n1321,Fri,15,West,119,10\n1322,Sun,13,North,168,3\n1323,Wed,19,North,376,4\n1324,Thu,19,North,505,3\n1325,Sun,13,West,221,7\n1326,Sat,22,South,167,6\n1327,Mon,20,West,81,9\n1328,Tue,20,East,336,6\n1329,Wed,13,North,117,4\n1330,Fri,12,North,137,5\n1331,Wed,20,South,353,6\n1332,Sat,21,West,144,8\n1333,Sat,12,East,304,5\n1334,Thu,21,South,301,6\n1335,Tue,13,West,124,7\n1336,Tue,20,North,186,5\n1337,Tue,22,West,516,7\n1338,Thu,22,South,268,6\n1339,Fri,13,South,243,6\n1340,Sun,13,South,77,6\n1341,Thu,20,West,190,8\n1342,Fri,20,East,515,5\n1343,Tue,13,East,168,4\n1344,Sun,19,South,274,8\n1345,Thu,21,North,417,4\n1346,Tue,18,North,1186,5\n1347,Wed,20,North,60,4\n1348,Sat,20,North,445,4\n1349,Tue,21,East,476,4\n1350,Sun,12,North,217,3\n1351,Fri,13,East,885,5\n1352,Sat,13,North,82,4\n1353,Fri,20,South,70,7\n1354,Fri,13,East,186,6\n1355,Wed,13,West,344,9\n1356,Sat,22,North,94,5\n1357,Sat,13,West,203,8\n1358,Sat,14,West,139,9\n1359,Fri,19,North,888,4\n1360,Sat,13,West,135,8\n1361,Sat,15,South,563,7\n1362,Tue,14,South,44,6\n1363,Mon,14,North,192,4\n1364,Sun,13,East,206,4\n1365,Wed,12,North,77,3\n1366,Mon,20,East,161,4\n1367,Sat,12,North,260,5\n1368,Sat,12,North,165,6\n1369,Fri,15,West,138,7\n1370,Mon,12,North,188,5\n1371,Sat,16,East,279,5\n1372,Thu,22,North,297,5\n1373,Mon,13,East,129,5\n1374,Tue,21,East,402,5\n1375,Tue,13,East,186,5\n1376,Sat,13,North,1262,3\n1377,Sun,13,West,197,7\n1378,Sun,12,West,238,7\n1379,Wed,13,North,92,4\n1380,Fri,14,East,619,5\n1381,Fri,22,East,172,6\n1382,Wed,20,West,262,8\n1383,Mon,15,East,408,7\n1384,Mon,19,East,154,4\n1385,Mon,11,East,241,5\n1386,Thu,14,East,149,4\n1387,Thu,10,East,112,4\n1388,Mon,20,East,78,5\n1389,Mon,22,North,45,5\n1390,Wed,18,East,91,4\n1391,Fri,22,North,48,5\n1392,Thu,20,West,346,8\n1393,Sat,21,North,85,4\n1394,Fri,20,South,1470,5\n1395,Mon,15,South,169,7\n1396,Mon,12,East,116,5\n1397,Wed,13,East,592,4\n1398,Fri,20,North,235,5\n1399,Sat,14,North,169,4\n1400,Sun,19,West,166,16\n", "book.mplstyle": "# Chart style for \"Master Data Visualization\".\n# Load it with plt.style.use('book.mplstyle') so your charts match the book.\n# Chapter 7 explains every line; delete one and see what changes.\n\n# Four colors that stay different when printed in black and white:\n# dark teal, amber, light teal, sand. Lines also change style\n# (solid, dashed, dotted, dash-dot) so they can be told apart in gray.\naxes.prop_cycle: cycler('color', ['0b3a47', 'b26a00', '6fb3c2', 'f0c987']) + cycler('linestyle', ['-', '--', ':', '-.'])\n\n# Size in inches (fits a printed book page) and text sizes in points\nfigure.figsize: 5.5, 3.4\nfont.size: 9.5\naxes.titlesize: 11\naxes.titlelocation: left\naxes.labelsize: 9.5\nlegend.fontsize: 9\n\n# Thicker lines; if you turn the grid on (ax.grid()), it is light and sits behind the data\nlines.linewidth: 2\naxes.axisbelow: True\ngrid.color: d9dde1\n"};
+</script>
+<script>
+// ---------------- Quiz -----------------
+const QUIZ = [
+ {q:"<code>sns.histplot(data=orders, x='order_value', binwidth=50)</code> içinde <code>binwidth=50</code> ne yapar?",
+  o:["Her çubuğu 50 $ genişliğinde yapar","50 çubuk çizer","50 $’ın üstündeki siparişleri atar","Figürün genişliğini 50 piksele ayarlar"],a:0,
+  e:"<code>binwidth=</code> verinin biriminde genişliktir; <code>bins=</code> ise çubuk sayısıdır (14.1)."},
+ {q:"Bir sütun, bir teslimatın aldığı günleri her zaman tam sayı olarak tutuyor. Hangi ayar her değere sayının üzerinde ortalanmış kendi çubuğunu verir?",
+  o:["<code>stat='count'</code>","<code>common_norm=False</code>","<code>cut=0</code>","<code>discrete=True</code>"],a:3,
+  e:"<code>discrete=True</code>, Bölüm 6’daki <code>np.arange(0.5, 17)</code> numarasının yerini alır."},
+ {q:"<code>hue=</code> ile 130 siparişlik bir grubu 71 siparişlik bir grupla karşılaştırıyorsunuz. Hangi ayar her grubun yüzdelerinin kendi başına 100’e toplanmasını sağlar?",
+  o:["<code>multiple='fill'</code>","<code>common_norm=False</code>","<code>stat='density'</code>","<code>element='step'</code>"],a:1,
+  e:"Varsayılanda yüzde tüm satırlara göre hesaplanır; <code>common_norm=False</code> her gruba kendi %100’ünü verir (14.2)."},
+ {q:"<code>multiple='stack'</code> ne yapar?",
+  o:["Grupları her kutuda yan yana koyar","Her çubuğu %100’e ulaşacak şekilde ölçekler","Grupları üst üste yığar","Her grubu kendi panelinde çizer"],a:2,
+  e:"Toplam yükseklik kutudaki tüm siparişlerin sayısıdır; parçalar grupların katkısıdır."},
+ {q:"Dört renkli yığılmış bir histogram siyah-beyaz basılacak. En çok ne yardımcı olur?",
+  o:["Her grup için göstergeye de uygulanan bir tarama deseni","İnce bantlar daha kolay görülsün diye daha büyük bir figür","Her grubun kendi ölçeği olsun diye <code>common_norm=False</code>","Her grup parlak bir renk alsın diye gökkuşağı renk haritası"],a:0,
+  e:"<code>set_hatch()</code> ile her gruba renk ve desen birlikte verilir (14.2)."},
+ {q:"<code>sns.histplot(data=orders, x='order_value', y='delivery_days', cbar=True)</code> çağırıyorsunuz. Ne elde edersiniz?",
+  o:["Sayıma göre renklendirilmiş dikdörtgenlerden bir ızgara","Üst üste duran, her sütun için bir histogram","Noktaları renkli, renk çubuklu bir saçılım grafiği","<code>histplot()</code> yalnızca <code>x=</code> aldığı için bir hata"],a:0,
+  e:"x ve y birlikte iki boyutlu bir histogram verir (14.3)."},
+ {q:"<code>sns.kdeplot()</code>’tan gelen bir yoğunluk eğrisinin altındaki alan nedir?",
+  o:["Tablodaki satır sayısı","100","Bant genişliğine bağlıdır","1"],a:3,
+  e:"Y ekseni yoğunluktur; alanın tamamı her zaman 1’dir (14.4)."},
+ {q:"Çubuk yüksekliklerinin tüm siparişlerin payı olarak okunmasını ve 100’e toplanmasını istiyorsunuz. Hangi ayar bunu yapar?",
+  o:["<code>stat='density'</code>","<code>common_norm=False</code>","<code>stat='percent'</code>","<code>multiple='fill'</code>"],a:2,
+  e:"<code>'percent'</code> tüm değerler içindeki payı gösterir; çoğu okuyucu için en kolayıdır."},
+ {q:"<code>sns.kdeplot()</code>’ta <code>bw_adjust=0.3</code> ayarlıyorsunuz. Eğriye ne olur?",
+  o:["Daha düzgün, daha az tümsekli olur","Sola, daha küçük değerlere doğru kayar","Veriyi yakından izleyerek daha tümsekli olur","Dar çubuklu bir histograma dönüşür"],a:2,
+  e:"1’in altı daha dar tepeler demektir; gürültü bir desen gibi görünebilir."},
+ {q:"<code>plt.subplots(1, 2)</code> figürünün sağ yarısında bir teslimat günü histogramı istiyorsunuz. Ne kullanmalısınız?",
+  o:["<code>sns.displot(..., ax=axes[1])</code>","<code>sns.jointplot(..., ax=axes[1])</code>","<code>sns.displot(..., height=axes[1])</code>","<code>sns.histplot(..., ax=axes[1])</code>"],a:3,
+  e:"Figür düzeyi <code>displot()</code> <code>ax=</code>’i yok sayar; eksen düzeyi <code>histplot()</code> kullanın (14.5)."}
+];
+
+function buildQuiz(){
+  const box=document.getElementById('quizBox'); box.innerHTML='';
+  const L='ABCD';
+  QUIZ.forEach((it,i)=>{
+    const d=document.createElement('div'); d.className='q'; d.id='q'+(i+1);
+    d.innerHTML=`<div class="qt">${i+1}. ${it.q}</div>`+
+      it.o.map((o,j)=>`<label><input type="radio" name="q${i}" value="${j}"><strong>${L[j]}.</strong> ${o}</label>`).join('')+
+      `<div class="fb"></div>`;
+    d.querySelectorAll('input').forEach(inp=>inp.addEventListener('change',()=>{
+      if(d.dataset.done) return; d.dataset.done=1;
+      const j=+inp.value, labs=d.querySelectorAll('label');
+      labs[it.a].classList.add('ok'); if(j!==it.a) labs[j].classList.add('no');
+      d.querySelectorAll('input').forEach(x=>x.disabled=true);
+      const fb=d.querySelector('.fb'); fb.classList.add('show');
+      fb.innerHTML=(j===it.a?'✅ <strong>Doğru.</strong> ':'❌ <strong>Doğru cevap '+L[it.a]+'.</strong> ')+it.e;
+      if(j===it.a) d.dataset.ok=1; updateScore();
+    }));
+    box.appendChild(d);
+  });
+  updateScore();
+}
+function updateScore(){
+  const ok=document.querySelectorAll('.q[data-ok]').length, done=document.querySelectorAll('.q[data-done]').length;
+  document.getElementById('score').textContent=`${ok} / ${QUIZ.length}`+(done?` (cevaplanan: ${done})`:'');
+}
+document.getElementById('quizReset').onclick=buildQuiz;
+buildQuiz();
+
+// ---------------- Data list -----------------
+function csvToTable(txt,max=200){
+  const rows=txt.trim().split(/\r?\n/).map(r=>r.split(','));
+  const h=rows.shift();
+  return '<table><thead><tr>'+h.map(x=>`<th>${x}</th>`).join('')+'</tr></thead><tbody>'+
+    rows.slice(0,max).map(r=>'<tr>'+r.map(x=>`<td>${x}</td>`).join('')+'</tr>').join('')+'</tbody></table>';
+}
+(function(){
+  const host=document.getElementById('dataList');
+  Object.entries(DATA).forEach(([name,txt])=>{
+    const n=txt.trim().split(/\r?\n/).length-1;
+    const url=URL.createObjectURL(new Blob([txt],{type:'text/csv'}));
+    const d=document.createElement('details'); d.className='data';
+    const isCsv=name.endsWith('.csv');
+    d.innerHTML=`<summary>${name} <span style="font-weight:400;color:#5f6b72">— ${isCsv?n+' satır':'stil dosyası'}</span> · <a href="${url}" download="${name}">indir</a></summary><div class="tbl">${isCsv?csvToTable(txt):'<pre style="font-size:12px;white-space:pre-wrap">'+txt.replace(/</g,'&lt;')+'</pre>'}</div>`;
+    host.appendChild(d);
+  });
+})();
+
+// ---------------- Code cells -----------------
+const cells=[];
+document.querySelectorAll('.cell').forEach((el,i)=>{
+  const ta=el.querySelector('textarea'); const src=ta.value;
+  const bar=document.createElement('div'); bar.className='bar';
+  bar.innerHTML=`<span class="lbl">In [<span class="cnt"> </span>]:</span><span class="sp"></span>
+    <button class="btn ghost reset" title="Orijinal koda dön">↺ Orijinal</button>
+    <button class="btn run" disabled>▶ Çalıştır</button>`;
+  el.insertBefore(bar,ta);
+  const cm=CodeMirror.fromTextArea(ta,{mode:'python',lineNumbers:false,indentUnit:4,viewportMargin:Infinity,
+     extraKeys:{'Shift-Enter':()=>runCell(i),'Ctrl-Enter':()=>runCell(i),Tab:c=>c.replaceSelection('    ')}});
+  const out=document.createElement('div'); out.className='out'; el.appendChild(out);
+  const c={el,cm,out,src,ran:false,idx:i,btn:bar.querySelector('.run'),cnt:bar.querySelector('.cnt')};
+  bar.querySelector('.run').onclick=()=>runCell(i);
+  bar.querySelector('.reset').onclick=()=>cm.setValue(src);
+  el.id='hucre-'+(i+1);
+  cells.push(c);
+});
+
+// ---------------- Pyodide -----------------
+let py=null, execCount=0, busy=false;
+const st=document.getElementById('status'), stT=document.getElementById('statusText');
+window.__currentOut=null;
+window.renderPlot=function(json){
+  const spec=JSON.parse(json); const div=document.createElement('div'); div.className='plot';
+  const inner=document.createElement('div'); div.appendChild(inner);
+  window.__currentOut.appendChild(div);
+  Plotly.newPlot(inner,spec.data,spec.layout||{},{responsive:true,displaylogo:false,locale:'tr'});
+};
+const PY_SETUP=`
+import os
+os.environ['MPLBACKEND'] = 'Agg'
+import matplotlib
+matplotlib.use('Agg')
+import sys, io, ast, contextlib, base64
+import pandas as pd
+import matplotlib.pyplot as plt
+_CAPTURED = []
+def _grab_figs():
+    for n in plt.get_fignums():
+        f = plt.figure(n); b = io.BytesIO()
+        f.savefig(b, format='png', dpi=120, bbox_inches='tight')
+        _CAPTURED.append(base64.b64encode(b.getvalue()).decode())
+    plt.close('all')
+plt.show = lambda *a, **k: _grab_figs()
+# matplotlib 3.8 (Pyodide) için kitap kodunun 3.10+ parametrelerine uyum katmanı
+from matplotlib.axes import Axes as _Axes
+_orig_boxplot = _Axes.boxplot
+def _boxplot(self, *a, tick_labels=None, orientation=None, **k):
+    if tick_labels is not None: k['labels'] = tick_labels
+    if orientation is not None: k['vert'] = (orientation == 'vertical')
+    return _orig_boxplot(self, *a, **k)
+_Axes.boxplot = _boxplot
+import warnings
+warnings.simplefilter('ignore', FutureWarning)
+pd.set_option('display.width', 120)
+SKIP = ('.csv', '.mplstyle')
+def _written(src):
+    import re
+    return re.findall(r"savefig\\(\\s*['\\"]([^'\\"]+)['\\"]", src)
+def __run_cell(src, ns):
+    buf = io.StringIO()
+    before = set(f for f in os.listdir('.') if not f.endswith(SKIP))
+    _CAPTURED.clear()
+    res = {'stdout':'', 'html':None, 'text':None, 'files':[], 'imgs':[]}
+    val = None
+    try:
+        with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(buf):
+            tree = ast.parse(src)
+            last = None
+            if tree.body and isinstance(tree.body[-1], ast.Expr):
+                last = ast.Expression(tree.body.pop().value)
+            exec(compile(tree, '<hücre>', 'exec'), ns)
+            val = eval(compile(last, '<hücre>', 'eval'), ns) if last is not None else None
+    finally:
+        _grab_figs()
+        res['imgs'] = list(_CAPTURED)
+        _CAPTURED.clear()
+    res['stdout'] = buf.getvalue()
+    if val is not None:
+        if isinstance(val, (pd.DataFrame, pd.Series)):
+            df = val.to_frame() if isinstance(val, pd.Series) else val
+            res['html'] = df.to_html(max_rows=30, border=0)
+        elif hasattr(val, '_repr_html_') and type(val).__name__ == 'Styler':
+            res['html'] = val._repr_html_()
+        else:
+            res['text'] = repr(val)
+    after = set(f for f in os.listdir('.') if not f.endswith(SKIP))
+    res['files'] = sorted((after - before) | (set(_written(src)) & after))
+    return res
+def __new_ns():
+    plt.close('all'); matplotlib.rcdefaults()
+    return {'__name__':'__main__'}
+`;
+async function initPy(){
+  try{
+    stT.textContent='Pyodide yükleniyor…';
+    py=await loadPyodide();
+    stT.textContent='pandas, matplotlib yükleniyor…';
+    await py.loadPackage(['pandas','matplotlib','scipy','jinja2','micropip']);
+    stT.textContent='seaborn yükleniyor…';
+    const mp=py.pyimport('micropip');
+    await mp.install(['seaborn'].concat(window.EXTRA_PKGS||[]));
+    for(const [n,t] of Object.entries(DATA)) py.FS.writeFile(n,t);
+    await py.runPythonAsync(PY_SETUP);
+    window.__ns=py.runPython('__new_ns()');
+    st.className='ready'; stT.textContent='Python hazır';
+    cells.forEach(c=>c.btn.disabled=false);
+  }catch(e){ st.className='err'; stT.textContent='Yükleme hatası'; console.error(e);
+    alert('Pyodide yüklenemedi. İnternet bağlantınızı kontrol edin.\n'+e); }
+}
+async function execOne(c){
+  c.out.innerHTML=''; c.out.classList.add('show'); window.__currentOut=c.out;
+  c.el.style.opacity=1;
+  try{
+    const fn=py.globals.get('__run_cell');
+    const r=fn(c.cm.getValue(), window.__ns).toJs({dict_converter:Object.fromEntries});
+    fn.destroy();
+    if(r.stdout){const p=document.createElement('pre');p.className='txt';p.textContent=r.stdout;c.out.prepend(p);}
+    if(r.html){const d=document.createElement('div');d.style.overflowX='auto';d.innerHTML=r.html;c.out.appendChild(d);}
+    if(r.text){const p=document.createElement('pre');p.className='txt';p.textContent=r.text;c.out.appendChild(p);}
+    for(const im of (r.imgs||[])){const d=document.createElement('div');d.className='plot';const g=document.createElement('img');g.src='data:image/png;base64,'+im;g.alt='Grafik';d.appendChild(g);c.out.appendChild(d);}
+    for(const f of (r.files||[])){
+      const bytes=py.FS.readFile(f); const url=URL.createObjectURL(new Blob([bytes],{type:f.endsWith('.html')?'text/html':'application/octet-stream'}));
+      const d=document.createElement('div');d.className='dl';
+      d.innerHTML=`<a href="${url}" download="${f}">⬇ ${f} dosyasını indir (${(bytes.length/1048576).toFixed(1)} MB)</a> &nbsp;<a href="${url}" target="_blank" style="background:#0b3a47">Yeni sekmede aç</a>`;
+      c.out.appendChild(d);
+    }
+    if(!c.out.children.length){const p=document.createElement('pre');p.className='txt';p.style.color='#8a9296';p.textContent='✓ Çalıştı (çıktı yok)';c.out.appendChild(p);}
+    c.ran=true; c.cnt.textContent=++execCount; return true;
+  }catch(e){
+    let msg=String(e.message||e); const k=msg.lastIndexOf('File "<hücre>"');
+    if(k>0) msg=msg.slice(k);
+    const p=document.createElement('pre');p.className='txt err';p.textContent=msg;c.out.appendChild(p);
+    c.cnt.textContent='!'; return false;
+  }
+}
+async function runCell(i){
+  if(!py||busy) return; busy=true;
+  const target=cells[i];
+  target.btn.disabled=true; target.btn.textContent='⏳';
+  await new Promise(r=>setTimeout(r,20));
+  for(let k=0;k<i;k++){ if(!cells[k].ran){ cells[k].btn.textContent='⏳'; await new Promise(r=>setTimeout(r,10)); await execOne(cells[k]); cells[k].btn.textContent='▶ Çalıştır'; } }
+  await execOne(target);
+  target.btn.disabled=false; target.btn.textContent='▶ Çalıştır'; busy=false;
+}
+document.getElementById('runAll').onclick=async()=>{ if(!py)return; for(let i=0;i<cells.length;i++){ cells[i].ran=false; } await runCell(cells.length-1); };
+document.getElementById('resetNs').onclick=()=>{ if(!py)return; window.__ns=py.runPython('__new_ns()'); execCount=0;
+  cells.forEach(c=>{c.ran=false;c.cnt.textContent=' ';c.out.innerHTML='';c.out.classList.remove('show');}); };
+initPy();
+
+// ---------------- TOC -----------------
+const toc=document.getElementById('tocLinks');
+const heads=[...document.querySelectorAll('main h2[id], main h3[id]')];
+heads.forEach(h=>{const a=document.createElement('a');a.href='#'+h.id;a.innerHTML=h.innerHTML.replace(/<span class="num">(.*?)<\/span>/,'$1 ');if(h.tagName==='H3')a.className='sub';toc.appendChild(a);});
+const tocLinks=[...toc.querySelectorAll('a')];
+const io2=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){tocLinks.forEach(a=>a.classList.toggle('active',a.getAttribute('href')==='#'+e.target.id));}})},{rootMargin:'-80px 0px -70% 0px'});
+heads.forEach(h=>io2.observe(h));
+
+// ---------------- Search -----------------
+const norm=s=>s.toLocaleLowerCase('tr').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/ı/g,'i');
+const index=[];
+(function buildIndex(){
+  let sec='Giriş';
+  document.querySelectorAll('main h1, main h2, main h3, main p, main li, main .callout, main .cell, main .q, main pre.data').forEach(el=>{
+    if(el.closest('.callout')&&el.tagName!=='DIV') return;
+    if(el.closest('#datasets')) return;
+    if(el.matches('.q')){ index.push({el,sec:'Sınav',kind:'soru',text:el.querySelector('.qt').textContent+' '+[...el.querySelectorAll('label')].map(l=>l.textContent).join(' ')}); return; }
+    if(el.closest('.q')) return;
+    if(el.matches('h2,h3')){ sec=el.textContent; }
+    let kind='metin', text=el.textContent;
+    if(el.matches('.cell')){ kind='kod'; const c=cells.find(c=>c.el===el); text=c?c.cm.getValue():text; }
+    else if(el.matches('h1,h2,h3')) kind='başlık';
+    else if(el.matches('.callout')) kind='kutu';
+    else if(el.matches('.figdesc')) kind='grafik';
+    else if(el.matches('pre.data')) kind='veri';
+    index.push({el,sec,kind,text:text.replace(/\s+/g,' ').trim()});
+  });
+  index.forEach(x=>x.n=norm(x.text));
+})();
+const si=document.getElementById('search'), res=document.getElementById('results');
+let hits=[], act=-1;
+function esc(s){return s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+function snippet(text,terms){
+  const n=norm(text); let pos=-1;
+  for(const t of terms){const p=n.indexOf(t);if(p>=0){pos=p;break;}}
+  let s=Math.max(0,pos-60), e=Math.min(text.length,(pos<0?0:pos)+140);
+  let out=(s>0?'…':'')+text.slice(s,e)+(e<text.length?'…':'');
+  // highlight (norm keeps length for Turkish chars after NFD strip mostly; do case-insensitive regex)
+  let h=esc(out);
+  terms.forEach(t=>{ if(!t) return;
+    const re=new RegExp(t.split('').map(ch=>{const m={'i':'[iıİI]','s':'[sşŞS]','c':'[cçÇC]','g':'[gğĞG]','o':'[oöÖO]','u':'[uüÜU]'}; return m[ch]||ch.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}).join(''),'gi');
+    h=h.replace(re,m=>`<mark>${m}</mark>`); });
+  return h;
+}
+function doSearch(){
+  const q=si.value.trim();
+  if(q.length<2){res.classList.remove('open');res.innerHTML='';return;}
+  const terms=norm(q).split(/\s+/).filter(Boolean);
+  hits=index.map(x=>{let sc=0;for(const t of terms){const c=x.n.split(t).length-1;if(!c)return null;sc+=c;} if(x.kind==='başlık')sc+=5; if(x.kind==='kod')sc+=1; return {x,sc};}).filter(Boolean).sort((a,b)=>b.sc-a.sc).slice(0,40);
+  act=-1;
+  res.innerHTML=hits.length?`<div class="count">${hits.length} sonuç · <kbd>↑</kbd><kbd>↓</kbd> ile gez, <kbd>Enter</kbd> ile git</div>`+hits.map((h,i)=>`<div class="r" data-i="${i}"><div class="sec">${esc(h.x.sec)}<span class="kind">${h.x.kind}</span></div><div class="snip">${snippet(h.x.text,terms)}</div></div>`).join('')
+    :'<div class="empty">Sonuç bulunamadı.</div>';
+  res.classList.add('open');
+  res.querySelectorAll('.r').forEach(r=>r.onclick=()=>go(+r.dataset.i));
+}
+function go(i){
+  const el=hits[i].x.el; res.classList.remove('open');
+  const det=el.closest('details'); if(det) det.open=true;
+  el.scrollIntoView({behavior:'smooth',block:'center'});
+  el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
+}
+si.addEventListener('input',doSearch);
+si.addEventListener('focus',()=>{if(si.value.trim().length>=2)doSearch();});
+si.addEventListener('keydown',e=>{
+  const rs=[...res.querySelectorAll('.r')];
+  if(e.key==='ArrowDown'){act=Math.min(rs.length-1,act+1);}
+  else if(e.key==='ArrowUp'){act=Math.max(0,act-1);}
+  else if(e.key==='Enter'){ if(hits.length) go(act<0?0:act); return; }
+  else if(e.key==='Escape'){res.classList.remove('open');si.blur();return;}
+  else return;
+  e.preventDefault(); rs.forEach((r,k)=>r.classList.toggle('act',k===act)); if(rs[act]) rs[act].scrollIntoView({block:'nearest'});
+});
+document.addEventListener('keydown',e=>{ if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();si.focus();si.select();}
+  else if(e.key==='/'&&document.activeElement.tagName!=='INPUT'&&!document.activeElement.closest('.CodeMirror')){e.preventDefault();si.focus();}});
+document.addEventListener('click',e=>{if(!e.target.closest('.search-wrap'))res.classList.remove('open');});
+</script>
+</body>
+</html>

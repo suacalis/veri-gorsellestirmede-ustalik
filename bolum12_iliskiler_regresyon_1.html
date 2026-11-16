@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bölüm 12: İlişkiler ve Regresyon</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+<script src="https://cdn.jsdelivr.net/pyodide/v0.27.7/full/pyodide.js"></script>
+<style>
+:root{
+  --teal:#0b3a47; --amber:#b26a00; --lteal:#6fb3c2; --sand:#f0c987;
+  --bg:#f7f6f2; --paper:#ffffff; --ink:#1f2a30; --muted:#5f6b72; --line:#e2e0d8;
+  --code-bg:#fbfaf6;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:80px}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.65 "Segoe UI",system-ui,-apple-system,Roboto,sans-serif}
+header.top{position:sticky;top:0;z-index:50;background:var(--teal);color:#fff;display:flex;align-items:center;gap:16px;padding:10px 20px;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+header.top .brand{font-weight:600;white-space:nowrap}
+header.top .brand small{opacity:.7;font-weight:400;margin-left:6px}
+.search-wrap{position:relative;flex:1;max-width:560px;margin-left:auto}
+#search{width:100%;padding:9px 14px 9px 36px;border-radius:8px;border:none;font-size:15px;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235f6b72' stroke-width='2.5'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E") no-repeat 11px center}
+#search:focus{outline:3px solid var(--sand)}
+#results{position:absolute;top:44px;left:0;right:0;background:#fff;color:var(--ink);border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,.2);max-height:70vh;overflow:auto;display:none}
+#results.open{display:block}
+#results .r{padding:10px 14px;border-bottom:1px solid var(--line);cursor:pointer}
+#results .r:hover,#results .r.act{background:#eef5f6}
+#results .r .sec{font-size:12px;color:var(--amber);font-weight:600;text-transform:uppercase;letter-spacing:.03em}
+#results .r .kind{font-size:11px;background:var(--line);border-radius:4px;padding:0 5px;margin-left:6px;color:var(--muted);text-transform:none;letter-spacing:0}
+#results .r .snip{font-size:14px}
+#results .empty,#results .count{padding:10px 14px;color:var(--muted);font-size:13px}
+mark{background:#ffe08a;color:inherit;border-radius:2px;padding:0 1px}
+#status{font-size:13px;white-space:nowrap;display:flex;align-items:center;gap:8px}
+#status .dot{width:10px;height:10px;border-radius:50%;background:#f0c987;box-shadow:0 0 0 0 rgba(240,201,135,.7);animation:pulse 1.4s infinite}
+#status.ready .dot{background:#7bd88f;animation:none}
+#status.err .dot{background:#ff6b6b;animation:none}
+@keyframes pulse{70%{box-shadow:0 0 0 8px rgba(240,201,135,0)}100%{box-shadow:0 0 0 0 rgba(240,201,135,0)}}
+.layout{display:grid;grid-template-columns:260px minmax(0,1fr);gap:28px;max-width:1240px;margin:0 auto;padding:24px 20px 80px}
+nav.toc{position:sticky;top:76px;align-self:start;max-height:calc(100vh - 96px);overflow:auto;font-size:14px}
+nav.toc h4{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+nav.toc a{display:block;color:var(--ink);text-decoration:none;padding:4px 10px;border-left:3px solid transparent;border-radius:0 4px 4px 0}
+nav.toc a.sub{padding-left:24px;font-size:13px;color:var(--muted)}
+nav.toc a:hover{background:#ece9df}
+nav.toc a.active{border-left-color:var(--amber);background:#fff;font-weight:600;color:var(--teal)}
+nav.toc .tools{margin-top:16px;display:flex;flex-direction:column;gap:6px}
+main{background:var(--paper);border-radius:12px;padding:36px 48px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+h1{font-size:2rem;color:var(--teal);margin:0 0 4px;line-height:1.25}
+.subtitle{color:var(--muted);margin:0 0 24px}
+h2{font-size:1.45rem;color:var(--teal);border-bottom:2px solid var(--sand);padding-bottom:6px;margin:48px 0 16px}
+h2 .num{color:var(--amber);margin-right:8px}
+h3{font-size:1.12rem;margin:30px 0 10px;color:var(--ink)}
+code{font-family:"JetBrains Mono",Consolas,Menlo,monospace;font-size:.88em;background:#f1efe8;padding:1px 5px;border-radius:4px;color:#7a3e00}
+.lead{font-size:1.08rem;border-left:4px solid var(--amber);padding:4px 0 4px 16px;color:#33424a}
+.goals{background:#eef5f6;border-radius:10px;padding:16px 22px}
+.goals ul{margin:6px 0 0;padding-left:20px}
+.callout{border-radius:10px;padding:12px 18px;margin:18px 0;border-left:5px solid}
+.callout .t{font-weight:700;display:block;margin-bottom:2px}
+.callout.warn{background:#fff4e5;border-color:var(--amber)}
+.callout.warn .t{color:var(--amber)}
+.callout.tip{background:#eaf6f1;border-color:#2f8f6b}
+.callout.tip .t{color:#2f8f6b}
+.callout.note{background:#eef2f7;border-color:#4b6a8a}
+.callout.note .t{color:#4b6a8a}
+pre.data{background:var(--code-bg);border:1px dashed var(--line);border-radius:8px;padding:10px 14px;font-size:13px;overflow:auto}
+/* code cells */
+.cell{border:1px solid var(--line);border-radius:10px;margin:18px 0;overflow:hidden;background:var(--code-bg)}
+.cell .bar{display:flex;align-items:center;gap:8px;padding:6px 10px;background:#f1efe8;border-bottom:1px solid var(--line);font-size:12px;color:var(--muted)}
+.cell .bar .lbl{font-family:Consolas,monospace}
+.cell .bar .sp{flex:1}
+button{font:inherit;cursor:pointer;border-radius:6px;border:1px solid transparent}
+.btn{background:var(--teal);color:#fff;padding:4px 12px;font-size:13px}
+.btn:hover{filter:brightness(1.2)}
+.btn:disabled{opacity:.5;cursor:wait}
+.btn.ghost{background:transparent;color:var(--teal);border-color:#c9d3d6}
+.btn.ghost:hover{background:#fff}
+.btn.amber{background:var(--amber)}
+.CodeMirror{height:auto;font-size:14px;background:var(--code-bg);font-family:"JetBrains Mono",Consolas,Menlo,monospace}
+.CodeMirror-scroll{min-height:30px}
+.cm-s-default .cm-keyword{color:#8a3ffc}.cm-s-default .cm-string{color:#0b7a4b}.cm-s-default .cm-number{color:#b26a00}.cm-s-default .cm-comment{color:#8a9296;font-style:italic}.cm-s-default .cm-builtin{color:#0b5f7a}
+.out{border-top:1px solid var(--line);background:#fff;padding:0;display:none}
+.out.show{display:block}
+.out .txt{margin:0;padding:10px 14px;font:13px/1.5 Consolas,Menlo,monospace;white-space:pre-wrap;color:#333}
+.out .txt.err{color:#b00020;background:#fff5f5}
+.out .plot{padding:6px;overflow-x:auto}
+.out table{border-collapse:collapse;margin:10px 14px;font-size:13px}
+.out th,.out td{border:1px solid var(--line);padding:4px 10px;text-align:right}
+.out th{background:#f1efe8}
+.out .dl{margin:10px 14px}
+.out .dl a{display:inline-block;background:var(--amber);color:#fff;text-decoration:none;padding:5px 12px;border-radius:6px;font-size:13px}
+.figdesc{font-size:14px;color:var(--muted);background:#f6f5f0;border-radius:8px;padding:8px 14px;margin:-8px 0 14px;border:1px solid var(--line)}
+.figdesc::before{content:"🖼 Beklenen grafik: ";font-weight:600;color:var(--teal)}
+.flash{animation:flash 2.2s ease}
+@keyframes flash{0%,40%{background:#fff1bf;box-shadow:0 0 0 6px #fff1bf}100%{background:transparent;box-shadow:none}}
+details.data{border:1px solid var(--line);border-radius:8px;margin:8px 0;background:#fff}
+details.data summary{cursor:pointer;padding:8px 14px;font-weight:600;color:var(--teal)}
+details.data .tbl{max-height:260px;overflow:auto;padding:0 14px 10px}
+details.data table{border-collapse:collapse;font-size:13px}
+details.data td,details.data th{border:1px solid var(--line);padding:3px 8px}
+details.data th{background:#f1efe8;position:sticky;top:0}
+/* quiz */
+.q{border:1px solid var(--line);border-radius:10px;padding:14px 18px;margin:14px 0}
+.q .qt{font-weight:600;margin-bottom:8px}
+.q label{display:block;padding:6px 10px;border-radius:6px;cursor:pointer;border:1px solid transparent}
+.q label:hover{background:#f4f2ea}
+.q label.ok{background:#e3f4ea;border-color:#2f8f6b}
+.q label.no{background:#fde8e8;border-color:#d05353}
+.q input{margin-right:8px}
+.q .fb{font-size:14px;margin-top:6px;display:none}
+.q .fb.show{display:block}
+#score{font-weight:700;color:var(--teal)}
+.out img{max-width:100%;height:auto;display:block;margin:6px auto}
+table.choose{border-collapse:collapse;width:100%;font-size:14px;margin:10px 0}table.choose th,table.choose td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}table.choose th{background:#eef5f6;color:var(--teal)}
+.chnav{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:14px;margin:0 0 18px}.chnav a{color:var(--teal);text-decoration:none;border:1px solid var(--line);border-radius:6px;padding:4px 10px}.chnav a:hover{background:#eef5f6}.chnav .all{display:flex;gap:4px;flex-wrap:wrap}.chnav .all a.cur{background:var(--teal);color:#fff}
+.summary li{margin-bottom:6px}
+footer{text-align:center;color:var(--muted);font-size:13px;padding:30px}
+kbd{border:1px solid #bbb;border-bottom-width:2px;border-radius:4px;padding:0 5px;font-size:12px;background:#fff;color:#333}
+@media (max-width:900px){.layout{grid-template-columns:1fr}nav.toc{display:none}main{padding:22px 18px}header.top .brand small{display:none}#status span{display:none}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">Bölüm 12 <small>İlişkiler ve Regresyon</small></div>
+  <div class="search-wrap">
+    <input id="search" type="search" placeholder="Bölümde ara… (ör. regplot, korelasyon, lineplot)   Ctrl+K" autocomplete="off">
+    <div id="results"></div>
+  </div>
+  <div id="status"><div class="dot"></div><span id="statusText">Python yükleniyor…</span></div>
+</header>
+
+<div class="layout">
+<nav class="toc" id="toc">
+  <h4>İçindekiler</h4>
+  <div id="tocLinks"></div>
+  <div class="tools">
+    <button class="btn" id="runAll">▶ Tüm hücreleri çalıştır</button>
+    <button class="btn ghost" id="resetNs">↺ Python ortamını sıfırla</button>
+  </div>
+</nav>
+
+<main id="content">
+<div class="chnav"><a href="bolum11_seaborn_temelleri.html">← Bölüm 11</a><div class="all">Bölümler: <a href="bolum01_ortami_kurmak.html" class="" title="Görselleştirme Ortamını Kurmak">1</a><a href="bolum02_cizmeden_once_dusunmek.html" class="" title="Çizmeden Önce Düşünmek">2</a><a href="bolum03_matplotlib_temelleri.html" class="" title="matplotlib Temelleri">3</a><a href="bolum04_cizgiler_noktalar.html" class="" title="Çizgiler ve Noktalar">4</a><a href="bolum05_cubuklar_pastalar_tablolar.html" class="" title="Çubuklar, Pastalar ve Tablolar">5</a><a href="bolum06_dagilimlar_izgaralar.html" class="" title="Dağılımlar ve Değer Izgaraları">6</a><a href="bolum07_ozellestirme.html" class="" title="Bir Grafiğin Her Parçasını Özelleştirmek">7</a><a href="bolum08_yerlesimler.html" class="" title="Yerleşimler: Bir Figürde Birçok Grafik">8</a><a href="bolum09_iletisim_kuran_tasarim.html" class="" title="İletişim Kuran Tasarım">9</a><a href="bolum10_yalan_soyleyen_grafikler.html" class="" title="Yalan Söyleyen Grafikler">10</a><a href="bolum11_seaborn_temelleri.html" class="" title="seaborn Temelleri">11</a><a href="bolum12_iliskiler_regresyon.html" class="cur" title="İlişkiler ve Regresyon">12</a><a href="bolum13_kategoriler.html" class="" title="Kategoriler">13</a><a href="bolum14_dagilimlar.html" class="" title="Dağılımlar">14</a><a href="bolum15_izgaralar_matrisler.html" class="" title="Izgaralar ve Matrisler">15</a><a href="bolum16_plotly_express.html" class="" title="plotly express ile Etkileşimli Grafikler">16</a><a href="bolum17_haritalar_is_grafikleri.html" class="" title="Haritalar ve İş Grafikleri">17</a></div><a href="bolum13_kategoriler.html">Bölüm 13 →</a></div>
+<h1>Bölüm 12: İlişkiler ve Regresyon</h1>
+<p class="subtitle">Kod hücreleri tarayıcınızda <strong>Pyodide</strong> ile çalışır; Python kurmanıza gerek yok. Kodu değiştirip yeniden çalıştırabilirsiniz (<kbd>Shift</kbd>+<kbd>Enter</kbd>). Grafikler matplotlib ile resim olarak çizilir.</p>
+
+<p class="lead">Yöneticiniz basit bir soru soruyor: “Daha çok ziyaretçisi olan mağazalar daha çok mu kazanıyor, yoksa yalnızca daha kalabalık mı görünüyorlar?” On iki mağazalık bir tablo bunu bir bakışta yanıtlayamaz. Bir saçılım grafiği yanıtlayabilir ve korelasyon denen tek bir sayı bağın ne kadar güçlü olduğunu söyleyebilir. Bu sayının neyi <em>kanıtlamadığını</em> da bilmeniz gerekir.</p>
+
+<p>Bu bölüm, sayılar arasındaki ilişkiler için iki seaborn grafiğini, <code>scatterplot()</code> ve <code>lineplot()</code>’u, Bölüm 11’in atladığı seçenekleriyle ele alıyor. Bir seaborn çizgisinin etrafındaki gölgeli bandın ne anlama geldiğini, onu nasıl kapatacağınızı ya da değiştireceğinizi ve <code>df.corr()</code>’u nasıl okuyacağınızı öğreneceksiniz. Son kısım <code>regplot()</code> ve <code>lmplot()</code> ile bir saçılım grafiğine eğilim çizgisi ekliyor.</p>
+
+<div class="goals">
+<strong>Bu bölümün sonunda şunları yapabileceksiniz:</strong>
+<ul>
+<li>Bir <code>scatterplot()</code>’ı <code>alpha=</code>, <code>s=</code>, <code>sizes=</code> ve tek noktalara etiketlerle ayarlamak</li>
+<li>Bir <code>lineplot()</code>’un gölgeli bandını açıklamak ve <code>errorbar=</code> ile değiştirmek</li>
+<li><code>relplot()</code> ile bir grafiği ya da onun figür düzeyi sürümünü çizmek</li>
+<li>Bir ilişkiyi <code>df.corr()</code> ile ölçmek ve -1, 0 ve 1’in ne anlama geldiğini söylemek</li>
+<li>Bir korelasyonu gizleyen ya da sahte bir korelasyon üreten aykırı değeri fark etmek</li>
+<li>Korelasyonun neden nedensellik kanıtlamadığını açıklamak</li>
+<li><code>regplot()</code> ve <code>lmplot()</code> ile eğilim çizgisi eklemek</li>
+</ul>
+</div>
+
+<details class="data" id="datasets">
+<summary>📁 Bu bölümün veri dosyaları (sayfaya gömülü — Python’da doğrudan <code>pd.read_csv()</code> ile okunur)</summary>
+<div id="dataList" style="padding:0 14px 10px"></div>
+</details>
+
+<section>
+<h2 id="s12-1"><span class="num">12.1</span><code>scatterplot()</code> ile Saçılım Grafikleri</h2>
+<p>Bir saçılım grafiği tablonuzun her satırı için grafiğe bir nokta koyar. Konumu iki sayısal sütundan gelir; noktaların deseni sütunların birlikte hareket edip etmediğini gösterir. Bölüm 4.5 nasıl okunacağını açıkladı, Bölüm 11 ilk seaborn örneklerini çizdi.</p>
+<p>Bölüm 11.2’deki kurulum bloğuyla başlayın. Bu bölüm üç tablo kullanıyor: Bölüm 11’deki on iki mağaza, Bölüm 4’teki günlük satışlar ve yeni bir haftalık mağaza rakamları tablosu.</p>
+<div class="cell"><textarea>import matplotlib.dates as mdates
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import seaborn as sns
+
+sns.set_theme(style='ticks')
+plt.style.use('book.mplstyle')</textarea></div>
+<div class="cell"><textarea>stores = pd.read_csv('stores.csv')
+daily = pd.read_csv('daily_sales.csv', parse_dates=['date'])
+weekly = pd.read_csv('weekly_shop.csv')
+daily.head(3)</textarea></div>
+<p>Günlük tabloda 112 gün var; bu bol miktarda nokta demek. Soru, daha çok siparişli günlerin daha çok gelir de getirip getirmediği. İkinci bir sütun hafta sonlarını hafta içinden ayıracak. Bu, Pazartesi’nin 0, Cumartesi ve Pazar’ın 5 ve 6 olduğu <code>dt.dayofweek</code>’i kullanıyor. Üçüncü sütun <code>period</code>, 16 haftayı iki yarıya böler; bunu Bölüm 12.3 kullanıyor:</p>
+<div class="cell"><textarea>daily['day_type'] = np.where(daily['date'].dt.dayofweek &gt;= 5,
+                             'Weekend', 'Weekday')
+daily['period'] = np.where(daily['date'] &lt; '2025-03-03',
+                          'First 8 weeks', 'Last 8 weeks')
+daily['day_type'].value_counts()</textarea></div>
+
+<h3 id="s12-1-overlap">Üst üste binen noktalar</h3>
+<p>Çok sayıda noktada bazıları diğerlerinin üstüne düşer ve grafik kaç tane olduğunu gizler. Buna <em>aşırı çizim</em> (overplotting) denir. Çözüm, <code>alpha=</code> ile her noktayı biraz saydam yapmaktır; 1 opak, 0 görünmezdir. Noktaların üst üste bindiği yerde renk koyulaşır. <code>s=</code> nokta boyutunu nokta-kare cinsinden ayarlar:</p>
+<div class="cell"><textarea>ax = sns.scatterplot(data=daily, x='orders', y='revenue',
+                     hue='day_type', style='day_type',
+                     s=45, alpha=0.6)
+ax.set(xlabel='Orders per day', ylabel='Revenue per day ($)')
+ax.legend(title='')
+plt.show()</textarea></div>
+<p class="figdesc">112 günün saçılım grafiği. Hafta içi günleri koyu camgöbeği daireler, hafta sonu günleri kehribar çarpılar. Gelir, siparişlerle birlikte düz bir bant hâlinde artıyor; hafta sonu günleri sağ üstte.</p>
+<p>Noktaların sağa doğru yükselen bir bant oluşturduğunu görebilirsiniz: daha çok sipariş, daha çok gelir. Hafta sonları yüksek uçta duruyor; <code>hue=</code> ve <code>style=</code> bunu bir bakışta görmenizi sağlıyor. <code>ax.legend(title='')</code> satırı gösterge başlığını kaldırır, çünkü “Weekday” ve “Weekend” kendini açıklar.</p>
+
+<h3 id="s12-1-single">Boyutlar ve tek noktalar</h3>
+<p><code>size=</code> ile birlikte <code>sizes=</code> parametresi en küçük ve en büyük noktayı bir çift olarak ayarlar, örneğin <code>sizes=(30, 200)</code>. Tek renk <code>hue=</code> ve gösterge gerektirmez. Tek noktalara Bölüm 7.3’teki <code>ax.annotate()</code> ile etiket konabilir; bu, isimsiz bir noktayı bir hikâyeye dönüştürür:</p>
+<div class="cell"><textarea>ax = sns.scatterplot(data=stores, x='visitors', y='daily_revenue',
+                     s=70)
+top = stores.loc[stores['daily_revenue'].idxmax()]
+ax.annotate(top['store'], (top['visitors'], top['daily_revenue']),
+            xytext=(-8, 0), textcoords='offset points',
+            ha='right', va='center')
+ax.set(xlabel='Visitors per day', ylabel='Revenue per day ($)')
+plt.show()</textarea></div>
+<p class="figdesc">Tek renkli mağaza saçılım grafiği; sağ üstteki noktanın solunda Los Angeles etiketi var. On iki mağaza içinde en çok ziyaretçi ve en çok gelir onda.</p>
+<p><code>idxmax()</code> en yüksek gelirli satırı bulur; böylece kod elle yazılmış koordinat gerektirmez. <code>textcoords='offset points'</code> ile <code>xytext=(-8, 0)</code> etiketi noktanın 8 punto soluna kaydırır. Tek renkli bir grafiğin gizlenecek göstergesi yoktur. Gruplarınız varsa <code>legend=False</code>’u yalnızca başlık renklerin ne anlama geldiğini söylüyorsa verin.</p>
+</section>
+
+<section>
+<h2 id="s12-2"><span class="num">12.2</span><code>lineplot()</code> ile Çizgiler</h2>
+<p><code>sns.lineplot()</code>, Bölüm 4.1’dekiler gibi bir tablodan çizgi grafik çizer ve <code>scatterplot()</code> ile aynı <code>hue=</code> ve <code>style=</code>’ı alır. matplotlib’in <code>plot()</code>’unun yapmadığı bir şey de yapar: bir x değerinin birkaç satırı olduğunda onların ortalamasını alır ve belirsizliği gölgeler.</p>
+
+<h3 id="s12-2-one">Her x için bir değer</h3>
+<p>Her x değeri bir kez geçiyorsa <code>lineplot()</code> düz bir çizgidir. Günlük tabloda tarih başına bir satır var:</p>
+<div class="cell"><textarea>fig, ax = plt.subplots(figsize=(5.5, 2.2))
+sns.lineplot(data=daily, x='date', y='revenue', ax=ax)
+ax.set(xlabel='', ylabel='Revenue per day ($)')
+ax.xaxis.set_major_locator(mdates.MonthLocator())
+ax.xaxis.set_major_formatter(mdates.DateFormatter('%b'))
+plt.show()</textarea></div>
+<p class="figdesc">Ocak–Nisan 2025 günlük gelirinin, yaklaşık 1.500 $ ile 2.900 $ arasında, haftalık bir zikzakla yavaşça yükselen pürüzlü çizgisi. Gölgeli bant yok.</p>
+<p>Burada bant yok, çünkü ortalaması alınacak bir şey yok. Haftalık zikzak hafta sonlarından geliyor. Haftanın ortalama gününü görmek için x’e haftanın gününü koyun. Her gün artık on altı kez, haftada bir geçiyor. <code>dt.strftime('%a')</code> her tarihi kısa gün adına çevirir. <code>pd.Categorical(..., ordered=True)</code> ise adları alfabetik değil, takvim sırasında, Pazartesi’den Pazar’a tutar:</p>
+<div class="cell"><textarea>days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+daily['weekday'] = pd.Categorical(daily['date'].dt.strftime('%a'),
+                                  categories=days, ordered=True)
+by_day = daily.groupby('weekday')['revenue']
+by_day.agg(['mean', 'count'])</textarea></div>
+<p>En yüksek ortalama Cumartesi’de. 16’lık <code>count</code>, her ortalamanın arkasındaki değer sayısıdır.</p>
+
+<h3 id="s12-2-band">Gölgeli bant</h3>
+<p>Şimdi aynısını <code>lineplot()</code>’a yaptırın:</p>
+<div class="cell"><textarea>ax = sns.lineplot(data=daily, x='weekday', y='revenue',
+                  marker='o', seed=0)
+ax.set(xlabel='', ylabel='Average revenue per day ($)')
+plt.show()</textarea></div>
+<p class="figdesc">Daire işaretçili, yedi gün ortalamasından geçen bir çizgi; solda Pazartesi’den sağda Pazar’a. Perşembe’ye kadar 2.000–2.100 $ civarında kalıyor, sonra Cumartesi’de yaklaşık 2.500 $’da zirve yapıyor. Çizginin etrafındaki açık bant Perşembe’den Cumartesi’ye en geniş.</p>
+<p>Çizgi her gündeki on altı değerin ortalamasından, tablodaki sayılardan geçer. Gölgeli <em>güven bandı</em> yenidir. Sade sözlerle: elinizde yalnızca 16 haftalık veri olduğu göz önüne alındığında, gerçek ortalamanın büyük olasılıkla bulunduğu aralıktır. Geniş bant daha az emin olduğunuzu, dar bant daha emin olduğunuzu gösterir.</p>
+<p>Daha kesin hâli: bant varsayılan olarak <code>errorbar=('ci', 95)</code> diye yazılan bir %95 <em>güven aralığıdır</em>. Yılı defalarca tekrarlayıp her seferinde yeni bir bant çizebilseydiniz, bu bantların yaklaşık 100’de 95’i o günün gerçek ortalamasını içerirdi.</p>
+<p>Bant verinin aralığı değildir. Tek tek günler onun çok dışına düşer, çünkü bant ortalamayla ilgilidir. seaborn bandı, satırlarınızı defalarca yeniden örnekleyerek (önyükleme, <em>bootstrapping</em> denen bir yöntem) hesaplar; bu yüzden büyük tablolarda biraz zaman alır ve bant çalıştırmalar arasında hafifçe değişir. Yukarıdaki koddaki <code>seed=0</code> yeniden örneklemeyi sabitler; böylece her seferinde aynı bandı alırsınız.</p>
+<p>Bandı üç şey genişletir: x değeri başına daha az satır, değerlerde daha büyük yayılım ve daha yüksek güven düzeyi. İki bant çok örtüştüğünde iki ortalama arasındaki fark gürültü olabilir; birini kazanan ilan etmeyin.</p>
+
+<h3 id="s12-2-errorbar"><code>errorbar=</code></h3>
+<p><code>errorbar=</code> parametresi bandın ne gösterdiğini denetler. <code>errorbar=None</code> temiz bir çizgi için onu kaldırır. <code>errorbar='sd'</code>, bir günün ortalamadan tipik uzaklığı olan <em>standart sapmayı</em> gösterir; bu, verinin kendi yayılımının resmidir. Yan yana karşılaştırın:</p>
+<div class="cell"><textarea>fig, axes = plt.subplots(1, 2, figsize=(5.5, 2.8), sharey=True,
+                         layout='constrained')
+sns.lineplot(data=daily, x='weekday', y='revenue',
+             errorbar='sd', ax=axes[0])
+sns.lineplot(data=daily, x='weekday', y='revenue',
+             errorbar=None, ax=axes[1])
+axes[0].set(title="errorbar='sd'", xlabel='',
+            ylabel='Average revenue per day ($)')
+axes[1].set(title='errorbar=None', xlabel='', ylabel='')
+plt.show()</textarea></div>
+<p class="figdesc">Aynı gün çizgisiyle yan yana iki çizgi grafik. Soldakinde her günde yaklaşık 400 $ yüksekliğinde geniş açık bir bant var. Sağdakinde bant yok.</p>
+<p>Soldaki bant geniş, çünkü tek tek günler ortalamanın iki yanına yaklaşık 200 $ sapıyor. Varsayılan <code>errorbar=('ci', 95)</code> ikisinin arasında kalır: yayılımdan daha dardır, çünkü ortalamalar tek günlerden daha istikrarlıdır. Sorduğunuz soruyu yanıtlayan bandı seçin. “Hafta sonu gerçekten daha yüksek mi?” varsayılanı ister. “Tek günler ne kadar değişiyor?” <code>'sd'</code>’yi ister.</p>
+<p>Başka seçenekler de yardımcı olur. <code>estimator='median'</code> ortalama yerine medyanı çizer, <code>err_style='bars'</code> bant yerine bıyık çubukları çizer ve <code>hue=</code> her gruba kendi çizgisini ve bandını verir. Deneyin:</p>
+<div class="cell"><textarea># Deneme: medyan, bıyık çubukları ve hafta tipi gruplaması
+ax = sns.lineplot(data=daily, x='weekday', y='revenue', hue='period',
+                  style='period', estimator='median', err_style='bars',
+                  seed=0)
+ax.set(xlabel='', ylabel='Median revenue per day ($)')
+ax.legend(title='')
+plt.show()</textarea></div>
+<div class="callout tip"><span class="t">💡 İpucu</span>Tablonuzda günlük tablodaki gibi x değeri başına tam bir satır varsa hiç bant görmezsiniz. Bir bant belirdiğinde verinin x başına birkaç satırı olduğunu kontrol edin. Aksi hâlde veriyi gruplamayı unutmuş olabilirsiniz.</div>
+</section>
+
+<section>
+<h2 id="s12-3"><span class="num">12.3</span><code>relplot()</code> ile Tek Grafik</h2>
+<p>Bölüm 11.6, <code>relplot()</code>’u <code>scatterplot()</code> ve <code>lineplot()</code>’un figür düzeyi ortağı olarak tanıttı. <code>kind='line'</code> ile <code>lineplot()</code> ile aynı grafiği çizer. Fark figürdedir: kendi figürünü yapar, göstergeyi dışarı koyar ve bir <code>FacetGrid</code> döndürür.</p>
+<div class="cell"><textarea>g = sns.relplot(data=daily, kind='line', x='weekday', y='revenue',
+                hue='period', style='period', height=2.8,
+                aspect=1.6, seed=0)
+g.set_axis_labels('', 'Average revenue per day ($)')
+plt.show()</textarea></div>
+<p class="figdesc">Yedi gün boyunca iki çizgi ve bantlı bir çizgi grafik: ilk 8 hafta için düz koyu camgöbeği, son 8 hafta için kesikli kehribar çizgi; gösterge sağda. Kehribar çizgi her gün camgöbeğinin üstünde.</p>
+<p>Dönemin her yarısının kendi çizgisi ve kendi bandı var; gösterge grafiğin dışında. <code>g.set_axis_labels()</code>, ızgaranın iki eksen etiketini tek çağrıda ayarlama yoludur. <code>scatterplot()</code> ve <code>lineplot()</code> hakkında öğrendiğiniz her şey <code>relplot()</code>’ta da çalışır; <code>kind='scatter'</code> ya da <code>kind='line'</code> grafiği seçer.</p>
+<p>Tek bir grafik için <code>scatterplot()</code> ya da <code>lineplot()</code> daha basittir, çünkü onu <code>ax=</code> ile yerleştirip Bölüm 7’nin araçlarıyla bitirebilirsiniz. <code>relplot()</code>, grup başına bir panel istediğiniz durum içindir; bunu Bölüm 15.1 <code>col=</code> ve <code>row=</code> ile ele alıyor.</p>
+</section>
+
+<section>
+<h2 id="s12-4"><span class="num">12.4</span>Korelasyon</h2>
+<p>Bir saçılım grafiği bir ilişkiyi gösterir. Bir <em>korelasyon</em> ona bir sayı koyar. Sayının adı <em>r</em>’dir ve iki sütunun düz bir çizgi boyunca ne kadar yakından birlikte hareket ettiğini ölçer. Her zaman -1 ile 1 arasındadır:</p>
+<div style="overflow-x:auto"><table class="choose">
+<thead><tr><th>r</th><th>Anlamı</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Noktalar tam olarak yükselen bir çizgi üzerinde: biri büyüdükçe diğeri de büyür</td></tr>
+<tr><td>0</td><td>Düz çizgi bağı yok: noktalardan geçen bir düz çizgi yatay olur (eğri bir bağ yine de mümkündür)</td></tr>
+<tr><td>-1</td><td>Noktalar tam olarak düşen bir çizgi üzerinde: biri büyüdükçe diğeri küçülür</td></tr>
+</tbody></table></div>
+<p>Gerçek veri hiçbir zaman tam olarak -1, 0 ya da 1 değildir. Pratik bir kural olarak 0,7’nin üstündeki (ya da -0,7’nin altındaki) bir r güçlü bir bağdır; -0,3 ile 0,3 arası zayıftır. Bu eşikler yasa değil, uzlaşımdır ve alandan alana değişir.</p>
+
+<h3 id="s12-4-corr"><code>df.corr()</code></h3>
+<p><code>df.corr()</code>, her sayısal sütun çifti için r’yi hesaplar ve bir tablo döndürür. <code>numeric_only=True</code>, <code>store</code> gibi metin sütunlarını atlar. Okunur kalsın diye sonucu yuvarlayın:</p>
+<div class="cell"><textarea>stores.corr(numeric_only=True).round(2)</textarea></div>
+<p>Bir ızgara gibi okuyun: <code>visitors</code> satırının <code>daily_revenue</code> sütunuyla buluştuğu sayı onların r’sidir. Köşegen her zaman 1’dir, çünkü her sütun kendisiyle mükemmel eşleşir. Tablo simetriktir; her sayı iki kez görünür.</p>
+<p>Ziyaretçi ile gelirin r’si 0,95, güçlü pozitif bir bağ; dönüşümün gelirle bağı 0,48 ile daha zayıf. Ziyaretçi ve dönüşüm 0,20 ile neredeyse birlikte hareket etmiyor. Tek bir sayı almak için bir sütunda <code>corr()</code> çağırın:</p>
+<div class="cell"><textarea>r = stores['visitors'].corr(stores['daily_revenue'])
+print(round(r, 2))</textarea></div>
+<p>Üç grafik bu değerlerin neye benzediğini gösteriyor. Bunlar hızlı bakışlar; bu yüzden eksenler ham sütun adlarını koruyor. Haftalık tabloda düşen bir desen (daha uzun teslimat süresi, daha düşük değerlendirme puanı) ve yatay bir desen (yağmurun reklam harcamasıyla pek ilgisi yok) var. Soldaki mağaza grafiği yükselen olanı:</p>
+<div class="cell"><textarea>pairs = [(stores, 'visitors', 'daily_revenue'),
+         (weekly, 'delivery_days', 'rating'),
+         (weekly, 'rain_mm', 'ad_spend')]
+fig, axes = plt.subplots(1, 3, figsize=(5.5, 2.4),
+                         layout='constrained')
+for ax, (table, x, y) in zip(axes, pairs):
+    sns.scatterplot(data=table, x=x, y=y, color='#0b3a47', ax=ax)
+    r = table[x].corr(table[y])
+    ax.set(title=f'r = {r:.2f}')
+plt.show()</textarea></div>
+<p class="figdesc">Koyu camgöbeği noktalı üç küçük saçılım grafiği. Soldakinde noktalar sol alttan sağ üste yükseliyor, başlık r = 0.95. Ortadakinde noktalar düşüyor, başlık r = -0.64. Sağdakinde noktalar desensiz dağılmış, başlık r = -0.09.</p>
+<p>Belirgin bir yükseliş, daha gevşek bir düşüş ve hiç desen olmayan bir durum görüyorsunuz. <code>pairs</code> içindeki her öğe bir <em>demet</em> (tuple), yani yuvarlak parantez içinde sabit bir değer grubudur; <code>(table, x, y)</code> her birini üç ada açar. <code>zip()</code> üç ekseni ve üç demeti birlikte dolaşır (Bölüm 8.1) ve döngü değişkeni <code>table</code>, tek bir döngünün iki farklı tablodan çizmesini sağlar. f-dizgesi r’yi her başlığa iki ondalıkla koyar.</p>
+
+<h3 id="s12-4-outlier">Aykırı değerler</h3>
+<p>Bir <em>aykırı değer</em> (outlier), diğerlerinden çok uzak bir değerdir. Tek bir aykırı değer r’yi çok değiştirebilir, çünkü tüm hesabı kendine doğru çeker. Haftalık tabloda on iki haftalık reklam harcaması ve sipariş var. Reklamlar sipariş getirmeli; yani korelasyon yüksek olmalı:</p>
+<div class="cell"><textarea>weekly[['ad_spend', 'orders']].corr().round(2)</textarea></div>
+<p>0,05’lik bir r neredeyse hiç bağ olmadığını söylüyor. Ama grafik başka bir hikâye anlatıyor. 12. hafta bir flaş indirimdi: büyük bir indirim yalnızca 300 $ reklamla 1.150 sipariş getirdi. O satırı, indeksi 11 olan satırı kaldıran <code>drop(11)</code> ile çıkarın ve karşılaştırın:</p>
+<div class="cell"><textarea>no_sale = weekly.drop(11)
+fig, axes = plt.subplots(1, 2, figsize=(5.5, 2.8), sharey=True,
+                         layout='constrained')
+for ax, table, label in zip(axes, [weekly, no_sale],
+                            ['All 12 weeks', 'Without week 12']):
+    sns.scatterplot(data=table, x='ad_spend', y='orders',
+                    color='#0b3a47', ax=ax)
+    r = table['ad_spend'].corr(table['orders'])
+    ax.set(title=f'{label}: r = {r:.2f}', xlabel='Ad spend ($)',
+           ylabel='Orders')
+plt.show()</textarea></div>
+<p class="figdesc">Aynı eksenli iki saçılım grafiği. Solda on iki haftanın tamamı, solda diğerlerinin çok üstünde bir noktası olan bir bulut oluşturuyor; başlık r = 0.05. Sağda diğer on bir hafta düz bir çizgi hâlinde yükseliyor; başlık r = 0.97.</p>
+<p>Tek bir hafta 0,97’lik bir r’yi 0,05’e çevirdi. Sayıyı birine söylemeden önce her zaman grafiği çizin. 0,05’lik bir korelasyon gördüğünüzde bu “bağ yok” da olabilir, “güçlü bir bağ ve tek bir tuhaf nokta” da; ikisini yalnızca resim ayırt edebilir. Sonra aykırı değerin ne olduğuna karar verin. Bir yazım hatası çıkarılabilir, ama gerçek bir flaş indirim bir olgudur. İki sayıyı da raporlayın ve neden farklı olduklarını söyleyin.</p>
+<div class="callout note"><span class="t">📝 Not</span><code>corr()</code> yalnızca düz çizgi bağlarını ölçer. U gibi önce yükselip sonra düşen bir desenin r’si 0’a yakın olabilir ve yine de güçlü bir ilişki olabilir. Grafik, sayının gösteremediğini gösterir.</div>
+
+<h3 id="s12-4-causation">Korelasyon nedensellik değildir</h3>
+<p>Birlikte hareket eden iki sütun <em>ilişkilidir</em> (korelasyonludur). Bu, birinin diğerine <em>neden olduğu</em> anlamına gelmez. Mağazaların ziyaretçi ve gelirinin r’si 0,95 ve “daha çok ziyaretçi daha çok gelire neden olur” diye düşünmek kolay. Bu pekâlâ doğru olabilir, ama sayı tek başına bunu kanıtlamaz. Aynı deseni üretmenin üç yolu daha var:</p>
+<ul>
+<li><strong>Üçüncü bir etken ikisini birden yönlendirir.</strong> Dondurma satışları ve güneş yanığı vakaları yazın güneş yüzünden birlikte artar. Hiçbiri diğerine neden olmaz.</li>
+<li><strong>Neden ters yönde işler.</strong> Geliri yüksek mağazalar reklam verebilir; reklamlar da daha çok ziyaretçi getirir.</li>
+<li><strong>Şans.</strong> Yalnızca birkaç noktayla bir desen tesadüfen belirebilir.</li>
+</ul>
+<p>Haftalık tablodaki siparişler ve teslimat günlerini ele alın; flaş indirim haftası olmadan r’leri 0,52. Yoğun haftalar depoyu yavaşlatıyor olabilir. Ya da bir tatil hem daha çok sipariş hem daha yavaş kuryeler getiriyor olabilir. Ya da bağ şans olabilir. Sayı size hangisi olduğunu söyleyemez. Bir grafik iki şeyin birlikte gittiğini gösterebilir. <em>Neden</em> olduğunu göstermek daha fazlasını gerektirir: bazı mağazalarda reklamı artırıp diğerlerinde artırmamak gibi bir deney ya da mağazanın nasıl işlediğine dair bilgi.</p>
+<p>Bütün bir <code>corr()</code> tablosunu renklendiren korelasyon ısı haritaları Bölüm 15.4’te geliyor.</p>
+</section>
+
+<section>
+<h2 id="s12-5"><span class="num">12.5</span><code>regplot()</code> ve <code>lmplot()</code> ile Eğilim Çizgileri</h2>
+<p>Bir saçılım grafiği çoğu zaman noktalardan geçen bir çizgiden yararlanır. Bir <em>regresyon çizgisi</em>, noktalara en iyi uyan düz çizgidir: noktalara genel olarak en yakın çizgi. İlişkinin yönünü gösterir ve herhangi bir x için bir tahmin okumanızı sağlar.</p>
+
+<h3 id="s12-5-regplot"><code>sns.regplot()</code></h3>
+<p><code>sns.regplot()</code> noktaları, regresyon çizgisini ve çizginin etrafındaki bandı tek çağrıda çizer. Eksen düzeyidir; bu yüzden <code>scatterplot()</code> gibi <code>ax=</code> alır:</p>
+<div class="cell"><textarea>ax = sns.regplot(data=stores, x='visitors', y='daily_revenue',
+                 seed=0)
+ax.set(xlabel='Visitors per day', ylabel='Revenue per day ($)')
+plt.show()</textarea></div>
+<p class="figdesc">Noktaların arasından yükselen kesikli koyu bir çizgi ve etrafında açık bir bant olan mağaza saçılım grafiği. Bant, noktaların birbirine yakın olduğu solda dar, sağ üste doğru genişliyor.</p>
+<p>Çizgi kesikli, çünkü kitabın stil dosyası çizgi stilleri arasında döner (Bölüm 7.5). Bant <code>lineplot()</code>’takiyle aynı türden: bu kez çizgi için %95 güven aralığı. Birkaç mağazanın birbirine yakın durduğu solda dar, yalnızca birkaç mağazanın birbirinden uzak durduğu ve çizginin daha belirsiz olduğu sağda geniş. <code>ci=</code> parametresi güven düzeyini ayarlar (<code>ci=None</code> bandı kaldırır); <code>scatter_kws=</code> ve <code>line_kws=</code> noktalara ve çizgiye seçenek geçirir. Her biri, Bölüm 7’dekiler gibi sıradan matplotlib seçeneklerinden oluşan bir sözlüktür:</p>
+<div class="cell"><textarea>ax = sns.regplot(data=stores, x='visitors', y='daily_revenue',
+                 ci=None, scatter_kws={'s': 50},
+                 line_kws={'color': '#b26a00', 'linestyle': '--'})
+ax.set(xlabel='Visitors per day', ylabel='Revenue per day ($)')
+plt.show()</textarea></div>
+<p class="figdesc">Aynı saçılım grafiği; kesikli kehribar çizgi var, bant yok.</p>
+<p>Kehribar çizgi kesikli olduğu için griye dönüşünce de okunur ve bandın olmaması grafiği bir slayt için temiz tutar. Çizginin sayılarını NumPy ile okuyabilirsiniz. <code>np.polyfit(x, y, 1)</code> noktalara bir çizgi uydurur ve iki sayı döndürür. <code>1</code> düz bir çizgi ister. İlk sayı <em>eğimdir</em>: her ek ziyaretçi için eklenen dolar. İkincisi <em>kesişimdir</em> (intercept): çizginin x = 0’da buluştuğu yer:</p>
+<div class="cell"><textarea>slope, intercept = np.polyfit(stores['visitors'],
+                              stores['daily_revenue'], 1)
+print(round(slope, 2), round(intercept))</textarea></div>
+<p>Bu on iki mağazada her ek ziyaretçi günde yaklaşık 8,56 $ daha fazla gelirle birlikte gidiyor. Bunu bir söz değil, bir betimleme olarak ele alın ve verinin aralığının çok dışında okumayın. 2.000 ziyaretçili bir mağaza buradaki her şeyin çok ötesindedir. -87’lik kesişimin gerçek bir anlamı yoktur, çünkü hiçbir mağazanın 0 ziyaretçisi yoktur.</p>
+<p>Eğri ilişkiler için <code>regplot(..., order=2)</code> düz çizgi yerine bir eğri uydurur. Bunu yalnızca noktaların açıkça büküldüğünü görebildiğinizde kullanın, çünkü esnek bir çizgi şans desenlerine uyabilir.</p>
+
+<h3 id="s12-5-lmplot"><code>sns.lmplot()</code></h3>
+<p><code>sns.lmplot()</code>, Bölüm 12.3’teki <code>relplot()</code> gibi figür düzeyi sürümdür. Avantajı, her grup için ayrı bir çizgi uyduran <code>hue=</code>’dur:</p>
+<div class="cell"><textarea>g = sns.lmplot(data=stores, x='visitors', y='daily_revenue',
+               hue='region', markers=['o', 'X'], ci=None,
+               height=3, aspect=1.4)
+g.set_axis_labels('Visitors per day', 'Revenue per day ($)')
+plt.show()</textarea></div>
+<p class="figdesc">İki çizgili mağaza saçılım grafiği. Pacific mağazaları düz camgöbeği çizgili koyu camgöbeği daireler. Mountain mağazaları daha kısa, kesikli kehribar çizgili kehribar çarpılar. Gösterge sağda.</p>
+<p>İki çizgi de yaklaşık aynı hızla yükseliyor; her ek ziyaretçi için kabaca 8 $ daha fazla gelir. Mountain çizgisi daha kısa, çünkü o mağazaların ziyaretçisi daha az ve daha aşağıda duruyor. Yalnızca dört Mountain mağazası olduğu için o çizgiyi bir tahmin olarak ele alın. <code>lmplot()</code>, <code>markers=</code>’ı grup başına bir işaretçi olacak şekilde liste olarak alır; bu burada <code>style=</code>’ın işini görür. <code>col=</code> ve <code>row=</code> parametreleri grup başına bir panel yapar (Bölüm 15.1). Tablo hangisinin ne zaman kullanılacağını gösteriyor:</p>
+<div style="overflow-x:auto"><table class="choose">
+<thead><tr><th></th><th><code>regplot()</code></th><th><code>lmplot()</code></th></tr></thead>
+<tbody>
+<tr><td>Düzey</td><td>eksen düzeyi (<code>ax=</code>)</td><td>figür düzeyi</td></tr>
+<tr><td>Grup başına ayrı çizgiler</td><td>hayır</td><td>evet, <code>hue=</code> ile</td></tr>
+<tr><td>Döndürdüğü</td><td>bir <code>Axes</code></td><td>bir <code>FacetGrid</code></td></tr>
+</tbody></table></div>
+<p>İki fonksiyon da noktaların üzerinde bir çizgi gösterebilir, ama hiçbiri çizginin iyi bir model olup olmadığını söylemez. Ona güvenmeden önce Bölüm 12.4’teki r’yi kontrol edin ve aykırı değerlere bakın.</p>
+</section>
+
+<section>
+<h2 id="ozet">Bölüm Özeti</h2>
+<ul class="summary">
+<li><code>sns.scatterplot()</code>; <code>hue=</code>, <code>style=</code> ve <code>size=</code> alır. Üst üste binen noktaları görmek için <code>alpha=</code>, nokta boyutu için <code>s=</code> kullanın. Tek noktaları <code>ax.annotate()</code> ile etiketleyin.</li>
+<li><code>sns.lineplot()</code>, aynı x değerini paylaşan satırların ortalamasını alır ve o ortalama için %95’lik bir güven bandı gölgeler. Bant verinin yayılımı değildir.</li>
+<li><code>errorbar=None</code> bandı kaldırır, <code>errorbar='sd'</code> verinin yayılımını gösterir ve <code>estimator='median'</code> ortalamanın yerine medyanı koyar.</li>
+<li><code>sns.relplot()</code>, <code>kind='scatter'</code> ya da <code>kind='line'</code> ile aynı saçılım ve çizgi grafiklerini figür düzeyi bir fonksiyon olarak çizer. Panel istediğinizde kullanın (Bölüm 15.1).</li>
+<li>Korelasyon r -1’den 1’e gider: 1 mükemmel bir yükseliş, -1 mükemmel bir düşüş ve 0 düz çizgi bağının olmamasıdır. <code>df.corr(numeric_only=True)</code> onu her sütun çifti için hesaplar.</li>
+<li>Tek bir aykırı değer r’yi çok değiştirebilir. Sayıya güvenmeden önce saçılım grafiğini çizin.</li>
+<li>Korelasyon nedensellik değildir: üçüncü bir etken, ters yön ya da şans aynı deseni üretebilir.</li>
+<li><code>sns.regplot()</code> bir eksene güven bantlı bir regresyon çizgisi ekler. <code>sns.lmplot()</code>, her <code>hue=</code> grubu için bir çizgi uyduran figür düzeyi sürümdür.</li>
+</ul>
+<p>Bölüm 13 sayılardan kategorilere dönüyor: hata çubuklu ortalama çubukları, sayımlar, tek tek siparişler, kutu grafikleri ve keman grafikleri.</p>
+
+<h3 id="oyun">Kendi kodunuzu deneyin</h3>
+<p>Aşağıdaki hücre bir oyun alanı. Yukarıdaki tüm değişkenler (<code>stores</code>, <code>daily</code>, <code>weekly</code>, <code>no_sale</code>…) burada kullanılabilir (önceki hücreler otomatik çalıştırılır).</p>
+<div class="cell"><textarea># Örnek: flaş indirim haftası olmadan teslimat süresi ve sipariş — r = 0.52
+r = no_sale['orders'].corr(no_sale['delivery_days'])
+ax = sns.regplot(data=no_sale, x='orders', y='delivery_days', ci=None,
+                 line_kws={'color': '#b26a00', 'linestyle': '--'})
+ax.set(xlabel='Orders per week', ylabel='Delivery days',
+       title=f'Busy weeks, slower delivery? r = {r:.2f}')
+plt.show()</textarea></div>
+</section>
+
+<section>
+<h2 id="quiz">Sınav</h2>
+<p>Bir seçeneğe tıklayın; doğru cevap ve açıklama hemen görünür. Puan: <span id="score">0 / 10</span> &nbsp;<button class="btn ghost" id="quizReset">Sıfırla</button></p>
+<div id="quizBox"></div>
+</section>
+
+<div class="chnav"><a href="bolum11_seaborn_temelleri.html">← Bölüm 11</a><div class="all">Bölümler: <a href="bolum01_ortami_kurmak.html" class="" title="Görselleştirme Ortamını Kurmak">1</a><a href="bolum02_cizmeden_once_dusunmek.html" class="" title="Çizmeden Önce Düşünmek">2</a><a href="bolum03_matplotlib_temelleri.html" class="" title="matplotlib Temelleri">3</a><a href="bolum04_cizgiler_noktalar.html" class="" title="Çizgiler ve Noktalar">4</a><a href="bolum05_cubuklar_pastalar_tablolar.html" class="" title="Çubuklar, Pastalar ve Tablolar">5</a><a href="bolum06_dagilimlar_izgaralar.html" class="" title="Dağılımlar ve Değer Izgaraları">6</a><a href="bolum07_ozellestirme.html" class="" title="Bir Grafiğin Her Parçasını Özelleştirmek">7</a><a href="bolum08_yerlesimler.html" class="" title="Yerleşimler: Bir Figürde Birçok Grafik">8</a><a href="bolum09_iletisim_kuran_tasarim.html" class="" title="İletişim Kuran Tasarım">9</a><a href="bolum10_yalan_soyleyen_grafikler.html" class="" title="Yalan Söyleyen Grafikler">10</a><a href="bolum11_seaborn_temelleri.html" class="" title="seaborn Temelleri">11</a><a href="bolum12_iliskiler_regresyon.html" class="cur" title="İlişkiler ve Regresyon">12</a><a href="bolum13_kategoriler.html" class="" title="Kategoriler">13</a><a href="bolum14_dagilimlar.html" class="" title="Dağılımlar">14</a><a href="bolum15_izgaralar_matrisler.html" class="" title="Izgaralar ve Matrisler">15</a><a href="bolum16_plotly_express.html" class="" title="plotly express ile Etkileşimli Grafikler">16</a><a href="bolum17_haritalar_is_grafikleri.html" class="" title="Haritalar ve İş Grafikleri">17</a></div><a href="bolum13_kategoriler.html">Bölüm 13 →</a></div>
+</main>
+</div>
+<footer>Bölüm 12 · İlişkiler ve Regresyon — Pyodide ile etkileşimli Türkçe sürüm</footer>
+
+<script>
+
+const DATA = {"daily_sales.csv": "date,revenue,orders,target\n2025-01-06,1740,29,1900\n2025-01-07,1560,24,1900\n2025-01-08,1870,32,1900\n2025-01-09,1850,31,1900\n2025-01-10,1700,30,1900\n2025-01-11,2000,35,1900\n2025-01-12,2050,39,1900\n2025-01-13,1700,29,1900\n2025-01-14,1750,28,1900\n2025-01-15,1680,29,1900\n2025-01-16,1880,33,1900\n2025-01-17,2120,39,1900\n2025-01-18,2230,40,1900\n2025-01-19,2240,39,1900\n2025-01-20,1850,35,1900\n2025-01-21,1670,26,1900\n2025-01-22,1900,31,1900\n2025-01-23,1670,27,1900\n2025-01-24,2180,37,1900\n2025-01-25,2260,36,1900\n2025-01-26,2090,37,1900\n2025-01-27,1730,29,1900\n2025-01-28,2000,32,1900\n2025-01-29,1870,30,1900\n2025-01-30,1780,31,1900\n2025-01-31,2050,37,1900\n2025-02-01,2380,45,2050\n2025-02-02,2210,44,2050\n2025-02-03,1930,34,2050\n2025-02-04,1930,31,2050\n2025-02-05,2230,34,2050\n2025-02-06,1830,32,2050\n2025-02-07,2070,34,2050\n2025-02-08,2230,38,2050\n2025-02-09,2290,38,2050\n2025-02-10,2070,35,2050\n2025-02-11,1900,35,2050\n2025-02-12,1850,32,2050\n2025-02-13,1810,31,2050\n2025-02-14,2280,37,2050\n2025-02-15,2490,40,2050\n2025-02-16,2320,39,2050\n2025-02-17,1860,32,2050\n2025-02-18,1990,38,2050\n2025-02-19,2030,35,2050\n2025-02-20,2000,36,2050\n2025-02-21,2350,40,2050\n2025-02-22,2460,40,2050\n2025-02-23,2380,39,2050\n2025-02-24,2000,33,2050\n2025-02-25,2040,39,2050\n2025-02-26,2140,35,2050\n2025-02-27,1810,33,2050\n2025-02-28,2220,36,2050\n2025-03-01,2410,43,2250\n2025-03-02,2240,39,2250\n2025-03-03,2000,34,2250\n2025-03-04,2250,39,2250\n2025-03-05,1980,33,2250\n2025-03-06,2190,39,2250\n2025-03-07,2070,35,2250\n2025-03-08,2470,40,2250\n2025-03-09,2390,39,2250\n2025-03-10,2160,38,2250\n2025-03-11,2180,41,2250\n2025-03-12,2250,39,2250\n2025-03-13,2050,35,2250\n2025-03-14,2290,40,2250\n2025-03-15,2680,49,2250\n2025-03-16,2390,42,2250\n2025-03-17,1940,33,2250\n2025-03-18,1970,36,2250\n2025-03-19,2050,36,2250\n2025-03-20,2210,41,2250\n2025-03-21,2410,42,2250\n2025-03-22,2700,44,2250\n2025-03-23,2400,39,2250\n2025-03-24,2180,41,2250\n2025-03-25,2260,42,2250\n2025-03-26,2180,37,2250\n2025-03-27,2240,38,2250\n2025-03-28,2340,43,2250\n2025-03-29,2590,42,2250\n2025-03-30,2440,40,2250\n2025-03-31,2040,36,2250\n2025-04-01,2280,39,2450\n2025-04-02,2200,38,2450\n2025-04-03,2220,38,2450\n2025-04-04,2550,45,2450\n2025-04-05,2750,50,2450\n2025-04-06,2630,46,2450\n2025-04-07,2230,40,2450\n2025-04-08,2190,34,2450\n2025-04-09,2300,40,2450\n2025-04-10,2030,33,2450\n2025-04-11,2320,38,2450\n2025-04-12,2540,42,2450\n2025-04-13,2440,41,2450\n2025-04-14,2340,42,2450\n2025-04-15,2170,35,2450\n2025-04-16,2300,40,2450\n2025-04-17,2490,42,2450\n2025-04-18,2510,43,2450\n2025-04-19,2870,51,2450\n2025-04-20,2490,44,2450\n2025-04-21,2300,42,2450\n2025-04-22,2200,38,2450\n2025-04-23,2340,39,2450\n2025-04-24,2470,42,2450\n2025-04-25,2360,41,2450\n2025-04-26,2870,50,2450\n2025-04-27,2700,44,2450\n", "stores.csv": "store,region,visitors,daily_revenue,conversion\nSeattle,Pacific,310,2100,0.021\nOakland,Pacific,180,1650,0.027\nSan Francisco,Pacific,420,3300,0.024\nPortland,Pacific,230,2250,0.032\nSacramento,Pacific,200,1900,0.03\nLos Angeles,Pacific,480,4600,0.034\nSan Jose,Pacific,350,2400,0.02\nSan Diego,Pacific,170,1500,0.028\nBoise,Mountain,150,980,0.019\nDenver,Mountain,260,2050,0.023\nSalt Lake City,Mountain,140,1100,0.026\nAlbuquerque,Mountain,120,900,0.022\n", "weekly_shop.csv": "week,ad_spend,orders,delivery_days,rain_mm,rating\nW1,400,520,1.5,4,4.4\nW2,520,612,2.4,56,4.0\nW3,450,566,1.9,39,4.2\nW4,610,654,3.0,52,4.1\nW5,700,725,2.7,24,4.0\nW6,580,589,2.6,13,3.9\nW7,820,735,2.4,48,4.2\nW8,760,685,2.6,40,4.0\nW9,900,792,2.7,47,4.0\nW10,680,699,2.3,12,4.2\nW11,1000,849,2.4,8,4.0\nW12,300,1150,2.4,46,3.8\n", "book.mplstyle": "# Chart style for \"Master Data Visualization\".\n# Load it with plt.style.use('book.mplstyle') so your charts match the book.\n# Chapter 7 explains every line; delete one and see what changes.\n\n# Four colors that stay different when printed in black and white:\n# dark teal, amber, light teal, sand. Lines also change style\n# (solid, dashed, dotted, dash-dot) so they can be told apart in gray.\naxes.prop_cycle: cycler('color', ['0b3a47', 'b26a00', '6fb3c2', 'f0c987']) + cycler('linestyle', ['-', '--', ':', '-.'])\n\n# Size in inches (fits a printed book page) and text sizes in points\nfigure.figsize: 5.5, 3.4\nfont.size: 9.5\naxes.titlesize: 11\naxes.titlelocation: left\naxes.labelsize: 9.5\nlegend.fontsize: 9\n\n# Thicker lines; if you turn the grid on (ax.grid()), it is light and sits behind the data\nlines.linewidth: 2\naxes.axisbelow: True\ngrid.color: d9dde1\n"};
+</script>
+<script>
+// ---------------- Quiz -----------------
+const QUIZ = [
+ {q:"Saçılım grafiğinizde üst üste binen yüzlerce nokta var. Hangi parametre bu yığılmaları görünür kılar?",
+  o:["<code>size='orders'</code>","<code>alpha=0.5</code>","<code>legend=False</code>","<code>style='region'</code>"],a:1,
+  e:"Saydam noktalar üst üste bindikçe koyulaşır; böylece yoğunluk görünür (12.1)."},
+ {q:"<code>x='weekday'</code> ve <code>y='revenue'</code> ile bir <code>lineplot()</code> gölgeli bantlı bir çizgi çiziyor. Bant varsayılan olarak neyi gösterir?",
+  o:["Her günün ortalaması için %95 güven aralığını","Her gündeki en düşük ve en yüksek geliri","Günlük gelirin çizgi etrafındaki standart sapmasını","Her gün için aykırı sayılan günleri"],a:0,
+  e:"Varsayılan <code>errorbar=('ci', 95)</code>; bant ortalamayla ilgilidir, verinin aralığı değildir."},
+ {q:"Bir saçılım grafiği <code>size='orders'</code> kullanıyor. En küçük ve en büyük noktayı hangi parametre ayarlar?",
+  o:["<code>s=(30, 200)</code>","<code>size=(30, 200)</code>","<code>alpha=(30, 200)</code>","<code>sizes=(30, 200)</code>"],a:3,
+  e:"<code>sizes=</code> bir (en küçük, en büyük) çifti alır; <code>s=</code> tek bir sabit boyuttur."},
+ {q:"Bir tabloda her tarih için tam bir satır var ve <code>lineplot(x='date', y='revenue')</code> çiziyorsunuz. Neden bant yok?",
+  o:["Bantlar yalnızca grafik <code>hue=</code> kullanınca belirir","seaborn’da tarihlerin güven aralığı olamaz","Her x’in tek değeri var, ortalaması alınacak bir şey yok","Kitabın stil dosyası grafikler temiz kalsın diye bantları gizler"],a:2,
+  e:"Bant, aynı x’i paylaşan birkaç satırın ortalamasının belirsizliğidir (12.2)."},
+ {q:"Teslimat günleri ile değerlendirme puanı arasındaki -0,9’luk korelasyon ne anlama gelir?",
+  o:["Geç teslimatlar kötü puanlara neden olur","Geç teslimatların %90’ı düşük puan alır","Teslimat günleri arttıkça puanlar düşme eğilimindedir","r sıfırın altında olduğu için neredeyse hiç bağ yoktur"],a:2,
+  e:"Güçlü negatif bir bağ; ama korelasyon tek başına nedensellik kanıtlamaz."},
+ {q:"Hangi r değeri “düz çizgi bağı yok” durumunu tanımlar?",
+  o:["En düşük değer olan r = -1","0’a yakın r","r = 1","Yarı yolda olan r = 0,5"],a:1,
+  e:"r ≈ 0 düz çizgi bağı olmadığını söyler; eğri bir bağ yine de olabilir."},
+ {q:"<code>stores.corr(numeric_only=True)</code> ne döndürür?",
+  o:["Her sütun için, onu ilk sütunla karşılaştıran bir r","Noktalardan geçen en iyi çizginin eğimi","Tüm tablo için tek bir sayı","Her sayısal sütun çifti için r içeren bir tablo"],a:3,
+  e:"Köşegeni 1 olan simetrik bir korelasyon tablosu (12.4)."},
+ {q:"Tek bir flaş indirim haftası, reklam harcaması ile siparişlerin korelasyonunu 0,97’den 0,05’e çeviriyor. Önce ne yapmalısınız?",
+  o:["Saçılım grafiğini çizip aykırı değere bakmak","Tüm veriyi kullandığı için 0,05’i raporlamak","Flaş indirim satırını silip yalnızca 0,97’yi raporlamak","Yayılımı göstermek için <code>errorbar='sd'</code>’ye geçmek"],a:0,
+  e:"Önce resme bakın, sonra aykırının ne olduğuna karar verin ve iki sayıyı da açıklamasıyla raporlayın."},
+ {q:"Dondurma satışları ile güneş yanığı vakaları güçlü biçimde ilişkili. Hangi ifade doğrudur?",
+  o:["Dışarıda dondurma yemek güneş yanığına neden olur","Güneş yanığı insanları serinlemek için dondurma almaya iter","Sıcak güneşli hava ikisini birden yönlendirir; biri diğerine neden olmaz","Korelasyon verideki bir hata olmalıdır"],a:2,
+  e:"Üçüncü bir etken (güneş) ikisini birden artırır."},
+ {q:"Tek bir grafikte her bölge için bir regresyon çizgisi istiyorsunuz. Hangi fonksiyon bunu yapar?",
+  o:["<code>sns.regplot(..., hue='region')</code>","<code>sns.scatterplot(..., trend=True)</code>","<code>sns.lineplot(..., errorbar='ols')</code>","<code>sns.lmplot(..., hue='region')</code>"],a:3,
+  e:"<code>regplot()</code>’un <code>hue=</code>’su yoktur; figür düzeyi <code>lmplot()</code> grup başına çizgi uydurur."}
+];
+
+function buildQuiz(){
+  const box=document.getElementById('quizBox'); box.innerHTML='';
+  const L='ABCD';
+  QUIZ.forEach((it,i)=>{
+    const d=document.createElement('div'); d.className='q'; d.id='q'+(i+1);
+    d.innerHTML=`<div class="qt">${i+1}. ${it.q}</div>`+
+      it.o.map((o,j)=>`<label><input type="radio" name="q${i}" value="${j}"><strong>${L[j]}.</strong> ${o}</label>`).join('')+
+      `<div class="fb"></div>`;
+    d.querySelectorAll('input').forEach(inp=>inp.addEventListener('change',()=>{
+      if(d.dataset.done) return; d.dataset.done=1;
+      const j=+inp.value, labs=d.querySelectorAll('label');
+      labs[it.a].classList.add('ok'); if(j!==it.a) labs[j].classList.add('no');
+      d.querySelectorAll('input').forEach(x=>x.disabled=true);
+      const fb=d.querySelector('.fb'); fb.classList.add('show');
+      fb.innerHTML=(j===it.a?'✅ <strong>Doğru.</strong> ':'❌ <strong>Doğru cevap '+L[it.a]+'.</strong> ')+it.e;
+      if(j===it.a) d.dataset.ok=1; updateScore();
+    }));
+    box.appendChild(d);
+  });
+  updateScore();
+}
+function updateScore(){
+  const ok=document.querySelectorAll('.q[data-ok]').length, done=document.querySelectorAll('.q[data-done]').length;
+  document.getElementById('score').textContent=`${ok} / ${QUIZ.length}`+(done?` (cevaplanan: ${done})`:'');
+}
+document.getElementById('quizReset').onclick=buildQuiz;
+buildQuiz();
+
+// ---------------- Data list -----------------
+function csvToTable(txt,max=200){
+  const rows=txt.trim().split(/\r?\n/).map(r=>r.split(','));
+  const h=rows.shift();
+  return '<table><thead><tr>'+h.map(x=>`<th>${x}</th>`).join('')+'</tr></thead><tbody>'+
+    rows.slice(0,max).map(r=>'<tr>'+r.map(x=>`<td>${x}</td>`).join('')+'</tr>').join('')+'</tbody></table>';
+}
+(function(){
+  const host=document.getElementById('dataList');
+  Object.entries(DATA).forEach(([name,txt])=>{
+    const n=txt.trim().split(/\r?\n/).length-1;
+    const url=URL.createObjectURL(new Blob([txt],{type:'text/csv'}));
+    const d=document.createElement('details'); d.className='data';
+    const isCsv=name.endsWith('.csv');
+    d.innerHTML=`<summary>${name} <span style="font-weight:400;color:#5f6b72">— ${isCsv?n+' satır':'stil dosyası'}</span> · <a href="${url}" download="${name}">indir</a></summary><div class="tbl">${isCsv?csvToTable(txt):'<pre style="font-size:12px;white-space:pre-wrap">'+txt.replace(/</g,'&lt;')+'</pre>'}</div>`;
+    host.appendChild(d);
+  });
+})();
+
+// ---------------- Code cells -----------------
+const cells=[];
+document.querySelectorAll('.cell').forEach((el,i)=>{
+  const ta=el.querySelector('textarea'); const src=ta.value;
+  const bar=document.createElement('div'); bar.className='bar';
+  bar.innerHTML=`<span class="lbl">In [<span class="cnt"> </span>]:</span><span class="sp"></span>
+    <button class="btn ghost reset" title="Orijinal koda dön">↺ Orijinal</button>
+    <button class="btn run" disabled>▶ Çalıştır</button>`;
+  el.insertBefore(bar,ta);
+  const cm=CodeMirror.fromTextArea(ta,{mode:'python',lineNumbers:false,indentUnit:4,viewportMargin:Infinity,
+     extraKeys:{'Shift-Enter':()=>runCell(i),'Ctrl-Enter':()=>runCell(i),Tab:c=>c.replaceSelection('    ')}});
+  const out=document.createElement('div'); out.className='out'; el.appendChild(out);
+  const c={el,cm,out,src,ran:false,idx:i,btn:bar.querySelector('.run'),cnt:bar.querySelector('.cnt')};
+  bar.querySelector('.run').onclick=()=>runCell(i);
+  bar.querySelector('.reset').onclick=()=>cm.setValue(src);
+  el.id='hucre-'+(i+1);
+  cells.push(c);
+});
+
+// ---------------- Pyodide -----------------
+let py=null, execCount=0, busy=false;
+const st=document.getElementById('status'), stT=document.getElementById('statusText');
+window.__currentOut=null;
+window.renderPlot=function(json){
+  const spec=JSON.parse(json); const div=document.createElement('div'); div.className='plot';
+  const inner=document.createElement('div'); div.appendChild(inner);
+  window.__currentOut.appendChild(div);
+  Plotly.newPlot(inner,spec.data,spec.layout||{},{responsive:true,displaylogo:false,locale:'tr'});
+};
+const PY_SETUP=`
+import os
+os.environ['MPLBACKEND'] = 'Agg'
+import matplotlib
+matplotlib.use('Agg')
+import sys, io, ast, contextlib, base64
+import pandas as pd
+import matplotlib.pyplot as plt
+_CAPTURED = []
+def _grab_figs():
+    for n in plt.get_fignums():
+        f = plt.figure(n); b = io.BytesIO()
+        f.savefig(b, format='png', dpi=120, bbox_inches='tight')
+        _CAPTURED.append(base64.b64encode(b.getvalue()).decode())
+    plt.close('all')
+plt.show = lambda *a, **k: _grab_figs()
+# matplotlib 3.8 (Pyodide) için kitap kodunun 3.10+ parametrelerine uyum katmanı
+from matplotlib.axes import Axes as _Axes
+_orig_boxplot = _Axes.boxplot
+def _boxplot(self, *a, tick_labels=None, orientation=None, **k):
+    if tick_labels is not None: k['labels'] = tick_labels
+    if orientation is not None: k['vert'] = (orientation == 'vertical')
+    return _orig_boxplot(self, *a, **k)
+_Axes.boxplot = _boxplot
+import warnings
+warnings.simplefilter('ignore', FutureWarning)
+pd.set_option('display.width', 120)
+SKIP = ('.csv', '.mplstyle')
+def _written(src):
+    import re
+    return re.findall(r"savefig\\(\\s*['\\"]([^'\\"]+)['\\"]", src)
+def __run_cell(src, ns):
+    buf = io.StringIO()
+    before = set(f for f in os.listdir('.') if not f.endswith(SKIP))
+    _CAPTURED.clear()
+    res = {'stdout':'', 'html':None, 'text':None, 'files':[], 'imgs':[]}
+    val = None
+    try:
+        with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(buf):
+            tree = ast.parse(src)
+            last = None
+            if tree.body and isinstance(tree.body[-1], ast.Expr):
+                last = ast.Expression(tree.body.pop().value)
+            exec(compile(tree, '<hücre>', 'exec'), ns)
+            val = eval(compile(last, '<hücre>', 'eval'), ns) if last is not None else None
+    finally:
+        _grab_figs()
+        res['imgs'] = list(_CAPTURED)
+        _CAPTURED.clear()
+    res['stdout'] = buf.getvalue()
+    if val is not None:
+        if isinstance(val, (pd.DataFrame, pd.Series)):
+            df = val.to_frame() if isinstance(val, pd.Series) else val
+            res['html'] = df.to_html(max_rows=30, border=0)
+        elif hasattr(val, '_repr_html_') and type(val).__name__ == 'Styler':
+            res['html'] = val._repr_html_()
+        else:
+            res['text'] = repr(val)
+    after = set(f for f in os.listdir('.') if not f.endswith(SKIP))
+    res['files'] = sorted((after - before) | (set(_written(src)) & after))
+    return res
+def __new_ns():
+    plt.close('all'); matplotlib.rcdefaults()
+    return {'__name__':'__main__'}
+`;
+async function initPy(){
+  try{
+    stT.textContent='Pyodide yükleniyor…';
+    py=await loadPyodide();
+    stT.textContent='pandas, matplotlib yükleniyor…';
+    await py.loadPackage(['pandas','matplotlib','scipy','jinja2','micropip']);
+    stT.textContent='seaborn yükleniyor…';
+    const mp=py.pyimport('micropip');
+    await mp.install(['seaborn'].concat(window.EXTRA_PKGS||[]));
+    for(const [n,t] of Object.entries(DATA)) py.FS.writeFile(n,t);
+    await py.runPythonAsync(PY_SETUP);
+    window.__ns=py.runPython('__new_ns()');
+    st.className='ready'; stT.textContent='Python hazır';
+    cells.forEach(c=>c.btn.disabled=false);
+  }catch(e){ st.className='err'; stT.textContent='Yükleme hatası'; console.error(e);
+    alert('Pyodide yüklenemedi. İnternet bağlantınızı kontrol edin.\n'+e); }
+}
+async function execOne(c){
+  c.out.innerHTML=''; c.out.classList.add('show'); window.__currentOut=c.out;
+  c.el.style.opacity=1;
+  try{
+    const fn=py.globals.get('__run_cell');
+    const r=fn(c.cm.getValue(), window.__ns).toJs({dict_converter:Object.fromEntries});
+    fn.destroy();
+    if(r.stdout){const p=document.createElement('pre');p.className='txt';p.textContent=r.stdout;c.out.prepend(p);}
+    if(r.html){const d=document.createElement('div');d.style.overflowX='auto';d.innerHTML=r.html;c.out.appendChild(d);}
+    if(r.text){const p=document.createElement('pre');p.className='txt';p.textContent=r.text;c.out.appendChild(p);}
+    for(const im of (r.imgs||[])){const d=document.createElement('div');d.className='plot';const g=document.createElement('img');g.src='data:image/png;base64,'+im;g.alt='Grafik';d.appendChild(g);c.out.appendChild(d);}
+    for(const f of (r.files||[])){
+      const bytes=py.FS.readFile(f); const url=URL.createObjectURL(new Blob([bytes],{type:f.endsWith('.html')?'text/html':'application/octet-stream'}));
+      const d=document.createElement('div');d.className='dl';
+      d.innerHTML=`<a href="${url}" download="${f}">⬇ ${f} dosyasını indir (${(bytes.length/1048576).toFixed(1)} MB)</a> &nbsp;<a href="${url}" target="_blank" style="background:#0b3a47">Yeni sekmede aç</a>`;
+      c.out.appendChild(d);
+    }
+    if(!c.out.children.length){const p=document.createElement('pre');p.className='txt';p.style.color='#8a9296';p.textContent='✓ Çalıştı (çıktı yok)';c.out.appendChild(p);}
+    c.ran=true; c.cnt.textContent=++execCount; return true;
+  }catch(e){
+    let msg=String(e.message||e); const k=msg.lastIndexOf('File "<hücre>"');
+    if(k>0) msg=msg.slice(k);
+    const p=document.createElement('pre');p.className='txt err';p.textContent=msg;c.out.appendChild(p);
+    c.cnt.textContent='!'; return false;
+  }
+}
+async function runCell(i){
+  if(!py||busy) return; busy=true;
+  const target=cells[i];
+  target.btn.disabled=true; target.btn.textContent='⏳';
+  await new Promise(r=>setTimeout(r,20));
+  for(let k=0;k<i;k++){ if(!cells[k].ran){ cells[k].btn.textContent='⏳'; await new Promise(r=>setTimeout(r,10)); await execOne(cells[k]); cells[k].btn.textContent='▶ Çalıştır'; } }
+  await execOne(target);
+  target.btn.disabled=false; target.btn.textContent='▶ Çalıştır'; busy=false;
+}
+document.getElementById('runAll').onclick=async()=>{ if(!py)return; for(let i=0;i<cells.length;i++){ cells[i].ran=false; } await runCell(cells.length-1); };
+document.getElementById('resetNs').onclick=()=>{ if(!py)return; window.__ns=py.runPython('__new_ns()'); execCount=0;
+  cells.forEach(c=>{c.ran=false;c.cnt.textContent=' ';c.out.innerHTML='';c.out.classList.remove('show');}); };
+initPy();
+
+// ---------------- TOC -----------------
+const toc=document.getElementById('tocLinks');
+const heads=[...document.querySelectorAll('main h2[id], main h3[id]')];
+heads.forEach(h=>{const a=document.createElement('a');a.href='#'+h.id;a.innerHTML=h.innerHTML.replace(/<span class="num">(.*?)<\/span>/,'$1 ');if(h.tagName==='H3')a.className='sub';toc.appendChild(a);});
+const tocLinks=[...toc.querySelectorAll('a')];
+const io2=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){tocLinks.forEach(a=>a.classList.toggle('active',a.getAttribute('href')==='#'+e.target.id));}})},{rootMargin:'-80px 0px -70% 0px'});
+heads.forEach(h=>io2.observe(h));
+
+// ---------------- Search -----------------
+const norm=s=>s.toLocaleLowerCase('tr').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/ı/g,'i');
+const index=[];
+(function buildIndex(){
+  let sec='Giriş';
+  document.querySelectorAll('main h1, main h2, main h3, main p, main li, main .callout, main .cell, main .q, main pre.data').forEach(el=>{
+    if(el.closest('.callout')&&el.tagName!=='DIV') return;
+    if(el.closest('#datasets')) return;
+    if(el.matches('.q')){ index.push({el,sec:'Sınav',kind:'soru',text:el.querySelector('.qt').textContent+' '+[...el.querySelectorAll('label')].map(l=>l.textContent).join(' ')}); return; }
+    if(el.closest('.q')) return;
+    if(el.matches('h2,h3')){ sec=el.textContent; }
+    let kind='metin', text=el.textContent;
+    if(el.matches('.cell')){ kind='kod'; const c=cells.find(c=>c.el===el); text=c?c.cm.getValue():text; }
+    else if(el.matches('h1,h2,h3')) kind='başlık';
+    else if(el.matches('.callout')) kind='kutu';
+    else if(el.matches('.figdesc')) kind='grafik';
+    else if(el.matches('pre.data')) kind='veri';
+    index.push({el,sec,kind,text:text.replace(/\s+/g,' ').trim()});
+  });
+  index.forEach(x=>x.n=norm(x.text));
+})();
+const si=document.getElementById('search'), res=document.getElementById('results');
+let hits=[], act=-1;
+function esc(s){return s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+function snippet(text,terms){
+  const n=norm(text); let pos=-1;
+  for(const t of terms){const p=n.indexOf(t);if(p>=0){pos=p;break;}}
+  let s=Math.max(0,pos-60), e=Math.min(text.length,(pos<0?0:pos)+140);
+  let out=(s>0?'…':'')+text.slice(s,e)+(e<text.length?'…':'');
+  // highlight (norm keeps length for Turkish chars after NFD strip mostly; do case-insensitive regex)
+  let h=esc(out);
+  terms.forEach(t=>{ if(!t) return;
+    const re=new RegExp(t.split('').map(ch=>{const m={'i':'[iıİI]','s':'[sşŞS]','c':'[cçÇC]','g':'[gğĞG]','o':'[oöÖO]','u':'[uüÜU]'}; return m[ch]||ch.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}).join(''),'gi');
+    h=h.replace(re,m=>`<mark>${m}</mark>`); });
+  return h;
+}
+function doSearch(){
+  const q=si.value.trim();
+  if(q.length<2){res.classList.remove('open');res.innerHTML='';return;}
+  const terms=norm(q).split(/\s+/).filter(Boolean);
+  hits=index.map(x=>{let sc=0;for(const t of terms){const c=x.n.split(t).length-1;if(!c)return null;sc+=c;} if(x.kind==='başlık')sc+=5; if(x.kind==='kod')sc+=1; return {x,sc};}).filter(Boolean).sort((a,b)=>b.sc-a.sc).slice(0,40);
+  act=-1;
+  res.innerHTML=hits.length?`<div class="count">${hits.length} sonuç · <kbd>↑</kbd><kbd>↓</kbd> ile gez, <kbd>Enter</kbd> ile git</div>`+hits.map((h,i)=>`<div class="r" data-i="${i}"><div class="sec">${esc(h.x.sec)}<span class="kind">${h.x.kind}</span></div><div class="snip">${snippet(h.x.text,terms)}</div></div>`).join('')
+    :'<div class="empty">Sonuç bulunamadı.</div>';
+  res.classList.add('open');
+  res.querySelectorAll('.r').forEach(r=>r.onclick=()=>go(+r.dataset.i));
+}
+function go(i){
+  const el=hits[i].x.el; res.classList.remove('open');
+  const det=el.closest('details'); if(det) det.open=true;
+  el.scrollIntoView({behavior:'smooth',block:'center'});
+  el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
+}
+si.addEventListener('input',doSearch);
+si.addEventListener('focus',()=>{if(si.value.trim().length>=2)doSearch();});
+si.addEventListener('keydown',e=>{
+  const rs=[...res.querySelectorAll('.r')];
+  if(e.key==='ArrowDown'){act=Math.min(rs.length-1,act+1);}
+  else if(e.key==='ArrowUp'){act=Math.max(0,act-1);}
+  else if(e.key==='Enter'){ if(hits.length) go(act<0?0:act); return; }
+  else if(e.key==='Escape'){res.classList.remove('open');si.blur();return;}
+  else return;
+  e.preventDefault(); rs.forEach((r,k)=>r.classList.toggle('act',k===act)); if(rs[act]) rs[act].scrollIntoView({block:'nearest'});
+});
+document.addEventListener('keydown',e=>{ if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();si.focus();si.select();}
+  else if(e.key==='/'&&document.activeElement.tagName!=='INPUT'&&!document.activeElement.closest('.CodeMirror')){e.preventDefault();si.focus();}});
+document.addEventListener('click',e=>{if(!e.target.closest('.search-wrap'))res.classList.remove('open');});
+</script>
+</body>
+</html>

@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bölüm 7: Bir Grafiğin Her Parçasını Özelleştirmek</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+<script src="https://cdn.jsdelivr.net/pyodide/v0.27.7/full/pyodide.js"></script>
+<style>
+:root{
+  --teal:#0b3a47; --amber:#b26a00; --lteal:#6fb3c2; --sand:#f0c987;
+  --bg:#f7f6f2; --paper:#ffffff; --ink:#1f2a30; --muted:#5f6b72; --line:#e2e0d8;
+  --code-bg:#fbfaf6;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:80px}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.65 "Segoe UI",system-ui,-apple-system,Roboto,sans-serif}
+header.top{position:sticky;top:0;z-index:50;background:var(--teal);color:#fff;display:flex;align-items:center;gap:16px;padding:10px 20px;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+header.top .brand{font-weight:600;white-space:nowrap}
+header.top .brand small{opacity:.7;font-weight:400;margin-left:6px}
+.search-wrap{position:relative;flex:1;max-width:560px;margin-left:auto}
+#search{width:100%;padding:9px 14px 9px 36px;border-radius:8px;border:none;font-size:15px;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235f6b72' stroke-width='2.5'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E") no-repeat 11px center}
+#search:focus{outline:3px solid var(--sand)}
+#results{position:absolute;top:44px;left:0;right:0;background:#fff;color:var(--ink);border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,.2);max-height:70vh;overflow:auto;display:none}
+#results.open{display:block}
+#results .r{padding:10px 14px;border-bottom:1px solid var(--line);cursor:pointer}
+#results .r:hover,#results .r.act{background:#eef5f6}
+#results .r .sec{font-size:12px;color:var(--amber);font-weight:600;text-transform:uppercase;letter-spacing:.03em}
+#results .r .kind{font-size:11px;background:var(--line);border-radius:4px;padding:0 5px;margin-left:6px;color:var(--muted);text-transform:none;letter-spacing:0}
+#results .r .snip{font-size:14px}
+#results .empty,#results .count{padding:10px 14px;color:var(--muted);font-size:13px}
+mark{background:#ffe08a;color:inherit;border-radius:2px;padding:0 1px}
+#status{font-size:13px;white-space:nowrap;display:flex;align-items:center;gap:8px}
+#status .dot{width:10px;height:10px;border-radius:50%;background:#f0c987;box-shadow:0 0 0 0 rgba(240,201,135,.7);animation:pulse 1.4s infinite}
+#status.ready .dot{background:#7bd88f;animation:none}
+#status.err .dot{background:#ff6b6b;animation:none}
+@keyframes pulse{70%{box-shadow:0 0 0 8px rgba(240,201,135,0)}100%{box-shadow:0 0 0 0 rgba(240,201,135,0)}}
+.layout{display:grid;grid-template-columns:260px minmax(0,1fr);gap:28px;max-width:1240px;margin:0 auto;padding:24px 20px 80px}
+nav.toc{position:sticky;top:76px;align-self:start;max-height:calc(100vh - 96px);overflow:auto;font-size:14px}
+nav.toc h4{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+nav.toc a{display:block;color:var(--ink);text-decoration:none;padding:4px 10px;border-left:3px solid transparent;border-radius:0 4px 4px 0}
+nav.toc a.sub{padding-left:24px;font-size:13px;color:var(--muted)}
+nav.toc a:hover{background:#ece9df}
+nav.toc a.active{border-left-color:var(--amber);background:#fff;font-weight:600;color:var(--teal)}
+nav.toc .tools{margin-top:16px;display:flex;flex-direction:column;gap:6px}
+main{background:var(--paper);border-radius:12px;padding:36px 48px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+h1{font-size:2rem;color:var(--teal);margin:0 0 4px;line-height:1.25}
+.subtitle{color:var(--muted);margin:0 0 24px}
+h2{font-size:1.45rem;color:var(--teal);border-bottom:2px solid var(--sand);padding-bottom:6px;margin:48px 0 16px}
+h2 .num{color:var(--amber);margin-right:8px}
+h3{font-size:1.12rem;margin:30px 0 10px;color:var(--ink)}
+code{font-family:"JetBrains Mono",Consolas,Menlo,monospace;font-size:.88em;background:#f1efe8;padding:1px 5px;border-radius:4px;color:#7a3e00}
+.lead{font-size:1.08rem;border-left:4px solid var(--amber);padding:4px 0 4px 16px;color:#33424a}
+.goals{background:#eef5f6;border-radius:10px;padding:16px 22px}
+.goals ul{margin:6px 0 0;padding-left:20px}
+.callout{border-radius:10px;padding:12px 18px;margin:18px 0;border-left:5px solid}
+.callout .t{font-weight:700;display:block;margin-bottom:2px}
+.callout.warn{background:#fff4e5;border-color:var(--amber)}
+.callout.warn .t{color:var(--amber)}
+.callout.tip{background:#eaf6f1;border-color:#2f8f6b}
+.callout.tip .t{color:#2f8f6b}
+.callout.note{background:#eef2f7;border-color:#4b6a8a}
+.callout.note .t{color:#4b6a8a}
+pre.data{background:var(--code-bg);border:1px dashed var(--line);border-radius:8px;padding:10px 14px;font-size:13px;overflow:auto}
+/* code cells */
+.cell{border:1px solid var(--line);border-radius:10px;margin:18px 0;overflow:hidden;background:var(--code-bg)}
+.cell .bar{display:flex;align-items:center;gap:8px;padding:6px 10px;background:#f1efe8;border-bottom:1px solid var(--line);font-size:12px;color:var(--muted)}
+.cell .bar .lbl{font-family:Consolas,monospace}
+.cell .bar .sp{flex:1}
+button{font:inherit;cursor:pointer;border-radius:6px;border:1px solid transparent}
+.btn{background:var(--teal);color:#fff;padding:4px 12px;font-size:13px}
+.btn:hover{filter:brightness(1.2)}
+.btn:disabled{opacity:.5;cursor:wait}
+.btn.ghost{background:transparent;color:var(--teal);border-color:#c9d3d6}
+.btn.ghost:hover{background:#fff}
+.btn.amber{background:var(--amber)}
+.CodeMirror{height:auto;font-size:14px;background:var(--code-bg);font-family:"JetBrains Mono",Consolas,Menlo,monospace}
+.CodeMirror-scroll{min-height:30px}
+.cm-s-default .cm-keyword{color:#8a3ffc}.cm-s-default .cm-string{color:#0b7a4b}.cm-s-default .cm-number{color:#b26a00}.cm-s-default .cm-comment{color:#8a9296;font-style:italic}.cm-s-default .cm-builtin{color:#0b5f7a}
+.out{border-top:1px solid var(--line);background:#fff;padding:0;display:none}
+.out.show{display:block}
+.out .txt{margin:0;padding:10px 14px;font:13px/1.5 Consolas,Menlo,monospace;white-space:pre-wrap;color:#333}
+.out .txt.err{color:#b00020;background:#fff5f5}
+.out .plot{padding:6px;overflow-x:auto}
+.out table{border-collapse:collapse;margin:10px 14px;font-size:13px}
+.out th,.out td{border:1px solid var(--line);padding:4px 10px;text-align:right}
+.out th{background:#f1efe8}
+.out .dl{margin:10px 14px}
+.out .dl a{display:inline-block;background:var(--amber);color:#fff;text-decoration:none;padding:5px 12px;border-radius:6px;font-size:13px}
+.figdesc{font-size:14px;color:var(--muted);background:#f6f5f0;border-radius:8px;padding:8px 14px;margin:-8px 0 14px;border:1px solid var(--line)}
+.figdesc::before{content:"🖼 Beklenen grafik: ";font-weight:600;color:var(--teal)}
+.flash{animation:flash 2.2s ease}
+@keyframes flash{0%,40%{background:#fff1bf;box-shadow:0 0 0 6px #fff1bf}100%{background:transparent;box-shadow:none}}
+details.data{border:1px solid var(--line);border-radius:8px;margin:8px 0;background:#fff}
+details.data summary{cursor:pointer;padding:8px 14px;font-weight:600;color:var(--teal)}
+details.data .tbl{max-height:260px;overflow:auto;padding:0 14px 10px}
+details.data table{border-collapse:collapse;font-size:13px}
+details.data td,details.data th{border:1px solid var(--line);padding:3px 8px}
+details.data th{background:#f1efe8;position:sticky;top:0}
+/* quiz */
+.q{border:1px solid var(--line);border-radius:10px;padding:14px 18px;margin:14px 0}
+.q .qt{font-weight:600;margin-bottom:8px}
+.q label{display:block;padding:6px 10px;border-radius:6px;cursor:pointer;border:1px solid transparent}
+.q label:hover{background:#f4f2ea}
+.q label.ok{background:#e3f4ea;border-color:#2f8f6b}
+.q label.no{background:#fde8e8;border-color:#d05353}
+.q input{margin-right:8px}
+.q .fb{font-size:14px;margin-top:6px;display:none}
+.q .fb.show{display:block}
+#score{font-weight:700;color:var(--teal)}
+.out img{max-width:100%;height:auto;display:block;margin:6px auto}
+table.choose{border-collapse:collapse;width:100%;font-size:14px;margin:10px 0}table.choose th,table.choose td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}table.choose th{background:#eef5f6;color:var(--teal)}
+.chnav{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:14px;margin:0 0 18px}.chnav a{color:var(--teal);text-decoration:none;border:1px solid var(--line);border-radius:6px;padding:4px 10px}.chnav a:hover{background:#eef5f6}.chnav .all{display:flex;gap:4px;flex-wrap:wrap}.chnav .all a.cur{background:var(--teal);color:#fff}
+.summary li{margin-bottom:6px}
+footer{text-align:center;color:var(--muted);font-size:13px;padding:30px}
+kbd{border:1px solid #bbb;border-bottom-width:2px;border-radius:4px;padding:0 5px;font-size:12px;background:#fff;color:#333}
+@media (max-width:900px){.layout{grid-template-columns:1fr}nav.toc{display:none}main{padding:22px 18px}header.top .brand small{display:none}#status span{display:none}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">Bölüm 7 <small>Bir Grafiğin Her Parçasını Özelleştirmek</small></div>
+  <div class="search-wrap">
+    <input id="search" type="search" placeholder="Bölümde ara… (ör. annotate, rcParams, renk)   Ctrl+K" autocomplete="off">
+    <div id="results"></div>
+  </div>
+  <div id="status"><div class="dot"></div><span id="statusText">Python yükleniyor…</span></div>
+</header>
+
+<div class="layout">
+<nav class="toc" id="toc">
+  <h4>İçindekiler</h4>
+  <div id="tocLinks"></div>
+  <div class="tools">
+    <button class="btn" id="runAll">▶ Tüm hücreleri çalıştır</button>
+    <button class="btn ghost" id="resetNs">↺ Python ortamını sıfırla</button>
+  </div>
+</nav>
+
+<main id="content">
+<div class="chnav"><a href="bolum06_dagilimlar_izgaralar.html">← Bölüm 6</a><div class="all">Bölümler: <a href="bolum01_ortami_kurmak.html" class="" title="Görselleştirme Ortamını Kurmak">1</a><a href="bolum02_cizmeden_once_dusunmek.html" class="" title="Çizmeden Önce Düşünmek">2</a><a href="bolum03_matplotlib_temelleri.html" class="" title="matplotlib Temelleri">3</a><a href="bolum04_cizgiler_noktalar.html" class="" title="Çizgiler ve Noktalar">4</a><a href="bolum05_cubuklar_pastalar_tablolar.html" class="" title="Çubuklar, Pastalar ve Tablolar">5</a><a href="bolum06_dagilimlar_izgaralar.html" class="" title="Dağılımlar ve Değer Izgaraları">6</a><a href="bolum07_ozellestirme.html" class="cur" title="Bir Grafiğin Her Parçasını Özelleştirmek">7</a><a href="bolum08_yerlesimler.html" class="" title="Yerleşimler: Bir Figürde Birçok Grafik">8</a><a href="bolum09_iletisim_kuran_tasarim.html" class="" title="İletişim Kuran Tasarım">9</a><a href="bolum10_yalan_soyleyen_grafikler.html" class="" title="Yalan Söyleyen Grafikler">10</a><a href="bolum11_seaborn_temelleri.html" class="" title="seaborn Temelleri">11</a><a href="bolum12_iliskiler_regresyon.html" class="" title="İlişkiler ve Regresyon">12</a><a href="bolum13_kategoriler.html" class="" title="Kategoriler">13</a><a href="bolum14_dagilimlar.html" class="" title="Dağılımlar">14</a><a href="bolum15_izgaralar_matrisler.html" class="" title="Izgaralar ve Matrisler">15</a><a href="bolum16_plotly_express.html" class="" title="plotly express ile Etkileşimli Grafikler">16</a><a href="bolum17_haritalar_is_grafikleri.html" class="" title="Haritalar ve İş Grafikleri">17</a></div><a href="bolum08_yerlesimler.html">Bölüm 8 →</a></div>
+<h1>Bölüm 7: Bir Grafiğin Her Parçasını Özelleştirmek</h1>
+<p class="subtitle">Kod hücreleri tarayıcınızda <strong>Pyodide</strong> ile çalışır; Python kurmanıza gerek yok. Kodu değiştirip yeniden çalıştırabilirsiniz (<kbd>Shift</kbd>+<kbd>Enter</kbd>). Grafikler matplotlib ile resim olarak çizilir.</p>
+
+<p class="lead">Grafiğiniz neredeyse hazır. Başlık neyi gösterdiğini söylüyor ve gösterge çizgileri adlandırıyor. Sonra yöneticiniz ona bakıp diyor ki: “Sayılarda dolar işareti olabilir mi? Hedefi işaretleyebilir misin? Ve o minik ızgara orada ne yapıyor?” Bu isteklerin her biri küçük. Hep birlikte, bir grafiğin bitmiş mi yarım mı göründüğüne karar veriyorlar.</p>
+
+<p>Bölüm 3 size bir grafiğin büyük parçalarını verdi: başlık, etiketler, sınırlar ve gösterge. Bu bölüm daha küçük olanlara iniyor. Bir eksendeki sayıları biçimlendirecek, işaret etiketlerini sığsınlar diye döndürecek, bir ekseni logaritmik ölçeğe geçirecek ve ihtiyacınız olmayan çerçeve çizgilerini kaldıracaksınız. Ayrıca verinin üstüne metin ve çizgiler yazacak, renkler ve renk haritaları seçecek ve son olarak Bölüm 1’den beri yüklediğiniz stil dosyası <code>book.mplstyle</code>’ın içinde ne olduğunu öğreneceksiniz.</p>
+
+<div class="goals">
+<strong>Bu bölümün sonunda şunları yapabileceksiniz:</strong>
+<ul>
+<li>İşaret etiketlerini <code>StrMethodFormatter</code> ve <code>PercentFormatter</code> ile dolar ya da yüzde olarak biçimlendirmek</li>
+<li><code>ax.tick_params()</code> ile işaret etiketlerini döndürmek ve yeniden boyutlandırmak</li>
+<li><code>ax.set_xscale('log')</code> ile bir ekseni logaritmik ölçeğe geçirmek</li>
+<li><code>ax.spines</code> ve <code>ax.grid()</code> ile çerçeve çizgilerini kaldırmak ve kılavuzu açıp kapamak</li>
+<li><code>ax.text()</code> ve <code>ax.annotate()</code> ile grafiğe yazmak; <code>ax.axhline()</code>, <code>ax.axvline()</code> ve <code>ax.axvspan()</code> ile bir düzeyi ya da dönemi işaretlemek</li>
+<li>Siyah-beyazda da çalışan renkler ve bir renk haritası seçmek</li>
+<li><code>book.mplstyle</code>’ı okumak, <code>plt.rcParams</code> ile ayarları değiştirmek ve yazı tiplerini ayarlamak</li>
+</ul>
+</div>
+
+<details class="data" id="datasets">
+<summary>📁 Bu bölümün veri dosyaları (sayfaya gömülü — Python’da doğrudan <code>pd.read_csv()</code> ile okunur)</summary>
+<div id="dataList" style="padding:0 14px 10px"></div>
+</details>
+
+<section>
+<h2 id="s7-1"><span class="num">7.1</span>İşaretler ve Sayı Biçimleri</h2>
+<p>Bir <em>işaret</em> (tick) bir eksendeki küçük bir çentiktir ve <em>işaret etiketi</em> onun yanındaki sayı ya da sözcüktür. matplotlib sizin için yuvarlak işaret konumları seçer; genellikle istediğiniz de budur. Bilmediği şey birimlerinizdir. Çıplak bir <code>40000</code> dolar da olabilir, adet de, ziyaretçi de.</p>
+<p>İçe aktarmalarla ve kitabın stiliyle başlayın:</p>
+<div class="cell"><textarea>import matplotlib.pyplot as plt
+import pandas as pd
+from matplotlib.ticker import PercentFormatter, StrMethodFormatter
+
+plt.style.use('book.mplstyle')</textarea></div>
+<p>İki <code>matplotlib.ticker</code> adı bu kısımda kullanacağınız biçimlendiricilerdir. İlk veri dosyası Bölüm 3’teki aylık satış tablosu:</p>
+<div class="cell"><textarea>sales = pd.read_csv('monthly_sales.csv')
+sales.head(3)</textarea></div>
+<p>İşte varsayılan işaret etiketleriyle:</p>
+<div class="cell"><textarea>fig, ax = plt.subplots()
+ax.plot(sales['month'], sales['sales_2025'])
+ax.set_title('Monthly sales, 2025')
+plt.show()</textarea></div>
+<p class="figdesc">y ekseni etiketleri 40000 ve 70000 gibi düz sayılar olarak yazılmış 2025 satış çizgisi.</p>
+<p><code>40000</code> ve <code>70000</code> etiketlerini bir bakışta okumak zor ve hiçbir şey dolar olduklarını söylemiyor. Birimi Bölüm 3.3’teki gibi eksen etiketine koyabilirsiniz. Daha temiz bir yol, onu işaret etiketlerinin kendisine koymaktır.</p>
+
+<h3 id="s7-1-str"><code>StrMethodFormatter</code></h3>
+<p>Bir <em>biçimlendirici</em> (formatter), bir işaret değerini eksende gösterilen metne çeviren bir nesnedir. <code>StrMethodFormatter</code>, <code>{x}</code>’in işaret değerini temsil ettiği bir biçim dizgesi alır. İki noktadan sonraki biçim bir f-dizgesindeki gibi çalışır: <code>,</code> binlik ayraç ekler ve <code>.0f</code> ondalık yok demektir.</p>
+<div class="cell"><textarea>fig, ax = plt.subplots()
+ax.plot(sales['month'], sales['sales_2025'])
+ax.set_title('Monthly sales, 2025')
+ax.yaxis.set_major_formatter(StrMethodFormatter('${x:,.0f}'))
+plt.show()</textarea></div>
+<p class="figdesc">y ekseni etiketleri $40,000 ve $70,000 olarak yazılmış aynı satış çizgisi.</p>
+<p><code>ax.yaxis</code> y ekseni nesnesidir ve <code>set_major_formatter()</code> onun ana işaret etiketlerinin nasıl yazılacağını ayarlar. <code>{x</code>’ten önceki <code>$</code> düz metindir; böylece her etiket bir dolar işareti alır. x ekseni için <code>ax.xaxis</code> kullanın.</p>
+<p>Aynı numara bir sayının sonuna da birim ekler. <code>'{x:.0f} km'</code> <code>5 km</code>, <code>'{x:,.0f} orders'</code> da <code>1,200 orders</code> verir.</p>
+
+<h3 id="s7-1-pct"><code>PercentFormatter</code></h3>
+<p>Oranlar çoğu zaman kesir olarak saklanır: <code>0.025</code> yüzde 2,5 demektir. <code>PercentFormatter</code> sizin için çarpar ve yüzde işaretini ekler. <code>monthly_funnel.csv</code> dosyası çevrimiçi mağazanın her ay kaç ziyaret aldığını ve bunların kaçının siparişle bittiğini sayar. <code>conversion</code> sütunu sipariş bölü ziyarettir:</p>
+<pre class="data">month,visits,orders,conversion
+January,21400,470,0.022
+February,20100,452,0.0225
+...
+December,44200,1370,0.031</pre>
+<div class="cell"><textarea>funnel = pd.read_csv('monthly_funnel.csv')
+funnel.head(3)</textarea></div>
+<p><code>PercentFormatter</code>’ın hangi sayının yüzde 100’ü temsil ettiğini bilmesi gerekir. (Düz bir <code>StrMethodFormatter('{x}%')</code> <code>0.03%</code> yazardı, çünkü yalnızca işareti ekler, asla çarpmaz.) Burada bu 1’dir; bu yüzden <code>xmax=1</code> verirsiniz. <code>decimals=1</code> noktadan sonra bir basamak tutar.</p>
+<div class="cell"><textarea>fig, ax = plt.subplots()
+ax.plot(funnel['month'], funnel['conversion'])
+ax.set_title('Share of visits that ended in an order')
+ax.set_ylim(0, 0.04)
+ax.yaxis.set_major_formatter(PercentFormatter(xmax=1, decimals=1))
+plt.show()</textarea></div>
+<p class="figdesc">Ocak’ta %2,2’den Aralık’ta %3,1’e yavaşça yükselen, %0,0’dan %4,0’a giden bir y ekseni üzerinde dönüşüm çizgisi.</p>
+<p>Ay adları altta sıkışıyor; bu kısmın sonraki parçası bunu düzeltiyor. y ekseni <code>0.0%</code>’dan <code>4.0%</code>’a gösteriyor; böylece okuyucu hiç <code>0.03</code> görmüyor.</p>
+<div class="callout note"><span class="t">📝 Not</span>Veriniz zaten yüzde cinsindeyse, yani 2,5 yüzde 2,5 demekse varsayılan <code>xmax=100</code>’ü kullanın: <code>PercentFormatter(decimals=1)</code>. Yanlış <code>xmax</code> vermek, 100 kat fazla büyük ya da küçük etiketlerin olağan nedenidir.</div>
+<p>Bir eksendeki tarihlerin kendi biçimlendiricisi vardır: Bölüm 4.2’nin ele aldığı <code>DateFormatter</code>.</p>
+
+<h3 id="s7-1-tick"><code>ax.tick_params()</code></h3>
+<p><code>tick_params()</code>, hangi değerleri gösterdiklerine dokunmadan işaret etiketlerinin ve işaret çentiklerinin nasıl göründüğünü değiştirir. En yaygın işi uzun etiketlerdir. Son grafiğin gösterdiği gibi bu kadar uzun ay adları çakışır. Onları 45 derece döndürmek her birine yer açar:</p>
+<div class="cell"><textarea>fig, ax = plt.subplots()
+ax.plot(funnel['month'], funnel['conversion'])
+ax.set_title('Share of visits that ended in an order')
+ax.set_ylim(0, 0.04)
+ax.yaxis.set_major_formatter(PercentFormatter(xmax=1, decimals=1))
+ax.tick_params(axis='x', labelrotation=45)
+plt.show()</textarea></div>
+<p class="figdesc">Yine dönüşüm çizgisi; on iki ay adı hiçbiri üst üste binmesin diye 45 derece döndürülmüş.</p>
+<p><code>axis='x'</code> hangi eksenin değişeceğini söyler; diğeri için <code>'y'</code> ya da <code>'both'</code> kullanın. <code>labelrotation=</code> derece cinsinden açıdır.</p>
+<p>Kullanacağınız birkaç başka ayar:</p>
+<div style="overflow-x:auto"><table class="choose">
+<thead><tr><th>Ayar</th><th>Ne yapar</th><th>Örnek</th></tr></thead>
+<tbody>
+<tr><td><code>labelsize</code></td><td>Etiketlerin yazı boyutu</td><td><code>labelsize=8</code></td></tr>
+<tr><td><code>labelcolor</code></td><td>Etiketlerin rengi</td><td><code>labelcolor='#555555'</code></td></tr>
+<tr><td><code>length</code></td><td>Punto cinsinden işaret çentiklerinin uzunluğu</td><td><code>length=0</code> onları gizler</td></tr>
+</tbody></table></div>
+<p>Döndürülmüş etiketler bir kurtarmadır, en iyi yanıt değil. Uzun kategori adları için yatay bir çubuk grafik (Bölüm 5.1) adları düz ve kolay okunur bırakır. Aylar gibi adların altta kalması gerektiğinde döndürme kullanın.</p>
+</section>
+
+<section>
+<h2 id="s7-2"><span class="num">7.2</span>Logaritmik Ölçekler, Çerçeve Çizgileri ve Kılavuzlar</h2>
+<h3 id="s7-2-log"><code>ax.set_xscale()</code></h3>
+<p>Bazen bir sayı diğerinden bin kat büyüktür. <code>page_visits.csv</code> dosyası mağazanın web sitesindeki sekiz sayfanın geçen ayki ziyaretlerini sayar:</p>
+<pre class="data">page,visits
+Home,182000
+Products,96400
+Cart,21300
+Checkout,9800
+Blog,4100
+About,1350
+Careers,420
+Press,95</pre>
+<div class="cell"><textarea>pages = pd.read_csv('page_visits.csv')
+pages.head(3)</textarea></div>
+<p>Normal ölçekte çizildiğinde büyük sayfalar diğer her şeyi sol kenara ezer. Grafik bilerek çubuklar yerine noktalar kullanıyor: sonraki paragraflar nedenini açıklıyor. <code>ax.invert_yaxis()</code> dosyanın ilk satırını Bölüm 5.1’deki gibi en üste koyar ve <code>ax.set_xticks()</code> işaretlerin nereye gideceğini, burada her 50.000’de bir, seçmenizi sağlar.</p>
+<div class="cell"><textarea>fig, ax = plt.subplots()
+ax.scatter(pages['visits'], pages['page'])
+ax.set_title('Visits per page, last month')
+ax.invert_yaxis()
+ax.set_xticks([0, 50000, 100000, 150000])
+ax.xaxis.set_major_formatter(StrMethodFormatter('{x:,.0f}'))
+plt.show()</textarea></div>
+<p class="figdesc">Sayfa başına bir tane olmak üzere sekiz nokta. Home ve Products çok sağda; diğer altı nokta sıfıra yakın bir yerde öbeklenmiş.</p>
+<p>Home’un en büyük olduğunu söyleyebilirsiniz, ama Careers’ın Press’ten büyük olup olmadığını söyleyemezsiniz. <code>set_xscale('log')</code> x eksenini bir <em>logaritmik ölçeğe</em> geçirir. Logaritmik ölçekte eşit uzaklıktaki her adım değeri aynı katsayıyla, burada 10’la çarpar: 100’den 1.000’e olan boşluk 1.000’den 10.000’e olan boşluk kadar geniştir.</p>
+<div class="cell"><textarea>fig, ax = plt.subplots()
+ax.scatter(pages['visits'], pages['page'])
+ax.set_title('Visits per page, last month')
+ax.invert_yaxis()
+ax.set_xscale('log')
+ax.xaxis.set_major_formatter(StrMethodFormatter('{x:,.0f}'))
+plt.show()</textarea></div>
+<p class="figdesc">100, 1,000, 10,000 ve 100,000 etiketli bir logaritmik x ekseni üzerinde aynı sekiz nokta. Noktalar artık soldaki Press’ten sağdaki Home’a tüm genişliğe yayılıyor.</p>
+<p>Artık sekiz sayfanın hepsi okunuyor. Varsayılan olarak bir logaritmik eksen etiketlerini onun kuvvetleri olarak yazar: 100 için küçük yükseltilmiş bir <code>2</code>’li <code>10</code>, 1.000 için yükseltilmiş bir <code>3</code>. Bölüm 7.1’deki biçimlendirici onları bunun yerine düz sayılara çevirir. <code>set_yscale('log')</code> aynısını y ekseni için yapar.</p>
+<p>Bir logaritmik ölçek “ne kadar büyük?” yerine “kaç kat büyük?” sorusunu yanıtlar. Bu onu birkaç büyüklük mertebesine yayılan veri (bazı değerlerin diğerlerinden on, yüz ya da bin kat büyük olduğu veri) için iyi bir seçim, onunla hiç karşılaşmamış bir okuyucu için ise riskli bir seçim yapar. Bu grafiğin noktalar kullanmasının nedeni de budur: logaritmik bir eksende çubuk uzunluğu artık değerle eşleşmez. Bölüm 10.2 logaritmik ölçeklerin nasıl yanıltabileceğini ve onları dürüstçe nasıl etiketleyeceğinizi gösteriyor.</p>
+
+<h3 id="s7-2-spines"><code>ax.spines</code></h3>
+<p><em>Çerçeve çizgileri</em> (spines), çizim alanını çevreleyen dört çizgidir. Çoğu iş grafiğinde üst ve sağdakiler hiçbir bilgi taşımaz. Onlara her kenar için bir girişi olan bir koleksiyon olan <code>ax.spines</code> üzerinden ulaşırsınız: <code>'top'</code>, <code>'right'</code>, <code>'bottom'</code> ve <code>'left'</code>.</p>
+<div class="cell"><textarea>fig, ax = plt.subplots()
+ax.plot(sales['month'], sales['sales_2025'])
+ax.set_title('Monthly sales, 2025')
+ax.set_ylabel('Sales ($)')
+ax.spines[['top', 'right']].set_visible(False)
+plt.show()</textarea></div>
+<p class="figdesc">Açık bir çerçevede 2025 satış çizgisi: yalnızca sol ve alt çizgiler kalıyor.</p>
+<p>Köşeli parantezlerin içindeki adlardan oluşan bir liste birkaç kenarı aynı anda seçer. <code>set_visible(False)</code> yerine bir çerçeve çizgisini değiştirebilirsiniz: <code>ax.spines['left'].set_color('#c4c9ce')</code> onu renklendirir, <code>set_linewidth(2)</code> kalınlaştırır. Bilgi taşımayan çizgileri kaldırmak, Bölüm 9.1’in bir yönteme dönüştürdüğü sadeleştirmenin bir parçasıdır.</p>
+
+<h3 id="s7-2-grid"><code>ax.grid()</code></h3>
+<p>Bir <em>kılavuz</em> (grid), işaret çentiklerinden çizim boyunca uzanan bir dizi soluk çizgidir. Okuyucunun bir noktayı eksene kadar izlemesine yardım eder ve varsayılan olarak kapalıdır. <code>ax.grid()</code> onu açar:</p>
+<div class="cell"><textarea>fig, ax = plt.subplots()
+ax.plot(sales['month'], sales['sales_2025'])
+ax.set_title('Monthly sales, 2025')
+ax.set_ylabel('Sales ($)')
+ax.grid(axis='y')
+plt.show()</textarea></div>
+<p class="figdesc">Arkasında açık yatay kılavuz çizgileri olan 2025 satış çizgisi.</p>
+<p><code>axis='y'</code> yalnızca yatay çizgileri, y ekseninden değer okumaya yardım edenleri çizer. Ay adları için dikey çizgiler pek bir şey eklemez. Stil dosyası kılavuzun rengini açık griye ayarlar ve onu verinin arkasına çizer; böylece açtığınız bir kılavuz sessiz kalır. Diğer seçenekler <code>linestyle='--'</code>, <code>linewidth=</code> ve saydam çizgiler için <code>alpha=</code>’dır. <code>ax.grid(False)</code> kılavuzu yeniden kapatır.</p>
+</section>
+
+<section>
+<h2 id="s7-3"><span class="num">7.3</span>Grafiğe Yazmak</h2>
+<p>Eksen etiketleri tüm grafiği tarif eder. Bazen tek bir nokta hakkında konuşmak istersiniz: “sıçramanın olduğu yer burası”. Doğrudan grafiğe konan metin okuyucuyu alt yazıya bir yolculuktan kurtarır.</p>
+
+<h3 id="s7-3-text"><code>ax.text()</code></h3>
+<p><code>text()</code> bir dizgeyi, eksenlerle aynı sayılar olan veri koordinatlarında verilen bir konuma yazar. Ay adlarıyla matplotlib konumları 0’dan sayar; böylece Bölüm 3.3’teki gibi <code>Dec</code> 11’dedir. Bu grafik her yılın adını çizgisinin ucuna yazıyor ve böylece göstergenin yerini alıyor:</p>
+<div class="cell"><textarea>fig, ax = plt.subplots()
+ax.plot(sales['month'], sales['sales_2024'])
+ax.plot(sales['month'], sales['sales_2025'])
+ax.set_title('Monthly sales')
+ax.set_ylabel('Sales ($)')
+ax.set_xlim(-0.5, 12.5)
+ax.text(11.2, 66200, '2024', va='center')
+ax.text(11.2, 74600, '2025', va='center')
+plt.show()</textarea></div>
+<p class="figdesc">2024 düz, 2025 kesikli iki satış çizgisi; her birinin yılı sağ ucunda yazılı. Gösterge gerekmiyor.</p>
+<p>İlk iki sayı x ve y konumudur, sonra sözcükler gelir. <code>va='center'</code> (dikey hizalama) metni o yükseklikte ortalar. Onsuz metin alt kenarı noktada olacak şekilde dururdu ve etiket biraz fazla yüksek görünürdü. <code>ha=</code> aynısını yatayda <code>'left'</code>, <code>'center'</code> ya da <code>'right'</code> ile yapar.</p>
+<p><code>set_xlim(-0.5, 12.5)</code> etiketler eksenlerin içine sığsın diye sağa boş yer ekler. İkinci çizginin kesikli olduğuna dikkat edin: kitabın stili çizgi desenleri arasında döner ve Bölüm 7.5 nerede olduğunu gösteriyor. Diğer kullanışlı seçenekler <code>fontsize=</code>, <code>fontweight='bold'</code> ve <code>color=</code>’dır. Bu bölümün son iki kısmı yazı tiplerinin ve renklerin nereden geldiğini açıklıyor.</p>
+
+<h3 id="s7-3-annotate"><code>ax.annotate()</code></h3>
+<p><code>annotate()</code> oklu bir <code>text()</code>’tir. Metni, tarif edilen noktayı (<code>xy=</code>) ve sözcüklerin nereye gideceğini (<code>xytext=</code>) alır. <code>arrowprops=</code> eklerseniz matplotlib sözcüklerden noktaya bir ok çizer:</p>
+<div class="cell"><textarea>fig, ax = plt.subplots()
+ax.plot(sales['month'], sales['sales_2025'])
+ax.set_title('Monthly sales, 2025')
+ax.set_ylabel('Sales ($)')
+ax.annotate('November: up $13,400\nin one month',
+            xy=(10, 68300), xytext=(4, 69000),
+            arrowprops={'arrowstyle': '-&gt;', 'lw': 1.5})
+plt.show()</textarea></div>
+<p class="figdesc">Çizginin üstündeki boş alanda bir notu ve Kasım noktasını gösteren belirgin bir oku olan 2025 satış çizgisi.</p>
+<p>Dizgenin içindeki <code>\n</code> yeni bir satır başlatır. Ekim’den Kasım’a 54.900’den 68.300’e, yani 13.400’lük bir artış; böylece nottaki sayı veriyle örtüşüyor.</p>
+<p><code>arrowprops=</code> bir sözlük alır: <code>'arrowstyle'</code> okun şeklini seçer, <code>'lw'</code> kalınlığıdır. Metni grafiğin boş bir kısmına koyun, asla çizginin üstüne değil, ve oku kısa tutun. Veriyi daha sonra düzenlerseniz not kendiliğinden güncellenmez; bu yüzden sayılar değiştiğinde onu yeniden kontrol edin.</p>
+
+<h3 id="s7-3-lines"><code>ax.axhline()</code> ve <code>ax.axvline()</code></h3>
+<p>Sabit bir düzeydeki yatay bir çizgi bir hedefi, bir ortalamayı ya da bir sınırı göstermenin en basit yoludur. <code>axhline()</code>, verdiğiniz y değerinde eksenlerin tam genişliği boyunca bir çizgi çizer. <code>axvline()</code> bir x değerinde dikey bir çizgi çizer:</p>
+<div class="cell"><textarea>fig, ax = plt.subplots()
+ax.plot(sales['month'], sales['sales_2025'])
+ax.set_title('Monthly sales, 2025')
+ax.set_ylabel('Sales ($)')
+ax.axhline(60000, color='#b26a00', linestyle='--')
+ax.text(0, 61000, 'Target: $60,000', color='#b26a00')
+ax.axvline(5.5, color='#c4c9ce')
+ax.text(5.7, 36000, 'Second half')
+plt.show()</textarea></div>
+<p class="figdesc">60.000 $’da “Target: $60,000” etiketli kesikli kehribar bir çizgi ve Haziran ile Temmuz arasında “Second half” etiketli ince gri dikey bir çizgiyle 2025 satış çizgisi.</p>
+<p>Hedef çizgisi, yalnızca Kasım ve Aralık’ın 60.000 $’ı geçtiğini bir bakışta gösteriyor. 5,5 konumu Haziran (5) ile Temmuz (6) arasının ortasıdır; böylece dikey çizgi yılı ikiye böler. İki çizgi de verdiğiniz rengi alır. <code>color=</code> olmadan matplotlib varsayılan bir renk seçer.</p>
+
+<h3 id="s7-3-span"><code>ax.axvspan()</code></h3>
+<p><code>axvspan()</code> iki x değeri arasında dikey bir bandı, <code>axhspan()</code> yatay bir bandı gölgeler. Bir indirim, bir kapanış ya da bir sezon gibi bir dönem için bir bant kullanın:</p>
+<div class="cell"><textarea>fig, ax = plt.subplots()
+ax.plot(sales['month'], sales['sales_2025'])
+ax.set_title('Monthly sales, 2025')
+ax.set_ylabel('Sales ($)')
+ax.axvspan(9.5, 11.5, color='#f0c987', alpha=0.5)
+ax.text(10.5, 38000, 'Holiday\nseason', ha='center')
+plt.show()</textarea></div>
+<p class="figdesc">Kasım ve Aralık’ın arkasında “Holiday season” etiketli kum rengi bir bantla 2025 satış çizgisi.</p>
+<p>Ay konumları 0’dan sayılır; yani Kasım 10, Aralık 11’dir. Bant, Ekim ile Kasım arasının ortasındaki çizgi olan 9,5’ten Aralık’tan sonraki yarım adım olan 11,5’e uzanır. <code>alpha=0.5</code> rengi yarı saydam yapar; böylece çizgi bandın içinden görünür kalır. <code>alpha</code> 0’dan (görünmez) 1’e (katı) gider.</p>
+<div class="callout tip"><span class="t">💡 İpucu</span>Bir bandı ay numarasından hesaplayın: konumu bulmak için bir çıkarın, sonra iki yana yarım adım gidin. Sonucu grafikle kontrol edin, çünkü bir kaymış bant hiçbir hata vermeden yanlış ayı gölgeler.</div>
+</section>
+
+<section>
+<h2 id="s7-4"><span class="num">7.4</span>Renkler ve Renk Haritaları</h2>
+<h3 id="s7-4-name">Bir rengi adlandırmak</h3>
+<p>Bir şey çizen her fonksiyon, genellikle <code>color=</code> olarak bir renk alır. matplotlib bir rengi yazmanın birkaç yolunu anlar:</p>
+<div style="overflow-x:auto"><table class="choose">
+<thead><tr><th>Biçim</th><th>Örnek</th><th>Notlar</th></tr></thead>
+<tbody>
+<tr><td>Ad</td><td><code>'teal'</code>, <code>'orange'</code></td><td><code>'tomato'</code> gibi yaklaşık 140 ad</td></tr>
+<tr><td>Hex kodu</td><td><code>'#0b3a47'</code></td><td>Kitabın paletinin kullandığı biçim</td></tr>
+<tr><td>Gri düzeyi</td><td><code>'0.6'</code></td><td><code>'0'</code> (siyah) ile <code>'1'</code> (beyaz) arası bir dizge</td></tr>
+<tr><td>Döngü yuvası</td><td><code>'C0'</code>, <code>'C1'</code></td><td>Stilin döngüsünün 1., 2.… rengi</td></tr>
+</tbody></table></div>
+<p>Hex kodları en güvenlisidir, çünkü aynı kod her programda aynı rengi verir. Burada bir yıl gri, diğeri belirgin bir camgöbeği; böylece göz daha yeni yıla gider:</p>
+<div class="cell"><textarea>fig, ax = plt.subplots()
+ax.plot(sales['month'], sales['sales_2024'], color='#c4c9ce')
+ax.plot(sales['month'], sales['sales_2025'], color='#0b3a47',
+        linestyle='-')
+ax.set_title('Monthly sales: 2025 against 2024 in gray')
+ax.set_ylabel('Sales ($)')
+ax.set_xlim(-0.5, 12.5)
+ax.text(11.2, 66200, '2024', va='center')
+ax.text(11.2, 74600, '2025', va='center')
+plt.show()</textarea></div>
+<p class="figdesc">İki satış çizgisi: açık gri 2024 ve koyu camgöbeği 2025; her biri sağ ucunda etiketli.</p>
+<p><code>linestyle='-'</code> olmadan ikinci çizgi stilin döngüsünü izleyip kesikli olurdu. Kitabın stili çizgiler siyah-beyazda farklılaşsın diye çizgi desenleri arasında döner, ama <code>color=</code>’ı kendiniz ayarladığınızda döngüden devralırsınız ve deseni de seçebilirsiniz. Bölüm 9.2 “gri artı bir vurgu rengi”nin neden bu kadar güçlü bir tarif olduğunu açıklıyor.</p>
+
+<h3 id="s7-4-cmap">Renk haritaları</h3>
+<p>Renk bir sayı taşıdığında, örneğin bir ısı haritasında ya da her noktanın renginin üçüncü bir değeri gösterdiği bir saçılım grafiğinde, matplotlib’in bütün bir renk aralığına ihtiyacı vardır. Bu aralık Bölüm 4.5’te tanıştığınız bir renk haritasıdır ve onu <code>cmap=</code> ile adından seçersiniz. Üç türe ayrılırlar:</p>
+<div style="overflow-x:auto"><table class="choose">
+<thead><tr><th>Tür</th><th>Görünüşü</th><th>Ne için</th><th>Örnekler</th></tr></thead>
+<tbody>
+<tr><td>Sıralı (sequential)</td><td>Tek tonda açıktan koyuya ya da birkaç tonda düzgün bir yol</td><td>Düşükten yükseğe değerler</td><td><code>'Blues'</code>, <code>'viridis'</code></td></tr>
+<tr><td>Iraksak (diverging)</td><td>Soluk bir ortada buluşan iki renk</td><td>Sıfır gibi anlamlı bir ortanın üstündeki ve altındaki değerler</td><td><code>'coolwarm'</code>, <code>'RdBu'</code></td></tr>
+<tr><td>Nitel (qualitative)</td><td>Bir avuç belirgin renk</td><td>Sayılar değil kategoriler</td><td><code>'tab10'</code>, <code>'Set2'</code></td></tr>
+</tbody></table></div>
+<p><code>store_stats.csv</code> dosyası on mağazayı tarif ediyor: günlük ziyaretçi, günlük gelir ve siparişle biten ziyaretlerin payı.</p>
+<div class="cell"><textarea>stores = pd.read_csv('store_stats.csv')
+stores.head(3)</textarea></div>
+<p>Bölüm 4.5, <code>ax.scatter()</code> ve <code>fig.colorbar()</code>’ı tanıttı. Burada her nokta bir mağaza ve rengi dönüşüm oranını gösteriyor. <code>c=</code> seçeneği hangi sayıların renge çevrileceğini söyler:</p>
+<div class="cell"><textarea>fig, ax = plt.subplots()
+dots = ax.scatter(stores['visitors'], stores['daily_revenue'],
+                  c=stores['conversion'], cmap='viridis', s=60)
+fig.colorbar(dots, label='Conversion rate')
+ax.set_title('Busier stores earn more per day')
+ax.set_xlabel('Visitors per day')
+ax.set_ylabel('Revenue per day ($)')
+plt.show()</textarea></div>
+<p class="figdesc">Sol alttan sağ üste yükselen on nokta. Renk koyu mordan (düşük dönüşüm) camgöbeğinden geçerek sarıya (yüksek dönüşüm) gidiyor; sağdaki renk çubuğu ölçeği gösteriyor.</p>
+<p><code>viridis</code>, sayıdaki eşit adımlar renkte eşit adımlar gibi görünsün ve griye dönüşünce düzgün bir koyudan açığa rampaya dönüşsün diye tasarlandı. Siyah-beyaz bir kopyanın okuyucusu yüksekle düşüğü yine ayırt edebilir. <code>cmap=</code>’ı dışarıda bıraktığınızda matplotlib onu kullanır.</p>
+<p>Başlık veri için doğru: en yoğun üç mağaza (Los Angeles, San Francisco ve San Jose) aynı zamanda en yüksek geliri olan üç mağaza.</p>
+<p>Her renk haritası bu kadar iyi değildir. Gökkuşağı haritası <code>'jet'</code>, yıllarca matplotlib’in (2.0 sürümüne kadar) ve MATLAB’in varsayılanıydı ve onu hâlâ her yerde göreceksiniz. İşte bilerek, bir uyarı olarak:</p>
+<div class="cell"><textarea>fig, ax = plt.subplots()
+dots = ax.scatter(stores['visitors'], stores['daily_revenue'],
+                  c=stores['conversion'], cmap='jet', s=60)
+fig.colorbar(dots, label='Conversion rate')
+ax.set_title('A rainbow colormap (avoid this)')
+ax.set_xlabel('Visitors per day')
+ax.set_ylabel('Revenue per day ($)')
+plt.show()</textarea></div>
+<p class="figdesc">Aynı on nokta, maviden kırmızıya bir gökkuşağıyla renklendirilmiş; sağda bir renk çubuğu.</p>
+<p>Sonraki resim siyah-beyaz bir baskının bu iki renk haritasına ne yaptığını gösteriyor. Her şerit soldaki en düşük değerden sağdaki en yüksek değere, bir kez renkli, bir kez yazıcının yapacağı gri olarak gidiyor:</p>
+<div class="cell"><textarea># Ek: viridis ve jet şeritleri, renkli ve gri tonlamalı (kitaptaki şekil)
+import numpy as np
+from matplotlib import colormaps
+
+values = np.linspace(0, 1, 256)
+fig, axes = plt.subplots(4, 1, figsize=(5.5, 2.2), layout='constrained')
+for ax, (name, gray) in zip(axes, [('viridis', False), ('viridis', True),
+                                    ('jet', False), ('jet', True)]):
+    rgb = colormaps[name](values)[:, :3]
+    if gray:   # yazıcının yaptığı gibi parlaklık
+        lum = rgb @ [0.299, 0.587, 0.114]
+        rgb = np.stack([lum, lum, lum], axis=1)
+    ax.imshow(rgb[np.newaxis, :, :], aspect='auto')
+    ax.set_axis_off()
+    ax.set_title(name + (' in gray' if gray else ''), fontsize=8)
+plt.show()</textarea></div>
+<p class="figdesc">Dört şerit. viridis şeridi koyudan açığa düzgün bir gri rampaya dönüşüyor. jet şeridi önce koyu, sonra ortada parlak, sonra yine koyu olan bir griye dönüşüyor.</p>
+<p>viridis şeridi koyudan açığa eşit bir rampa olur. jet şeridi koyu, sonra parlak, sonra yine koyu gider; böylece yüksek bir değer ile düşük bir değer aynı griye düşebilir. Renkli hâlinde bile parlak sarı ve yeşil bantlar gözü aralığın ortasındaki değerlere çeker. <code>viridis</code>, <code>'Blues'</code> ve <code>'GnBu'</code> (Bölüm 5.6’da tablo gölgelemesi için kullanıldı) gibi sıralı haritalar bu sorundan kaçınır.</p>
+<div class="callout tip"><span class="t">💡 İpucu</span>Bir renk haritasını çevirmek için adına <code>_r</code> ekleyin: <code>'Blues_r'</code> koyudan açığa gider. Düşük değerler önemli olanlar olduğunda ve öne çıkmaları gerektiğinde haritayı çevirin.</div>
+<p>Kategoriler için renk haritası kullanmayın. Kitabın paletinin yaptığı gibi elle birkaç belirgin renk seçin: en fazla dört renk, gride de farklı olacak şekilde seçilmiş.</p>
+</section>
+
+<section>
+<h2 id="s7-5"><span class="num">7.5</span>Stiller, rcParams ve Yazı Tipleri</h2>
+<h3 id="s7-5-file"><code>book.mplstyle</code>’ın içinde ne var?</h3>
+<p>Bu kitaptaki her grafik <code>plt.style.use('book.mplstyle')</code> ile başlar. Bir <em>stil dosyası</em>, <code>ad: değer</code> olarak yazılmış, satır başına bir ayar içeren düz bir metin dosyasıdır. <code>#</code> ile başlayan satırlar yorumdur. İşte yorumlar olmadan dosyanın tamamı (ilk ayar dosyada uzun tek bir satırdır):</p>
+<pre class="data">axes.prop_cycle: cycler('color', ['0b3a47', 'b26a00', '6fb3c2', 'f0c987']) + cycler('linestyle', ['-', '--', ':', '-.'])
+figure.figsize: 5.5, 3.4
+font.size: 9.5
+axes.titlesize: 11
+axes.titlelocation: left
+axes.labelsize: 9.5
+legend.fontsize: 9
+lines.linewidth: 2
+axes.axisbelow: True
+grid.color: d9dde1</pre>
+<p>Her satır bir şeyi değiştirir:</p>
+<ul>
+<li><code>axes.prop_cycle</code>, matplotlib’in çizdiğiniz çizgiler için sırayla kullandığı renkler ve çizgi desenleri listesidir. İlk çizgi koyu camgöbeği ve düz, ikincisi kehribar ve kesikli vb. Bu, Bölüm 7.3’te ikinci çizgiyi kesikli yapan <em>döngüdür</em>. <code>+</code> iki listeyi birleştirir; böylece renk ve desen birlikte değişir.</li>
+<li><code>figure.figsize</code>, inç cinsinden yeni bir figürün boyutudur. Genişlik olan 5,5, bu kitabın metninin genişliğidir.</li>
+<li><code>font.size</code>, <code>axes.titlesize</code>, <code>axes.labelsize</code> ve <code>legend.fontsize</code> punto cinsinden metin boyutlarıdır.</li>
+<li><code>axes.titlelocation</code> başlıkları sola koyar.</li>
+<li><code>lines.linewidth</code>, punto cinsinden çizgilerin kalınlığıdır.</li>
+<li><code>axes.axisbelow</code> kılavuz çizgilerini verinin üstüne değil arkasına çizer.</li>
+<li><code>grid.color</code>, <code>#</code> olmadan bir hex kodu olarak kılavuzun rengidir. Kılavuzu açmaz; Bölüm 7.2’nin <code>ax.grid()</code>’e ihtiyaç duymasının nedeni budur.</li>
+</ul>
+<p>Bu adların her biri <code>plt.rcParams</code>’ın bir anahtarıdır; böylece onları bir dosyadan olduğu kadar kodunuzdan da okuyup değiştirebilirsiniz.</p>
+
+<h3 id="s7-5-rc"><code>plt.rcParams</code></h3>
+<p><code>rcParams</code>, matplotlib’in sahip olduğu her ayarın, yaklaşık 300 tanesinin sözlüğüdür. “rc”, eski Unix programlarına dayanan bir ad olan “run commands”in kısaltmasıdır. Bir değeri adıyla okuyun:</p>
+<div class="cell"><textarea>plt.rcParams['font.size']</textarea></div>
+<p>Yeni bir değer atamak bundan sonra çizdiğiniz her grafiği değiştirir:</p>
+<div class="cell"><textarea>plt.rcParams['lines.linewidth'] = 5
+fig, ax = plt.subplots()
+ax.plot(sales['month'], sales['sales_2025'])
+ax.set_title('Monthly sales, 2025')
+plt.show()</textarea></div>
+<p class="figdesc">linewidth 5’e ayarlandığı için çok kalın çizilmiş 2025 satış çizgisi.</p>
+<p>Bu ayar hâlâ yürürlükte; yani defterdeki sonraki grafikte de kalın bir çizgi olurdu. Kitabın görünümüne dönmek için stil dosyasını yeniden yükleyin. Yukarıda listelenen her anahtarı kendi değerine ayarlar:</p>
+<div class="cell"><textarea>plt.style.use('book.mplstyle')
+plt.rcParams['lines.linewidth']</textarea></div>
+<div class="callout warn"><span class="t">⚠ Dikkat</span>Bir <code>rcParams</code> değişikliği ya da bir <code>plt.style.use()</code> çağrısı, defteri yeniden başlatana kadar sürer. Bir grafik birden farklı görünürse yukarı kaydırıp daha önce çalıştırdığınız bir <code>rcParams</code> satırı arayın. Stil dosyasını yeniden yüklemek yalnızca o dosyanın içerdiği ayarları geri alır. <code>font.family</code> gibi içermediği bir ayar değişmiş kalır. Yalnızca bir grafiği etkilemesi gereken bir değişiklik için sonraki kısımdaki <code>rc_context()</code>’i kullanın.</div>
+
+<h3 id="s7-5-context"><code>plt.rc_context()</code></h3>
+<p><code>plt.rc_context()</code> ayarları altındaki girintili blok için uygular ve kod hata verse bile sonrasında her şeyi geri koyar. Bir şey denemenin en güvenli yoludur. Aşağıdaki yazı tipleri kısmı onu kullanıyor; işte fikir, çizgi kalınlığıyla:</p>
+<div class="cell"><textarea>with plt.rc_context({'lines.linewidth': 5}):
+    fig, ax = plt.subplots()
+    ax.plot(sales['month'], sales['sales_2025'])
+    ax.set_title('Monthly sales, 2025')
+    plt.show()</textarea></div>
+<p class="figdesc">Yalnızca with bloğunun içinde çok kalın çizilmiş 2025 satış çizgisi.</p>
+<p>Çizgi burada kalın; çizdiğiniz sonraki grafik normale döner. Girintili blok bittiğinde eski ayarlar geri gelir.</p>
+
+<h3 id="s7-5-builtin">Yerleşik stillerle <code>plt.style.use()</code></h3>
+<p>matplotlib hazır stillerle gelir ve <code>plt.style.available</code> adlarını listeler. Kitabın kullandığı sürümde 28 tane var; <code>'ggplot'</code>, <code>'bmh'</code>, <code>'grayscale'</code> ve <code>'fivethirtyeight'</code> gibi. <code>rcParams</code> gibi bir stil değiştirilene kadar açık kalır; bu yüzden <code>plt.style.context()</code> yalnızca-tek-grafik sürümüdür:</p>
+<div class="cell"><textarea>with plt.style.context('grayscale'):
+    fig, ax = plt.subplots()
+    ax.plot(sales['month'], sales['sales_2024'], label='2024')
+    ax.plot(sales['month'], sales['sales_2025'], label='2025')
+    ax.set_title('Monthly sales in matplotlib\'s grayscale style')
+    ax.legend()
+    plt.show()</textarea></div>
+<p class="figdesc">Yerleşik grayscale stiliyle çizilmiş, siyah ve gri iki satış çizgisi ve bir gösterge.</p>
+<p>Yerleşik stiller ayarların neler yapabildiğini görmenin iyi bir yoludur. Bu kitabın sayfa boyutu ya da metin boyutları için tasarlanmamışlardır; bu yüzden onları keşfetmek için kullanın ve yayımladığınız grafikler için <code>book.mplstyle</code>’ı tutun.</p>
+<p><code>plt.style.use()</code>’a bir liste de verebilirsiniz. Stiller soldan sağa uygulanır ve iki stil aynı anahtarı ayarladığında sonraki kazanır. Kitabınkini kaybetmeden kendi stilinizi yapmanın yolu budur. Önce dosyayı oluşturun: Not Defteri gibi bir metin düzenleyici açın, yalnızca değiştirmek istediğiniz satırları yazın, örneğin <code>axes.titleweight: bold</code>, ve defterin klasörüne <code>my_changes.mplstyle</code> olarak kaydedin. Not Defteri’nde <em>Kayıt türü</em>’nü <em>Tüm dosyalar</em> yapın; yoksa Windows ada <code>.txt</code> ekler ve matplotlib stili bulamaz. Mac’te TextEdit kullanın ve kaydetmeden önce <em>Biçim → Düz Metin Yap</em>’ı seçin. Sonra ikisini, sizinki en sonda olacak şekilde yükleyin: <code>plt.style.use(['book.mplstyle', 'my_changes.mplstyle'])</code>. Bu sayfada stil dosyasını Python’dan yazıp deneyebilirsiniz:</p>
+<div class="cell"><textarea># Deneme: kendi stil dosyanızı yazıp kitabınkinin üstüne yükleyin
+with open('my_changes.mplstyle', 'w') as f:
+    f.write('axes.titleweight: bold\naxes.spines.top: False\naxes.spines.right: False\n')
+with plt.style.context(['book.mplstyle', 'my_changes.mplstyle']):
+    fig, ax = plt.subplots()
+    ax.plot(sales['month'], sales['sales_2025'])
+    ax.set_title('Monthly sales, 2025')
+    plt.show()</textarea></div>
+
+<h3 id="s7-5-fonts">Yazı tipleri</h3>
+<p>Üç ayar metni denetler: <code>font.family</code> (hangi yazı tipi), <code>font.size</code> (ne kadar büyük) ve <code>font.weight</code> (ne kadar kalın). Varsayılan aile, matplotlib’in bilgisayarınızda bulduğu ilk eşleşen yazı tipine çevirdiği genel bir ad olan <code>'sans-serif'</code>’tir:</p>
+<div class="cell"><textarea>plt.rcParams['font.family']</textarea></div>
+<p>Sans-serif harflerin uçlarında küçük çıkıntılar yoktur ve ekranlarda iyi okunurlar. Bu kitabın paragraflarında kullanılanlar gibi serif harfler daha resmî görünür. Bir grafik için <code>rc_context()</code> ile onlara geçin:</p>
+<div class="cell"><textarea>with plt.rc_context({'font.family': 'serif', 'font.size': 11}):
+    fig, ax = plt.subplots()
+    ax.plot(sales['month'], sales['sales_2025'])
+    ax.set_title('Monthly sales, 2025')
+    ax.set_ylabel('Sales ($)')
+    plt.show()</textarea></div>
+<p class="figdesc">Başlığı, eksen etiketi ve işaret etiketlerinin hepsi serif yazı tipiyle yazılmış 2025 satış çizgisi.</p>
+<p>Tek bir metin parçası için çağrıda <code>fontsize=</code>, <code>fontweight=</code> ya da <code>fontfamily=</code> kullanın, örneğin <code>ax.set_title('...', fontweight='bold')</code>.</p>
+<p><code>'Arial'</code> gibi belirli bir yazı tipini adlandırabilirsiniz, ama yalnızca bilgisayarda kurulu yazı tipleri çalışır. Eksik bir yazı tipi isteyen bir grafik varsayılana döner ve <code>findfont</code> ile başlayan bir uyarı yazdırır. Kitabın kendi yazı tipi DejaVu Sans matplotlib’in içinde gelir; bu yüzden onu kullanan grafikler her bilgisayarda aynı görünür. Kitap stilinin bir yazı tipi adı ayarlamamasının nedeni budur.</p>
+</section>
+
+<section>
+<h2 id="ozet">Bölüm Özeti</h2>
+<ul class="summary">
+<li><code>ax.yaxis.set_major_formatter()</code> işaret etiketlerinin nasıl yazılacağını değiştirir. <code>StrMethodFormatter('${x:,.0f}')</code> dolar verir, <code>PercentFormatter(xmax=1)</code> kesirleri yüzdeye çevirir.</li>
+<li><code>ax.tick_params(axis='x', labelrotation=45)</code> işaret etiketlerini döndürür; <code>labelsize</code>, <code>labelcolor</code> ve <code>length</code> boyutlarını, renklerini ve çentiklerini değiştirir.</li>
+<li><code>ax.set_xscale('log')</code> eksen boyunca her adımı bir çarpma yapar. Onu birkaç büyüklük mertebesine yayılan veri için kullanın ve açıkça etiketleyin.</li>
+<li><code>ax.spines[['top', 'right']].set_visible(False)</code> çerçeveyi açar, <code>ax.grid(axis='y')</code> sessiz başvuru çizgileri ekler.</li>
+<li><code>ax.text()</code> bir veri konumuna yazar, <code>ax.annotate()</code> bir ok ekler. <code>axhline()</code>, <code>axvline()</code> ve <code>axvspan()</code> bir düzeyi, bir konumu ya da bir dönemi işaretler.</li>
+<li>Renkler ad, hex kodu ya da gri düzeyi olabilir. <code>'viridis'</code> gibi sıralı bir renk haritası siyah-beyazda çalışır; <code>'jet'</code> gibi bir gökkuşağı haritası çalışmaz.</li>
+<li><code>book.mplstyle</code> bir <code>rcParams</code> ayarları listesidir. <code>plt.style.use()</code> ve <code>plt.rcParams[...] = ...</code> yeniden başlatana kadar sürer; <code>plt.rc_context()</code> ve <code>plt.style.context()</code> tek bir blok boyunca sürer.</li>
+<li><code>font.family</code>, <code>font.size</code> ve <code>fontweight=</code> metni denetler ve yalnızca bilgisayarda kurulu yazı tipleri çalışır.</li>
+</ul>
+<p>Artık tek bir grafik için her araca sahipsiniz. Bölüm 8 birkaç grafiği yan yana, ortak eksenlerle ve hepsi için tek bir başlıkla tek bir figüre koyuyor.</p>
+
+<h3 id="oyun">Kendi kodunuzu deneyin</h3>
+<p>Aşağıdaki hücre bir oyun alanı. Yukarıdaki tüm değişkenler (<code>sales</code>, <code>funnel</code>, <code>pages</code>, <code>stores</code>…) burada kullanılabilir (önceki hücreler otomatik çalıştırılır).</p>
+<div class="cell"><textarea># Örnek: bölümün araçlarının hepsi tek grafikte
+fig, ax = plt.subplots()
+ax.plot(sales['month'], sales['sales_2025'], color='#0b3a47')
+ax.yaxis.set_major_formatter(StrMethodFormatter('${x:,.0f}'))
+ax.spines[['top', 'right']].set_visible(False)
+ax.grid(axis='y')
+ax.axhline(60000, color='#b26a00', linestyle='--', linewidth=1.5)
+ax.axvspan(9.5, 11.5, color='#f0c987', alpha=0.4)
+ax.annotate('Best month: $74,600', xy=(11, 74600), xytext=(5, 72000),
+            arrowprops={'arrowstyle': '->', 'lw': 1.2})
+ax.set_title('Only the holiday months beat the $60,000 target')
+plt.show()</textarea></div>
+</section>
+
+<section>
+<h2 id="quiz">Sınav</h2>
+<p>Bir seçeneğe tıklayın; doğru cevap ve açıklama hemen görünür. Puan: <span id="score">0 / 10</span> &nbsp;<button class="btn ghost" id="quizReset">Sıfırla</button></p>
+<div id="quizBox"></div>
+</section>
+
+<div class="chnav"><a href="bolum06_dagilimlar_izgaralar.html">← Bölüm 6</a><div class="all">Bölümler: <a href="bolum01_ortami_kurmak.html" class="" title="Görselleştirme Ortamını Kurmak">1</a><a href="bolum02_cizmeden_once_dusunmek.html" class="" title="Çizmeden Önce Düşünmek">2</a><a href="bolum03_matplotlib_temelleri.html" class="" title="matplotlib Temelleri">3</a><a href="bolum04_cizgiler_noktalar.html" class="" title="Çizgiler ve Noktalar">4</a><a href="bolum05_cubuklar_pastalar_tablolar.html" class="" title="Çubuklar, Pastalar ve Tablolar">5</a><a href="bolum06_dagilimlar_izgaralar.html" class="" title="Dağılımlar ve Değer Izgaraları">6</a><a href="bolum07_ozellestirme.html" class="cur" title="Bir Grafiğin Her Parçasını Özelleştirmek">7</a><a href="bolum08_yerlesimler.html" class="" title="Yerleşimler: Bir Figürde Birçok Grafik">8</a><a href="bolum09_iletisim_kuran_tasarim.html" class="" title="İletişim Kuran Tasarım">9</a><a href="bolum10_yalan_soyleyen_grafikler.html" class="" title="Yalan Söyleyen Grafikler">10</a><a href="bolum11_seaborn_temelleri.html" class="" title="seaborn Temelleri">11</a><a href="bolum12_iliskiler_regresyon.html" class="" title="İlişkiler ve Regresyon">12</a><a href="bolum13_kategoriler.html" class="" title="Kategoriler">13</a><a href="bolum14_dagilimlar.html" class="" title="Dağılımlar">14</a><a href="bolum15_izgaralar_matrisler.html" class="" title="Izgaralar ve Matrisler">15</a><a href="bolum16_plotly_express.html" class="" title="plotly express ile Etkileşimli Grafikler">16</a><a href="bolum17_haritalar_is_grafikleri.html" class="" title="Haritalar ve İş Grafikleri">17</a></div><a href="bolum08_yerlesimler.html">Bölüm 8 →</a></div>
+</main>
+</div>
+<footer>Bölüm 7 · Bir Grafiğin Her Parçasını Özelleştirmek — Pyodide ile etkileşimli Türkçe sürüm</footer>
+
+<script>
+
+const DATA = {"monthly_funnel.csv": "month,visits,orders,conversion\nJanuary,21400,470,0.022\nFebruary,20100,452,0.0225\nMarch,23800,547,0.023\nApril,24500,588,0.024\nMay,26200,655,0.025\nJune,25700,642,0.025\nJuly,27900,725,0.026\nAugust,26300,658,0.025\nSeptember,29100,785,0.027\nOctober,31000,868,0.028\nNovember,41500,1245,0.03\nDecember,44200,1370,0.031\n", "monthly_sales.csv": "month,sales_2024,sales_2025\nJan,33100,38200\nFeb,31800,35900\nMar,36900,42800\nApr,38400,44100\nMay,41000,47600\nJun,40200,46300\nJul,42700,49800\nAug,39100,45200\nSep,44300,51700\nOct,47000,54900\nNov,59800,68300\nDec,66200,74600\n", "page_visits.csv": "page,visits\nHome,182000\nProducts,96400\nCart,21300\nCheckout,9800\nBlog,4100\nAbout,1350\nCareers,420\nPress,95\n", "store_stats.csv": "store,visitors,daily_revenue,conversion\nSeattle,310,2100,0.021\nOakland,180,1650,0.027\nSan Francisco,420,3300,0.024\nBoise,150,980,0.019\nPortland,230,2250,0.032\nDenver,260,2050,0.023\nSacramento,200,1900,0.03\nLos Angeles,480,4600,0.034\nSan Jose,350,2400,0.02\nSan Diego,170,1500,0.028\n", "book.mplstyle": "# Chart style for \"Master Data Visualization\".\n# Load it with plt.style.use('book.mplstyle') so your charts match the book.\n# Chapter 7 explains every line; delete one and see what changes.\n\n# Four colors that stay different when printed in black and white:\n# dark teal, amber, light teal, sand. Lines also change style\n# (solid, dashed, dotted, dash-dot) so they can be told apart in gray.\naxes.prop_cycle: cycler('color', ['0b3a47', 'b26a00', '6fb3c2', 'f0c987']) + cycler('linestyle', ['-', '--', ':', '-.'])\n\n# Size in inches (fits a printed book page) and text sizes in points\nfigure.figsize: 5.5, 3.4\nfont.size: 9.5\naxes.titlesize: 11\naxes.titlelocation: left\naxes.labelsize: 9.5\nlegend.fontsize: 9\n\n# Thicker lines; if you turn the grid on (ax.grid()), it is light and sits behind the data\nlines.linewidth: 2\naxes.axisbelow: True\ngrid.color: d9dde1\n"};
+</script>
+<script>
+// ---------------- Quiz -----------------
+const QUIZ = [
+ {q:"40000, 50000 ve 60000’de işaretleri olan bir y ekseniniz var. Onları $40,000, $50,000 ve $60,000 olarak göstermek istiyorsunuz. Hangi satır bunu yapar?",
+  o:["<code>ax.set_ylabel('${x:,.0f}')</code>","<code>ax.tick_params(axis='y', labelrotation='$')</code>","<code>ax.yaxis.set_major_formatter(StrMethodFormatter('${x:,.0f}'))</code>","<code>ax.xaxis.set_major_formatter(StrMethodFormatter('${x:,.0f}'))</code>"],a:2,
+  e:"Biçimlendirici y eksenine bağlanır; <code>{x}</code> işaret değeridir (7.1)."},
+ {q:"Bir sütun 0.031 ve 0.025 gibi oranlar tutuyor. Hangi biçimlendirici onları %3,1 ve %2,5 olarak gösterir?",
+  o:["<code>PercentFormatter()</code>","<code>PercentFormatter(xmax=1, decimals=1)</code>","<code>StrMethodFormatter('{x}%')</code>","<code>PercentFormatter(xmax=100, decimals=1)</code>"],a:1,
+  e:"Kesirler için yüzde 100’ü temsil eden sayı 1’dir."},
+ {q:"<code>ax.tick_params(axis='x', labelrotation=45)</code> neyi değiştirir?",
+  o:["x ekseni işaret etiketlerini 45 derece döndürür","x eksenini 45 punto aşağı taşır","Eksenler dahil bütün grafiği 45 derece döndürür","Her 45. işareti kaldırır"],a:0,
+  e:"Hangi değerlerin gösterildiğine dokunmaz."},
+ {q:"Sitenizdeki sayfalar 95 ile 182.000 arası ziyaret alıyor ve küçükler normal eksende kayboluyor. Hangi çağrı onları yayar?",
+  o:["<code>ax.set_xlim(95, 182000)</code>","<code>ax.grid(axis='x')</code>","<code>ax.tick_params(axis='x', length=0)</code>","<code>ax.set_xscale('log')</code>"],a:3,
+  e:"Logaritmik ölçek “kaç kat büyük?” sorusunu yanıtlar (7.2)."},
+ {q:"Hangi satır üst ve sağ çerçeve çizgilerini kaldırır?",
+  o:["<code>ax.set_frame(False)</code>","<code>ax.grid(['top', 'right'])</code>","<code>ax.spines[['top', 'right']].set_visible(False)</code>","<code>ax.tick_params(axis='both', top=False, right=False)</code>"],a:2,
+  e:"Bir ad listesi birkaç kenarı aynı anda seçer."},
+ {q:"Bir satış hedefi için grafiğin tamamı boyunca y = 60000’de kesikli bir çizgi istiyorsunuz. Hangi çağrı onu çizer?",
+  o:["<code>ax.axvline(60000, linestyle='--')</code>","<code>ax.axhline(60000, linestyle='--')</code>","<code>ax.text(60000, 0, '--')</code>","<code>ax.axhspan(60000, linestyle='--')</code>"],a:1,
+  e:"<code>axhline()</code> yatay, <code>axvline()</code> dikey bir çizgi çizer."},
+ {q:"<code>ax.text()</code> ile <code>ax.annotate()</code> arasındaki fark nedir?",
+  o:["<code>text()</code> figüre, <code>annotate()</code> eksenlere yazar","<code>annotate()</code> sözcük değil yalnızca sayı yazabilir","Fark yoktur; aynı fonksiyonun iki adıdır","<code>annotate()</code> metinden bir noktaya ok da çizebilir"],a:3,
+  e:"<code>arrowprops=</code> ile ok eklenir (7.3)."},
+ {q:"Dönüşüm oranları özel bir ortası olmadan düşükten yükseğe gidiyor ve grafik siyah-beyaz basılabilir. Hangi renk haritası uyar?",
+  o:["<code>'coolwarm'</code>","<code>'jet'</code>","<code>'viridis'</code>","<code>'RdBu'</code>"],a:2,
+  e:"Sıralı ve gride düzgün bir rampa olan harita (7.4)."},
+ {q:"Bir hücrede <code>plt.rcParams['lines.linewidth'] = 5</code> çalıştırıyorsunuz. Sonraki hücrelerde çizdiğiniz grafiklere ne olur?",
+  o:["Hiçbir şey, çünkü her hücre temiz bir kurulumla başlar","Yalnızca sonraki grafik kalın çizgiler alır","<code>rcParams</code> salt okunur olduğu için hata verir","Yeniden başlatana kadar sonraki tüm grafikler kalın çizgiler alır"],a:3,
+  e:"Geri almak için stil dosyasını yeniden yükleyin ya da <code>rc_context()</code> kullanın."},
+ {q:"Bir yazı tipi ayarını yalnızca bir grafiğe nasıl uygularsınız?",
+  o:["O grafikten hemen önce <code>plt.rcParams['font.family']</code>’yi ayarlamak","Grafiğin kendi hücresinde <code>plt.style.use('serif')</code> çağırmak","Onu bir <code>with plt.rc_context(...):</code> bloğunun içinde çizmek","O grafik için <code>plt.subplots()</code>’a <code>font='serif'</code> vermek"],a:2,
+  e:"Blok bitince eski ayarlar geri gelir (7.5)."}
+];
+
+function buildQuiz(){
+  const box=document.getElementById('quizBox'); box.innerHTML='';
+  const L='ABCD';
+  QUIZ.forEach((it,i)=>{
+    const d=document.createElement('div'); d.className='q'; d.id='q'+(i+1);
+    d.innerHTML=`<div class="qt">${i+1}. ${it.q}</div>`+
+      it.o.map((o,j)=>`<label><input type="radio" name="q${i}" value="${j}"><strong>${L[j]}.</strong> ${o}</label>`).join('')+
+      `<div class="fb"></div>`;
+    d.querySelectorAll('input').forEach(inp=>inp.addEventListener('change',()=>{
+      if(d.dataset.done) return; d.dataset.done=1;
+      const j=+inp.value, labs=d.querySelectorAll('label');
+      labs[it.a].classList.add('ok'); if(j!==it.a) labs[j].classList.add('no');
+      d.querySelectorAll('input').forEach(x=>x.disabled=true);
+      const fb=d.querySelector('.fb'); fb.classList.add('show');
+      fb.innerHTML=(j===it.a?'✅ <strong>Doğru.</strong> ':'❌ <strong>Doğru cevap '+L[it.a]+'.</strong> ')+it.e;
+      if(j===it.a) d.dataset.ok=1; updateScore();
+    }));
+    box.appendChild(d);
+  });
+  updateScore();
+}
+function updateScore(){
+  const ok=document.querySelectorAll('.q[data-ok]').length, done=document.querySelectorAll('.q[data-done]').length;
+  document.getElementById('score').textContent=`${ok} / ${QUIZ.length}`+(done?` (cevaplanan: ${done})`:'');
+}
+document.getElementById('quizReset').onclick=buildQuiz;
+buildQuiz();
+
+// ---------------- Data list -----------------
+function csvToTable(txt,max=200){
+  const rows=txt.trim().split(/\r?\n/).map(r=>r.split(','));
+  const h=rows.shift();
+  return '<table><thead><tr>'+h.map(x=>`<th>${x}</th>`).join('')+'</tr></thead><tbody>'+
+    rows.slice(0,max).map(r=>'<tr>'+r.map(x=>`<td>${x}</td>`).join('')+'</tr>').join('')+'</tbody></table>';
+}
+(function(){
+  const host=document.getElementById('dataList');
+  Object.entries(DATA).forEach(([name,txt])=>{
+    const n=txt.trim().split(/\r?\n/).length-1;
+    const url=URL.createObjectURL(new Blob([txt],{type:'text/csv'}));
+    const d=document.createElement('details'); d.className='data';
+    const isCsv=name.endsWith('.csv');
+    d.innerHTML=`<summary>${name} <span style="font-weight:400;color:#5f6b72">— ${isCsv?n+' satır':'stil dosyası'}</span> · <a href="${url}" download="${name}">indir</a></summary><div class="tbl">${isCsv?csvToTable(txt):'<pre style="font-size:12px;white-space:pre-wrap">'+txt.replace(/</g,'&lt;')+'</pre>'}</div>`;
+    host.appendChild(d);
+  });
+})();
+
+// ---------------- Code cells -----------------
+const cells=[];
+document.querySelectorAll('.cell').forEach((el,i)=>{
+  const ta=el.querySelector('textarea'); const src=ta.value;
+  const bar=document.createElement('div'); bar.className='bar';
+  bar.innerHTML=`<span class="lbl">In [<span class="cnt"> </span>]:</span><span class="sp"></span>
+    <button class="btn ghost reset" title="Orijinal koda dön">↺ Orijinal</button>
+    <button class="btn run" disabled>▶ Çalıştır</button>`;
+  el.insertBefore(bar,ta);
+  const cm=CodeMirror.fromTextArea(ta,{mode:'python',lineNumbers:false,indentUnit:4,viewportMargin:Infinity,
+     extraKeys:{'Shift-Enter':()=>runCell(i),'Ctrl-Enter':()=>runCell(i),Tab:c=>c.replaceSelection('    ')}});
+  const out=document.createElement('div'); out.className='out'; el.appendChild(out);
+  const c={el,cm,out,src,ran:false,idx:i,btn:bar.querySelector('.run'),cnt:bar.querySelector('.cnt')};
+  bar.querySelector('.run').onclick=()=>runCell(i);
+  bar.querySelector('.reset').onclick=()=>cm.setValue(src);
+  el.id='hucre-'+(i+1);
+  cells.push(c);
+});
+
+// ---------------- Pyodide -----------------
+let py=null, execCount=0, busy=false;
+const st=document.getElementById('status'), stT=document.getElementById('statusText');
+window.__currentOut=null;
+window.renderPlot=function(json){
+  const spec=JSON.parse(json); const div=document.createElement('div'); div.className='plot';
+  const inner=document.createElement('div'); div.appendChild(inner);
+  window.__currentOut.appendChild(div);
+  Plotly.newPlot(inner,spec.data,spec.layout||{},{responsive:true,displaylogo:false,locale:'tr'});
+};
+const PY_SETUP=`
+import os
+os.environ['MPLBACKEND'] = 'Agg'
+import matplotlib
+matplotlib.use('Agg')
+import sys, io, ast, contextlib, base64
+import pandas as pd
+import matplotlib.pyplot as plt
+_CAPTURED = []
+def _grab_figs():
+    for n in plt.get_fignums():
+        f = plt.figure(n); b = io.BytesIO()
+        f.savefig(b, format='png', dpi=120, bbox_inches='tight')
+        _CAPTURED.append(base64.b64encode(b.getvalue()).decode())
+    plt.close('all')
+plt.show = lambda *a, **k: _grab_figs()
+# matplotlib 3.8 (Pyodide) için kitap kodunun 3.10+ parametrelerine uyum katmanı
+from matplotlib.axes import Axes as _Axes
+_orig_boxplot = _Axes.boxplot
+def _boxplot(self, *a, tick_labels=None, orientation=None, **k):
+    if tick_labels is not None: k['labels'] = tick_labels
+    if orientation is not None: k['vert'] = (orientation == 'vertical')
+    return _orig_boxplot(self, *a, **k)
+_Axes.boxplot = _boxplot
+import warnings
+warnings.simplefilter('ignore', FutureWarning)
+pd.set_option('display.width', 120)
+SKIP = ('.csv', '.mplstyle')
+def _written(src):
+    import re
+    return re.findall(r"savefig\\(\\s*['\\"]([^'\\"]+)['\\"]", src)
+def __run_cell(src, ns):
+    buf = io.StringIO()
+    before = set(f for f in os.listdir('.') if not f.endswith(SKIP))
+    _CAPTURED.clear()
+    res = {'stdout':'', 'html':None, 'text':None, 'files':[], 'imgs':[]}
+    val = None
+    try:
+        with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(buf):
+            tree = ast.parse(src)
+            last = None
+            if tree.body and isinstance(tree.body[-1], ast.Expr):
+                last = ast.Expression(tree.body.pop().value)
+            exec(compile(tree, '<hücre>', 'exec'), ns)
+            val = eval(compile(last, '<hücre>', 'eval'), ns) if last is not None else None
+    finally:
+        _grab_figs()
+        res['imgs'] = list(_CAPTURED)
+        _CAPTURED.clear()
+    res['stdout'] = buf.getvalue()
+    if val is not None:
+        if isinstance(val, (pd.DataFrame, pd.Series)):
+            df = val.to_frame() if isinstance(val, pd.Series) else val
+            res['html'] = df.to_html(max_rows=30, border=0)
+        elif hasattr(val, '_repr_html_') and type(val).__name__ == 'Styler':
+            res['html'] = val._repr_html_()
+        else:
+            res['text'] = repr(val)
+    after = set(f for f in os.listdir('.') if not f.endswith(SKIP))
+    res['files'] = sorted((after - before) | (set(_written(src)) & after))
+    return res
+def __new_ns():
+    plt.close('all'); matplotlib.rcdefaults()
+    return {'__name__':'__main__'}
+`;
+async function initPy(){
+  try{
+    stT.textContent='Pyodide yükleniyor…';
+    py=await loadPyodide();
+    stT.textContent='pandas, matplotlib yükleniyor…';
+    await py.loadPackage(['pandas','matplotlib','scipy','jinja2','micropip']);
+    stT.textContent='seaborn yükleniyor…';
+    const mp=py.pyimport('micropip');
+    await mp.install(['seaborn'].concat(window.EXTRA_PKGS||[]));
+    for(const [n,t] of Object.entries(DATA)) py.FS.writeFile(n,t);
+    await py.runPythonAsync(PY_SETUP);
+    window.__ns=py.runPython('__new_ns()');
+    st.className='ready'; stT.textContent='Python hazır';
+    cells.forEach(c=>c.btn.disabled=false);
+  }catch(e){ st.className='err'; stT.textContent='Yükleme hatası'; console.error(e);
+    alert('Pyodide yüklenemedi. İnternet bağlantınızı kontrol edin.\n'+e); }
+}
+async function execOne(c){
+  c.out.innerHTML=''; c.out.classList.add('show'); window.__currentOut=c.out;
+  c.el.style.opacity=1;
+  try{
+    const fn=py.globals.get('__run_cell');
+    const r=fn(c.cm.getValue(), window.__ns).toJs({dict_converter:Object.fromEntries});
+    fn.destroy();
+    if(r.stdout){const p=document.createElement('pre');p.className='txt';p.textContent=r.stdout;c.out.prepend(p);}
+    if(r.html){const d=document.createElement('div');d.style.overflowX='auto';d.innerHTML=r.html;c.out.appendChild(d);}
+    if(r.text){const p=document.createElement('pre');p.className='txt';p.textContent=r.text;c.out.appendChild(p);}
+    for(const im of (r.imgs||[])){const d=document.createElement('div');d.className='plot';const g=document.createElement('img');g.src='data:image/png;base64,'+im;g.alt='Grafik';d.appendChild(g);c.out.appendChild(d);}
+    for(const f of (r.files||[])){
+      const bytes=py.FS.readFile(f); const url=URL.createObjectURL(new Blob([bytes],{type:f.endsWith('.html')?'text/html':'application/octet-stream'}));
+      const d=document.createElement('div');d.className='dl';
+      d.innerHTML=`<a href="${url}" download="${f}">⬇ ${f} dosyasını indir (${(bytes.length/1048576).toFixed(1)} MB)</a> &nbsp;<a href="${url}" target="_blank" style="background:#0b3a47">Yeni sekmede aç</a>`;
+      c.out.appendChild(d);
+    }
+    if(!c.out.children.length){const p=document.createElement('pre');p.className='txt';p.style.color='#8a9296';p.textContent='✓ Çalıştı (çıktı yok)';c.out.appendChild(p);}
+    c.ran=true; c.cnt.textContent=++execCount; return true;
+  }catch(e){
+    let msg=String(e.message||e); const k=msg.lastIndexOf('File "<hücre>"');
+    if(k>0) msg=msg.slice(k);
+    const p=document.createElement('pre');p.className='txt err';p.textContent=msg;c.out.appendChild(p);
+    c.cnt.textContent='!'; return false;
+  }
+}
+async function runCell(i){
+  if(!py||busy) return; busy=true;
+  const target=cells[i];
+  target.btn.disabled=true; target.btn.textContent='⏳';
+  await new Promise(r=>setTimeout(r,20));
+  for(let k=0;k<i;k++){ if(!cells[k].ran){ cells[k].btn.textContent='⏳'; await new Promise(r=>setTimeout(r,10)); await execOne(cells[k]); cells[k].btn.textContent='▶ Çalıştır'; } }
+  await execOne(target);
+  target.btn.disabled=false; target.btn.textContent='▶ Çalıştır'; busy=false;
+}
+document.getElementById('runAll').onclick=async()=>{ if(!py)return; for(let i=0;i<cells.length;i++){ cells[i].ran=false; } await runCell(cells.length-1); };
+document.getElementById('resetNs').onclick=()=>{ if(!py)return; window.__ns=py.runPython('__new_ns()'); execCount=0;
+  cells.forEach(c=>{c.ran=false;c.cnt.textContent=' ';c.out.innerHTML='';c.out.classList.remove('show');}); };
+initPy();
+
+// ---------------- TOC -----------------
+const toc=document.getElementById('tocLinks');
+const heads=[...document.querySelectorAll('main h2[id], main h3[id]')];
+heads.forEach(h=>{const a=document.createElement('a');a.href='#'+h.id;a.innerHTML=h.innerHTML.replace(/<span class="num">(.*?)<\/span>/,'$1 ');if(h.tagName==='H3')a.className='sub';toc.appendChild(a);});
+const tocLinks=[...toc.querySelectorAll('a')];
+const io2=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){tocLinks.forEach(a=>a.classList.toggle('active',a.getAttribute('href')==='#'+e.target.id));}})},{rootMargin:'-80px 0px -70% 0px'});
+heads.forEach(h=>io2.observe(h));
+
+// ---------------- Search -----------------
+const norm=s=>s.toLocaleLowerCase('tr').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/ı/g,'i');
+const index=[];
+(function buildIndex(){
+  let sec='Giriş';
+  document.querySelectorAll('main h1, main h2, main h3, main p, main li, main .callout, main .cell, main .q, main pre.data').forEach(el=>{
+    if(el.closest('.callout')&&el.tagName!=='DIV') return;
+    if(el.closest('#datasets')) return;
+    if(el.matches('.q')){ index.push({el,sec:'Sınav',kind:'soru',text:el.querySelector('.qt').textContent+' '+[...el.querySelectorAll('label')].map(l=>l.textContent).join(' ')}); return; }
+    if(el.closest('.q')) return;
+    if(el.matches('h2,h3')){ sec=el.textContent; }
+    let kind='metin', text=el.textContent;
+    if(el.matches('.cell')){ kind='kod'; const c=cells.find(c=>c.el===el); text=c?c.cm.getValue():text; }
+    else if(el.matches('h1,h2,h3')) kind='başlık';
+    else if(el.matches('.callout')) kind='kutu';
+    else if(el.matches('.figdesc')) kind='grafik';
+    else if(el.matches('pre.data')) kind='veri';
+    index.push({el,sec,kind,text:text.replace(/\s+/g,' ').trim()});
+  });
+  index.forEach(x=>x.n=norm(x.text));
+})();
+const si=document.getElementById('search'), res=document.getElementById('results');
+let hits=[], act=-1;
+function esc(s){return s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+function snippet(text,terms){
+  const n=norm(text); let pos=-1;
+  for(const t of terms){const p=n.indexOf(t);if(p>=0){pos=p;break;}}
+  let s=Math.max(0,pos-60), e=Math.min(text.length,(pos<0?0:pos)+140);
+  let out=(s>0?'…':'')+text.slice(s,e)+(e<text.length?'…':'');
+  // highlight (norm keeps length for Turkish chars after NFD strip mostly; do case-insensitive regex)
+  let h=esc(out);
+  terms.forEach(t=>{ if(!t) return;
+    const re=new RegExp(t.split('').map(ch=>{const m={'i':'[iıİI]','s':'[sşŞS]','c':'[cçÇC]','g':'[gğĞG]','o':'[oöÖO]','u':'[uüÜU]'}; return m[ch]||ch.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}).join(''),'gi');
+    h=h.replace(re,m=>`<mark>${m}</mark>`); });
+  return h;
+}
+function doSearch(){
+  const q=si.value.trim();
+  if(q.length<2){res.classList.remove('open');res.innerHTML='';return;}
+  const terms=norm(q).split(/\s+/).filter(Boolean);
+  hits=index.map(x=>{let sc=0;for(const t of terms){const c=x.n.split(t).length-1;if(!c)return null;sc+=c;} if(x.kind==='başlık')sc+=5; if(x.kind==='kod')sc+=1; return {x,sc};}).filter(Boolean).sort((a,b)=>b.sc-a.sc).slice(0,40);
+  act=-1;
+  res.innerHTML=hits.length?`<div class="count">${hits.length} sonuç · <kbd>↑</kbd><kbd>↓</kbd> ile gez, <kbd>Enter</kbd> ile git</div>`+hits.map((h,i)=>`<div class="r" data-i="${i}"><div class="sec">${esc(h.x.sec)}<span class="kind">${h.x.kind}</span></div><div class="snip">${snippet(h.x.text,terms)}</div></div>`).join('')
+    :'<div class="empty">Sonuç bulunamadı.</div>';
+  res.classList.add('open');
+  res.querySelectorAll('.r').forEach(r=>r.onclick=()=>go(+r.dataset.i));
+}
+function go(i){
+  const el=hits[i].x.el; res.classList.remove('open');
+  const det=el.closest('details'); if(det) det.open=true;
+  el.scrollIntoView({behavior:'smooth',block:'center'});
+  el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
+}
+si.addEventListener('input',doSearch);
+si.addEventListener('focus',()=>{if(si.value.trim().length>=2)doSearch();});
+si.addEventListener('keydown',e=>{
+  const rs=[...res.querySelectorAll('.r')];
+  if(e.key==='ArrowDown'){act=Math.min(rs.length-1,act+1);}
+  else if(e.key==='ArrowUp'){act=Math.max(0,act-1);}
+  else if(e.key==='Enter'){ if(hits.length) go(act<0?0:act); return; }
+  else if(e.key==='Escape'){res.classList.remove('open');si.blur();return;}
+  else return;
+  e.preventDefault(); rs.forEach((r,k)=>r.classList.toggle('act',k===act)); if(rs[act]) rs[act].scrollIntoView({block:'nearest'});
+});
+document.addEventListener('keydown',e=>{ if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();si.focus();si.select();}
+  else if(e.key==='/'&&document.activeElement.tagName!=='INPUT'&&!document.activeElement.closest('.CodeMirror')){e.preventDefault();si.focus();}});
+document.addEventListener('click',e=>{if(!e.target.closest('.search-wrap'))res.classList.remove('open');});
+</script>
+</body>
+</html>

@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bölüm 17: Haritalar ve İş Grafikleri</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+<style>
+:root{
+  --teal:#0b3a47; --amber:#b26a00; --lteal:#6fb3c2; --sand:#f0c987;
+  --bg:#f7f6f2; --paper:#ffffff; --ink:#1f2a30; --muted:#5f6b72; --line:#e2e0d8;
+  --code-bg:#fbfaf6;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:80px}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.65 "Segoe UI",system-ui,-apple-system,Roboto,sans-serif}
+header.top{position:sticky;top:0;z-index:50;background:var(--teal);color:#fff;display:flex;align-items:center;gap:16px;padding:10px 20px;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+header.top .brand{font-weight:600;white-space:nowrap}
+header.top .brand small{opacity:.7;font-weight:400;margin-left:6px}
+.search-wrap{position:relative;flex:1;max-width:560px;margin-left:auto}
+#search{width:100%;padding:9px 14px 9px 36px;border-radius:8px;border:none;font-size:15px;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235f6b72' stroke-width='2.5'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E") no-repeat 11px center}
+#search:focus{outline:3px solid var(--sand)}
+#results{position:absolute;top:44px;left:0;right:0;background:#fff;color:var(--ink);border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,.2);max-height:70vh;overflow:auto;display:none}
+#results.open{display:block}
+#results .r{padding:10px 14px;border-bottom:1px solid var(--line);cursor:pointer}
+#results .r:hover,#results .r.act{background:#eef5f6}
+#results .r .sec{font-size:12px;color:var(--amber);font-weight:600;text-transform:uppercase;letter-spacing:.03em}
+#results .r .kind{font-size:11px;background:var(--line);border-radius:4px;padding:0 5px;margin-left:6px;color:var(--muted);text-transform:none;letter-spacing:0}
+#results .r .snip{font-size:14px}
+#results .empty,#results .count{padding:10px 14px;color:var(--muted);font-size:13px}
+mark{background:#ffe08a;color:inherit;border-radius:2px;padding:0 1px}
+#status{font-size:13px;white-space:nowrap;display:flex;align-items:center;gap:8px}
+#status .dot{width:10px;height:10px;border-radius:50%;background:#f0c987;box-shadow:0 0 0 0 rgba(240,201,135,.7);animation:pulse 1.4s infinite}
+#status.ready .dot{background:#7bd88f;animation:none}
+#status.err .dot{background:#ff6b6b;animation:none}
+@keyframes pulse{70%{box-shadow:0 0 0 8px rgba(240,201,135,0)}100%{box-shadow:0 0 0 0 rgba(240,201,135,0)}}
+.layout{display:grid;grid-template-columns:260px minmax(0,1fr);gap:28px;max-width:1240px;margin:0 auto;padding:24px 20px 80px}
+nav.toc{position:sticky;top:76px;align-self:start;max-height:calc(100vh - 96px);overflow:auto;font-size:14px}
+nav.toc h4{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+nav.toc a{display:block;color:var(--ink);text-decoration:none;padding:4px 10px;border-left:3px solid transparent;border-radius:0 4px 4px 0}
+nav.toc a.sub{padding-left:24px;font-size:13px;color:var(--muted)}
+nav.toc a:hover{background:#ece9df}
+nav.toc a.active{border-left-color:var(--amber);background:#fff;font-weight:600;color:var(--teal)}
+nav.toc .tools{margin-top:16px;display:flex;flex-direction:column;gap:6px}
+main{background:var(--paper);border-radius:12px;padding:36px 48px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+h1{font-size:2rem;color:var(--teal);margin:0 0 4px;line-height:1.25}
+.subtitle{color:var(--muted);margin:0 0 24px}
+h2{font-size:1.45rem;color:var(--teal);border-bottom:2px solid var(--sand);padding-bottom:6px;margin:48px 0 16px}
+h2 .num{color:var(--amber);margin-right:8px}
+h3{font-size:1.12rem;margin:30px 0 10px;color:var(--ink)}
+code{font-family:"JetBrains Mono",Consolas,Menlo,monospace;font-size:.88em;background:#f1efe8;padding:1px 5px;border-radius:4px;color:#7a3e00}
+.lead{font-size:1.08rem;border-left:4px solid var(--amber);padding:4px 0 4px 16px;color:#33424a}
+.goals{background:#eef5f6;border-radius:10px;padding:16px 22px}
+.goals ul{margin:6px 0 0;padding-left:20px}
+.callout{border-radius:10px;padding:12px 18px;margin:18px 0;border-left:5px solid}
+.callout .t{font-weight:700;display:block;margin-bottom:2px}
+.callout.warn{background:#fff4e5;border-color:var(--amber)}
+.callout.warn .t{color:var(--amber)}
+.callout.tip{background:#eaf6f1;border-color:#2f8f6b}
+.callout.tip .t{color:#2f8f6b}
+.callout.note{background:#eef2f7;border-color:#4b6a8a}
+.callout.note .t{color:#4b6a8a}
+pre.data{background:var(--code-bg);border:1px dashed var(--line);border-radius:8px;padding:10px 14px;font-size:13px;overflow:auto}
+/* code cells */
+.cell{border:1px solid var(--line);border-radius:10px;margin:18px 0;overflow:hidden;background:var(--code-bg)}
+.cell .bar{display:flex;align-items:center;gap:8px;padding:6px 10px;background:#f1efe8;border-bottom:1px solid var(--line);font-size:12px;color:var(--muted)}
+.cell .bar .lbl{font-family:Consolas,monospace}
+.cell .bar .sp{flex:1}
+button{font:inherit;cursor:pointer;border-radius:6px;border:1px solid transparent}
+.btn{background:var(--teal);color:#fff;padding:4px 12px;font-size:13px}
+.btn:hover{filter:brightness(1.2)}
+.btn:disabled{opacity:.5;cursor:wait}
+.btn.ghost{background:transparent;color:var(--teal);border-color:#c9d3d6}
+.btn.ghost:hover{background:#fff}
+.btn.amber{background:var(--amber)}
+.CodeMirror{height:auto;font-size:14px;background:var(--code-bg);font-family:"JetBrains Mono",Consolas,Menlo,monospace}
+.CodeMirror-scroll{min-height:30px}
+.cm-s-default .cm-keyword{color:#8a3ffc}.cm-s-default .cm-string{color:#0b7a4b}.cm-s-default .cm-number{color:#b26a00}.cm-s-default .cm-comment{color:#8a9296;font-style:italic}.cm-s-default .cm-builtin{color:#0b5f7a}
+.out{border-top:1px solid var(--line);background:#fff;padding:0;display:none}
+.out.show{display:block}
+.out .txt{margin:0;padding:10px 14px;font:13px/1.5 Consolas,Menlo,monospace;white-space:pre-wrap;color:#333}
+.out .txt.err{color:#b00020;background:#fff5f5}
+.out .plot{padding:6px;overflow-x:auto}
+.out table{border-collapse:collapse;margin:10px 14px;font-size:13px}
+.out th,.out td{border:1px solid var(--line);padding:4px 10px;text-align:right}
+.out th{background:#f1efe8}
+.out .dl{margin:10px 14px}
+.out .dl a{display:inline-block;background:var(--amber);color:#fff;text-decoration:none;padding:5px 12px;border-radius:6px;font-size:13px}
+.figdesc{font-size:14px;color:var(--muted);background:#f6f5f0;border-radius:8px;padding:8px 14px;margin:-8px 0 14px;border:1px solid var(--line)}
+.figdesc::before{content:"🖼 Beklenen grafik: ";font-weight:600;color:var(--teal)}
+.flash{animation:flash 2.2s ease}
+@keyframes flash{0%,40%{background:#fff1bf;box-shadow:0 0 0 6px #fff1bf}100%{background:transparent;box-shadow:none}}
+details.data{border:1px solid var(--line);border-radius:8px;margin:8px 0;background:#fff}
+details.data summary{cursor:pointer;padding:8px 14px;font-weight:600;color:var(--teal)}
+details.data .tbl{max-height:260px;overflow:auto;padding:0 14px 10px}
+details.data table{border-collapse:collapse;font-size:13px}
+details.data td,details.data th{border:1px solid var(--line);padding:3px 8px}
+details.data th{background:#f1efe8;position:sticky;top:0}
+/* quiz */
+.q{border:1px solid var(--line);border-radius:10px;padding:14px 18px;margin:14px 0}
+.q .qt{font-weight:600;margin-bottom:8px}
+.q label{display:block;padding:6px 10px;border-radius:6px;cursor:pointer;border:1px solid transparent}
+.q label:hover{background:#f4f2ea}
+.q label.ok{background:#e3f4ea;border-color:#2f8f6b}
+.q label.no{background:#fde8e8;border-color:#d05353}
+.q input{margin-right:8px}
+.q .fb{font-size:14px;margin-top:6px;display:none}
+.q .fb.show{display:block}
+#score{font-weight:700;color:var(--teal)}
+table.choose{border-collapse:collapse;width:100%;font-size:14px;margin:10px 0}table.choose th,table.choose td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}table.choose th{background:#eef5f6;color:var(--teal)}
+.chnav{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:14px;margin:0 0 18px}.chnav a{color:var(--teal);text-decoration:none;border:1px solid var(--line);border-radius:6px;padding:4px 10px}.chnav a:hover{background:#eef5f6}.chnav .all{display:flex;gap:4px;flex-wrap:wrap}.chnav .all a.cur{background:var(--teal);color:#fff}
+.summary li{margin-bottom:6px}
+footer{text-align:center;color:var(--muted);font-size:13px;padding:30px}
+kbd{border:1px solid #bbb;border-bottom-width:2px;border-radius:4px;padding:0 5px;font-size:12px;background:#fff;color:#333}
+@media (max-width:900px){.layout{grid-template-columns:1fr}nav.toc{display:none}main{padding:22px 18px}header.top .brand small{display:none}#status span{display:none}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">Bölüm 17 <small>Haritalar ve İş Grafikleri</small></div>
+  <div class="search-wrap">
+    <input id="search" type="search" placeholder="Bölümde ara… (ör. choropleth, huni, waterfall)   Ctrl+K" autocomplete="off">
+    <div id="results"></div>
+  </div>
+  <div id="status"><div class="dot"></div><span id="statusText">Python yükleniyor…</span></div>
+</header>
+
+<div class="layout">
+<nav class="toc" id="toc">
+  <h4>İçindekiler</h4>
+  <div id="tocLinks"></div>
+  <div class="tools">
+    <button class="btn" id="runAll">▶ Tüm hücreleri çalıştır</button>
+    <button class="btn ghost" id="resetNs">↺ Python ortamını sıfırla</button>
+  </div>
+</nav>
+
+<main id="content">
+<div class="chnav"><a href="bolum16_plotly_express.html">← Bölüm 16</a><div class="all">Bölümler: <a href="bolum01_ortami_kurmak.html" class="" title="Görselleştirme Ortamını Kurmak">1</a><a href="bolum02_cizmeden_once_dusunmek.html" class="" title="Çizmeden Önce Düşünmek">2</a><a href="bolum03_matplotlib_temelleri.html" class="" title="matplotlib Temelleri">3</a><a href="bolum04_cizgiler_noktalar.html" class="" title="Çizgiler ve Noktalar">4</a><a href="bolum05_cubuklar_pastalar_tablolar.html" class="" title="Çubuklar, Pastalar ve Tablolar">5</a><a href="bolum06_dagilimlar_izgaralar.html" class="" title="Dağılımlar ve Değer Izgaraları">6</a><a href="bolum07_ozellestirme.html" class="" title="Bir Grafiğin Her Parçasını Özelleştirmek">7</a><a href="bolum08_yerlesimler.html" class="" title="Yerleşimler: Bir Figürde Birçok Grafik">8</a><a href="bolum09_iletisim_kuran_tasarim.html" class="" title="İletişim Kuran Tasarım">9</a><a href="bolum10_yalan_soyleyen_grafikler.html" class="" title="Yalan Söyleyen Grafikler">10</a><a href="bolum11_seaborn_temelleri.html" class="" title="seaborn Temelleri">11</a><a href="bolum12_iliskiler_regresyon.html" class="" title="İlişkiler ve Regresyon">12</a><a href="bolum13_kategoriler.html" class="" title="Kategoriler">13</a><a href="bolum14_dagilimlar.html" class="" title="Dağılımlar">14</a><a href="bolum15_izgaralar_matrisler.html" class="" title="Izgaralar ve Matrisler">15</a><a href="bolum16_plotly_express.html" class="" title="plotly express ile Etkileşimli Grafikler">16</a><a href="bolum17_haritalar_is_grafikleri.html" class="cur" title="Haritalar ve İş Grafikleri">17</a></div><span></span></div>
+<h1>Bölüm 17: Haritalar ve İş Grafikleri</h1>
+<p class="subtitle">Kod hücreleri tarayıcınızda <strong>Pyodide</strong> ile çalışır; Python kurmanıza gerek yok. Kodu değiştirip yeniden çalıştırabilirsiniz (<kbd>Shift</kbd>+<kbd>Enter</kbd>).</p>
+
+<p class="lead">Mağaza artık ABD’nin her eyaletindeki müşterilere gönderim yapıyor. Yöneticiniz satış raporunu açıyor ve tek bir toplantıda dört şey soruyor: Müşteriler nerede? Parayı hangi ürünler getiriyor? Alışveriş yapanlar ödeme yapmadan önce nerede vazgeçiyor? Ve bir aylık satış nasıl kâra dönüştü? Her sorunun kendisi için yapılmış bir grafiği var ve bunların hiçbiri çizgi ya da düz çubuk değil.</p>
+
+<p>Bölüm 16, plotly express’in yaygın grafikleri nasıl çizdiğini gösterdi. Bu bölüm aynı araçları beş iş grafiği için kullanıyor: bir harita, bir ağaç haritası (treemap), bir huni (funnel), bir proje zaman çizelgesi ve bir şelale (waterfall). Her biri için yanıtladığı soruyu ve Bölüm 5’teki sıradan bir çubuk grafiğin işi daha iyi yaptığı durumu öğreneceksiniz. Şelale grafiği ayrıca, express’in üzerine kurulduğu plotly bölümü olan <code>plotly.graph_objects</code>’e kısa bir adım atmayı gerektiriyor.</p>
+
+<div class="goals">
+<strong>Bu bölümün sonunda şunları yapabileceksiniz:</strong>
+<ul>
+<li><code>px.choropleth()</code> ile ABD eyaletleri haritası çizmek ve toplamların haritasının neden yanılttığını söylemek</li>
+<li>Toplam yerine bir oranı, tek renk tonlu bir renk skalası ve hover’da değerlerle haritalamak</li>
+<li><code>px.treemap()</code> ile bütünün parçalarını gruplar hâlinde göstermek</li>
+<li><code>px.funnel()</code> ile insanların bir süreçte nerede ayrıldığını göstermek</li>
+<li><code>px.timeline()</code> ile bir proje planı çizmek</li>
+<li><code>go.Figure(go.Waterfall(...))</code> ile bir şelale grafiği kurmak ve <code>graph_objects</code>’e ne zaman ihtiyaç duyulduğunu açıklamak</li>
+<li>Bunların her birinde düz bir çubuk grafiğin ne zaman daha iyi olduğuna karar vermek</li>
+</ul>
+</div>
+
+<details class="data" id="datasets">
+<summary>📁 Bu bölümün veri dosyaları (sayfaya gömülü — Python’da doğrudan <code>pd.read_csv()</code> ile okunur)</summary>
+<div id="dataList" style="padding:0 14px 10px"></div>
+</details>
+
+<!-- ============ 17.1 ============ -->
+<section>
+<h2 id="s17-1"><span class="num">17.1</span>ABD Eyaletleri Haritaları</h2>
+<p><em>Koroplet</em> (choropleth) harita, her bölgenin bir sayıyı temsil eden bir renkle doldurulduğu haritadır. Koyu, daha fazla demektir. Tek bir soruyu iyi yanıtlar: bu sayı coğrafyayı izliyor mu? Batı Kıyısı’nın koyu, Orta Batı’nın açık olduğunu bir bakışta görürsünüz.</p>
+<p>Bu bölümdeki her grafik, Bölüm 16’daki gibi <code>template='simple_white'</code> kullanır. İlk blok kütüphaneleri ve her eyalet için bir satır içeren eyaletler tablosunu yükler:</p>
+<pre class="data">state,population,orders,sales
+CA,38965,1870,168300
+TX,30503,1190,97580
+FL,22610,927,84357
+...</pre>
+<p><code>population</code> bin kişi cinsindendir; <code>orders</code> geçen yılki sipariş sayısı, <code>sales</code> ise bunların dolar cinsinden toplamıdır.</p>
+<div class="cell"><textarea>import pandas as pd
+import plotly.express as px
+
+states = pd.read_csv('states.csv')
+states.head(4)</textarea></div>
+
+<h3 id="s17-1-choro"><code>px.choropleth()</code></h3>
+<p><code>px.choropleth()</code> her satırın hangi bölge olduğunu bilmek zorundadır. Kodları içeren sütunu <code>locations=</code> ile verirsiniz. Kodlar iki harfli eyalet kısaltmalarıdır ve <code>locationmode='USA-states'</code> plotly’ye bunların ne olduğunu söyler. Bu olmadan plotly <code>CA</code>’yı bir ülke kodu olarak okur, böyle bir ülke bulamaz ve boş bir harita çizer. <code>scope='usa'</code> haritayı tüm dünya yerine Amerika Birleşik Devletleri’ne yakınlaştırır. <code>color=</code>, Bölüm 16’daki gibi dolguyu belirleyen sütunu seçer.</p>
+<p>Akla ilk gelen seçimle başlayın: her eyaletin toplam satışı. <code>color_continuous_scale='Blues'</code> soluktan koyu maviye giden tek tonlu bir skala seçer; bu, siyah-beyaz bir kitapta da okunur. Çalıştırmadan önce bir uyarı: plotly eyaletlerin sınırlarını tarayıcınızda <strong>indirerek</strong> çizer; bu yüzden internet bağlantısı gerekir. Çevrimdışıyken boş bir çerçeve alırsınız.</p>
+<div class="cell"><textarea>fig = px.choropleth(
+    states, locations='state', locationmode='USA-states',
+    scope='usa', color='sales', template='simple_white',
+    color_continuous_scale='Blues',
+    labels={'sales': 'Sales ($)'},
+    title='Sales by state, in dollars')
+fig.show()</textarea></div>
+<p class="figdesc">Eyaletleri soluktan koyuya mavi tonlarında gösteren ABD haritası. En koyu eyalet California. Ardından Texas, Florida ve New York geliyor. Diğer eyaletlerin çoğu soluk. Sağdaki renk çubuğu düşük satış için soluktan yüksek satış için koyu maviye uzanıyor.</p>
+<p>Bir eyaletin üzerine gelerek tam değerini okuyabilir, yakınlaştırarak ya da sürükleyerek harita üzerinde gezinebilirsiniz.</p>
+<p>Bu grafik tuzağı zaten gösteriyor. California, Texas, Florida ve New York koyu; ülkenin geri kalanı boş görünüyor.</p>
+<div class="callout warn"><span class="t">⚠ Dikkat</span>Yukarıdaki harita büyük ölçüde bir <strong>nüfus</strong> haritasıdır. On kat insanı olan bir eyalet yaklaşık on kat satış yapar; bu yüzden büyük eyaletler her zaman koyudur. Bu size bilmediğiniz hiçbir şey söylemez. Her eyaletin eşit koşullarda yarışması için kişi başına sipariş gibi bir <em>oranı</em> haritalayın.</div>
+<p>Önce oranı oluşturun: her 100.000 kişi başına sipariş sayısı. Nüfus bin kişi cinsinden olduğu için ona bölüp 100 ile çarparsınız. California için bu 1.870 sipariş / 38.965 bin kişi × 100 = 100.000 kişi başına 4,8 sipariştir:</p>
+<div class="cell"><textarea>states['orders_per_100k'] = (
+    states['orders'] / states['population'] * 100).round(1)
+top = states.sort_values('orders_per_100k', ascending=False)
+top[['state', 'orders_per_100k']].head(5)</textarea></div>
+<p>647.000 kişilik bir eyalet olan Vermont, 100.000 kişi başına 8,5 siparişle birinci. California toplamda çok önde, ama oranı yalnızca 4,8. Şimdi aynı renklerle haritalayın. Aşağıdaki kod, Bölüm 16.2’deki <code>hover_name=</code> ve <code>hover_data=</code> ile sayıları hover kutusuna da koyuyor. <code>hover_data</code> sözlüğünde <code>False</code> bir sütunu hover kutusundan gizler, <code>':,'</code> ise binlik ayraç ekler:</p>
+<div class="cell"><textarea>fig = px.choropleth(
+    states, locations='state', locationmode='USA-states',
+    scope='usa', color='orders_per_100k',
+    color_continuous_scale='Blues', template='simple_white',
+    hover_name='state',
+    hover_data={'state': False, 'orders': ':,',
+                'population': ':,'},
+    labels={'orders_per_100k': 'Orders per 100,000 people'},
+    title='Vermont, Washington and Colorado order the most '
+          'per person')
+fig.show()</textarea></div>
+<p class="figdesc">Mavi tonlarında ABD haritası. Kuzeydoğudaki Vermont en koyu eyalet; kuzeybatıdaki Washington ve Rocky Dağları’ndaki Colorado da koyu. Oregon, Massachusetts ve New York orta mavi. California açık-orta mavi; Texas ve Florida soluk. South Dakota, Illinois ve Pennsylvania neredeyse beyaz. Renk çubuğu 100.000 kişi başına yaklaşık 2,5 ile 8,5 arası siparişi gösteriyor.</p>
+<p>Harita şimdi farklı bir hikâye anlatıyor. En koyu eyaletler küçük ya da orta büyüklükte; büyük olanlar açık ya da orta tonlara geriliyor. Vermont’un üzerine gelin: kutu 55 siparişini ve 647 bin nüfusunu gösterir. Bir oranın güvenilecek kadar siparişe dayanıp dayanmadığını böyle kontrol edersiniz. 20 siparişten kurulan bir oran oynak olabilir.</p>
+<p>Koroplet haritalarla ilgili iki nokta daha:</p>
+<ul>
+<li><strong>Açıklığı düzenli değişen bir skala kullanın.</strong> Tek bir rengin soluktan koyuya geçişi ya da <code>'viridis'</code> gibi düzgün bir yol (düşük için koyu, yüksek için açık; Bölüm 7.4) okuyucunun düşükten yükseğe görmesini sağlar. Gökkuşağı skalası veride olmayan sınırlar uydurur.</li>
+<li><strong>Alan önem değildir.</strong> Montana kocaman görünür, Rhode Island bir nokta kadardır; yine de her eyalet resimde tek bir oydur. Küçük eyaletler kolayca gözden kaçar.</li>
+</ul>
+
+<h3 id="s17-1-bar">Çubuk grafik ne zaman daha iyi?</h3>
+<p>Bir harita “nerede?” sorusunu yanıtlar, ama “tam olarak ne kadar?” ve “hangisi birinci?” sorularında zayıftır. Gözünüz 50 mavi tonunu sıralayamaz. Yöneticiniz ilk on eyaleti istiyorsa sıralı bir çubuk grafik (Bölüm 5.1) daha iyi resimdir. “Pasifik Kuzeybatı daha çok alıyor” gibi bölgesel bir örüntüden şüphelendiğinizde haritayı, bir sıralama istediğinizde çubukları kullanın. Karşılaştırın:</p>
+<div class="cell"><textarea># Deneme: aynı oranın sıralı çubuk grafiği (ilk 10 eyalet)
+fig = px.bar(top.head(10).sort_values('orders_per_100k'),
+             x='orders_per_100k', y='state', orientation='h',
+             template='simple_white', color_discrete_sequence=['#0b3a47'],
+             labels={'orders_per_100k': 'Orders per 100,000 people', 'state': ''},
+             title='Top 10 states by orders per person')
+fig.show()</textarea></div>
+</section>
+
+<!-- ============ 17.2 ============ -->
+<section>
+<h2 id="s17-2"><span class="num">17.2</span>Ağaç Haritaları (Treemap)</h2>
+<p>Bir <em>ağaç haritası</em> (treemap), bir dikdörtgeni her kategori için bir tane olmak üzere daha küçük dikdörtgenlerle doldurur. Her birinin alanı, toplamdaki payıdır. Birbirine ait kategoriler bir grup içinde yan yana durur. “Bu toplam nelerden oluşuyor?” sorusunu yanıtlar ve hiyerarşi olan durumlara uyar: kategorileri içeren departmanlar, şehirleri içeren ülkeler.</p>
+<p><code>categories.csv</code>, her biri üç gruptan birinde olan on ürün kategorisinin geçen yılki satışlarını tutar:</p>
+<pre class="data">group,category,sales
+Computers,Laptops,48200
+Computers,Tablets,21500
+...</pre>
+<p>Resmin ne göstermesi gerektiğini bilmek için çizmeden önce her grubu toplayın:</p>
+<div class="cell"><textarea>categories = pd.read_csv('categories.csv')
+categories.groupby('group')['sales'].sum()</textarea></div>
+<p>Bilgisayarlar 144.900 doların 88.600’ünü, yani %61’ini oluşturuyor.</p>
+
+<h3 id="s17-2-tree"><code>px.treemap()</code></h3>
+<p><code>px.treemap()</code>’te <code>path=</code> sütunları dış gruptan iç gruba doğru listeler; <code>values=</code> alanı belirleyen sütundur. <code>color=</code>’a grup sütununu vermek her grubu aynı renkle boyar; <code>color_discrete_map=</code> her grup adını bir renkle eşleştirir:</p>
+<div class="cell"><textarea>fig = px.treemap(
+    categories, path=['group', 'category'], values='sales',
+    color='group', template='simple_white',
+    color_discrete_map={'Computers': '#0b3a47',
+                        'Audio': '#b26a00',
+                        'Accessories': '#6fb3c2'},
+    title='Computers bring in 61% of sales, led by laptops')
+fig.update_traces(texttemplate='%{label}<br>$%{value:,}')
+fig.data[0].textfont.color = [
+    '#111' if i.startswith('Accessories') else 'white'
+    for i in fig.data[0].ids]
+fig.update_layout(height=500, uniformtext_minsize=9,
+                  uniformtext_mode='hide')
+fig.show()</textarea></div>
+<p class="figdesc">Üç gruplu bir ağaç haritası. En büyük blok koyu camgöbeği Computers; Laptops, Tablets ve Monitors’a bölünmüş, en büyüğü Laptops. Audio ve Accessories kehribar ve açık mavi daha küçük bloklar. Her dikdörtgen adı ve dolar cinsinden satışıyla etiketli.</p>
+<p><code>texttemplate=</code> ile <code>update_traces()</code>, her kutuya adı ve dolar değerini koyar. <code>%{label}</code> ve <code>%{value}</code>, plotly’nin her dikdörtgen için doldurduğu yer tutuculardır; <code>:,</code> binlik ayraç ekler. Sonraki satırlar her dikdörtgene bir metin rengi verir: <code>ids</code> listesi dikdörtgen başına bir ad tutar ve açık mavi Accessories kutularında beyaz yazı zor okunur, bu yüzden onlar koyu yazı alır. Ağaç haritası yer ister; bu yüzden <code>height=500</code> bunu diğerlerinden daha uzun yapar. Küçük kutular yine de minik yazı alırdı; <code>uniformtext_minsize=9</code> ile <code>uniformtext_mode='hide'</code> her etiketi 9 punto ya da üzerinde tutar ve sığmayanları dışarıda bırakır. Küçük bir kutunun adını ve değerini okumak için üzerine gelin. Bir gruba tıklamak ona yakınlaşır; üstteki çubuğa tıklamak geri uzaklaşır.</p>
+<p>Ağaç haritasının iyi yaptığına dikkat edin: Bilgisayarların bütünün yarısından fazlası olduğunu ve yalnızca Laptops’un yaklaşık üçte bir olduğunu hemen görürsünüz. Kötü yaptığına da dikkat edin: Headphones (16.800) ile Monitors (18.900) birbirine yakın ve sayıları okumadan hangi dikdörtgenin büyük olduğunu kimse söyleyemez.</p>
+
+<h3 id="s17-2-bar">Çubuk grafik ne zaman daha iyi?</h3>
+<p>Gözlerimiz uzunlukları alanlardan çok daha iyi karşılaştırır. On kategoriyi yalnızca sıralamanız gerekiyorsa sıralı yatay bir çubuk grafik (Bölüm 5.1) daha net resimdir; bir pasta ya da halka (Bölüm 5.5) yakın değerleri karşılaştırmada ağaç haritasından iyi değildir. Ağaç haritasını çok sayıda kategori olduğunda, kategoriler gruplara ayrıldığında ya da mesaj “bir blok baskın” olduğunda seçin. Ağaç haritası negatif değer gösteremez; bu yüzden kâr ya da zarar için yanlıştır.</p>
+</section>
+
+<!-- ============ 17.3 ============ -->
+<section>
+<h2 id="s17-3"><span class="num">17.3</span>Huniler (Funnel)</h2>
+<p>Bir <em>huni grafiği</em>, insanların her adımda ayrıldığı bir süreci gösterir. “Onları nerede kaybediyoruz?” sorusunu yanıtlar. Mağazalar bunu ödeme süreci, okullar başvurular, bankalar kredi talepleri için kullanır. Her çubuk bir adımdır ve her çubuk bir öncekinden kısadır.</p>
+<p><code>funnel.csv</code>, geçen ay çevrimiçi mağazanın her adımına ulaşan kişileri ilk ziyaretten ödenmiş siparişe kadar sayar. Satırlar adımların sırasında olmalıdır.</p>
+<pre class="data">stage,people
+Visited the shop,48000
+Added to cart,9600
+...</pre>
+<p>Çizmeden önce her adımın bir üstteki adımdan kaç kişiyi koruduğunu hesaplayın. <code>shift()</code> yöntemi bir sütunu bir satır aşağı kaydırır; böylece her satır kendinden önceki sayıyı görebilir:</p>
+<div class="cell"><textarea>funnel = pd.read_csv('funnel.csv')
+funnel['kept_pct'] = (
+    funnel['people'] / funnel['people'].shift() * 100).round(0)
+funnel</textarea></div>
+<p>İlk satırın üstünde satır olmadığı için <code>NaN</code> gösterir. Ziyaretçilerin yalnızca %20’si sepete bir şey ekliyor; yani en çok kaybı sepet adımı veriyor. 48.000 ziyaretçiden 3.240’ı ödeme yapıyor; bu yaklaşık 100’de 7.</p>
+
+<h3 id="s17-3-funnel"><code>px.funnel()</code></h3>
+<p><code>px.funnel()</code> sayıyı <code>x=</code>’te, adım adını <code>y=</code>’de alır. Satırlarınızı tablodaki sırasıyla tutar; yanlış sıralanmış bir tablodan çizilen huni ters çıkar. Büyüklüğe göre sıralamayın.</p>
+<div class="cell"><textarea>fig = px.funnel(
+    funnel, x='people', y='stage', template='simple_white',
+    color_discrete_sequence=['#0b3a47'],
+    labels={'people': 'People', 'stage': ''},
+    title='4 in 5 visitors leave before adding to the cart')
+fig.update_traces(
+    texttemplate='%{x:,}<br>%{percentInitial:.0%}')
+fig.show()</textarea></div>
+<p class="figdesc">Yukarıdan aşağı kısalan, ortalanmış dört koyu camgöbeği çubuklu huni: Visited the shop 48.000, Added to cart 9.600, Started checkout 5.400 ve Paid 3.240. Her çubukta sayısı ve ilk çubuğa göre yüzdesi yazıyor: %100, %20, %11 ve %7.</p>
+<p>Her çubuk ortalanmıştır; bu ona huni şeklini verir. <code>texttemplate=</code> ile <code>update_traces()</code>, her çubuğun içine sayıyı ve ilk adıma göre yüzdesini yazar. <code>%{percentInitial:.0%}</code> içinde <code>percentInitial</code> çubuğun ilk adımdaki payıdır; <code>:.0%</code> bunu ondalıksız yüzde olarak gösterir. Yani sepetin %20’si, 48.000’in 9.600’üdür. Bu, başlangıçtan bakıştır. Yukarıdaki <code>kept_pct</code> sütunu ise adımdan adıma bakıştır (sepettekilerin %56’sı ödemeye geçer).</p>
+<p>Şekil, tepedeki büyük düşüşü dramatik gösterir — ve gerçekten de öyledir. Yine de dikkatli olun. Mağaza ziyaretçilerinden sepete %80’lik düşüş normal olabilir, çünkü birçok ziyaretçi yalnızca göz atar. İyileştirilmesi gereken adım, en büyük düşüşü olan değil, olması gerekenden kötü olandır.</p>
+<p>Adımdan adıma oranları da görmek isterseniz farklı bir yer tutucu deneyin:</p>
+<div class="cell"><textarea># Deneme: önceki adıma göre yüzde
+fig = px.funnel(funnel, x='people', y='stage', template='simple_white',
+                color_discrete_sequence=['#b26a00'],
+                labels={'people': 'People', 'stage': ''},
+                title='Share kept from the step before')
+fig.update_traces(texttemplate='%{x:,}<br>%{percentPrevious:.0%}')
+fig.show()</textarea></div>
+
+<h3 id="s17-3-bar">Çubuk grafik ne zaman daha iyi?</h3>
+<p>Dört adımla, aynı sayıların yatay bir çubuk grafiği (Bölüm 5.1) aynı hikâyeyi anlatır ve Bölüm 5.2’deki <code>bar_label()</code> ile yüzde etiketleri eklemenize izin verir. Huni, izleyici şekli başka raporlardan tanıdığında ya da iki grup için iki huniyi yan yana çizdiğinizde yerini hak eder (<code>px.funnel()</code> bunun için <code>color=</code> kabul eder). Düz bir sayı listesi için çubuklar daha basittir.</p>
+</section>
+
+<!-- ============ 17.4 ============ -->
+<section>
+<h2 id="s17-4"><span class="num">17.4</span>Proje Zaman Çizelgeleri</h2>
+<p>Bir <em>Gantt şeması</em>, görevleri bir zaman ekseni üzerinde çubuklar olarak gösterir. Çubuk görevin başlangıç tarihinde başlar, bitiş tarihinde biter. “Kim neyi, ne zaman yapıyor?” sorusunu yanıtlar. Hangi görevlerin çakıştığını, hangilerinin beklemesi gerektiğini ve her şeyin ne zaman bittiğini görürsünüz.</p>
+<p><code>plan.csv</code>, mağazanın web sitesini yeniden başlatma planıdır. Her görevin bir ekibi, bir başlangıç ve bir bitiş tarihi vardır:</p>
+<pre class="data">task,team,start,finish
+Write page content,Marketing,2027-01-04,2027-01-22
+Design mockups,Design,2027-01-11,2027-02-12
+...</pre>
+<p><code>px.timeline()</code> tarih metnini kendisi tarihe çevirebilir, ama gerçek tarihler pandas’ta da tarih işlemi yapmanıza izin verir; örneğin her görevin ne kadar sürdüğünü bulmak gibi. Bu yüzden Bölüm 4.2’deki gibi pandas’a hangi sütunların tarih olduğunu söyleyin:</p>
+<div class="cell"><textarea>plan = pd.read_csv('plan.csv', parse_dates=['start', 'finish'])
+plan</textarea></div>
+
+<h3 id="s17-4-timeline"><code>px.timeline()</code></h3>
+<p><code>px.timeline()</code>, tarih eksenli bir çubuk grafiktir. İki tarih parametresi <code>x_start=</code> ve <code>x_end=</code>’dir; <code>y=</code> görev adıdır. Çubukları ekibe göre renklendirmek için <code>color=</code> ekleyin. <code>px.timeline()</code> tablonun ilk satırını en alta koyar ve ekibe göre renklendirdiğinizde çubukları ekibe göre de gruplar. Bir plan yukarıdan aşağı okunur; <code>category_orders=</code> sırayı sabitler: <code>list(plan['task'])</code> görev sütununu tablo sırasında düz bir listeye çevirir ve plotly satırları bu sırayla çizer.</p>
+<div class="cell"><textarea>fig = px.timeline(
+    plan, x_start='start', x_end='finish', y='task',
+    color='team', template='simple_white',
+    color_discrete_map={'Marketing': '#0b3a47',
+                        'Design': '#b26a00',
+                        'Development': '#6fb3c2'},
+    category_orders={'task': list(plan['task'])},
+    labels={'team': 'Team', 'task': ''},
+    title='The checkout test ends just before the launch')
+fig.show()</textarea></div>
+<p class="figdesc">Ocak–Nisan 2027 arası altı yatay çubuklu, plan sırasına göre yukarıdan aşağı listelenmiş bir Gantt şeması. Marketing çubukları koyu camgöbeği, Design çubuğu kehribar, iki Development çubuğu açık mavi. Mart sonundaki açık mavi checkout testi çubuğu, lansman kampanyası çubuğu başlamadan bir hafta önce bitiyor.</p>
+<p>Çubuklar grafikte merdiven gibi aşağı kayıyor ve fotoğraf çekimi ile sayfa yapımının Şubat’ta çakıştığını görebilirsiniz. Bir çubuğun üzerine gelmek görevini, ekibini, başlangıcını ve bitişini gösterir.</p>
+<p>Önemli bir tarih için bir çizgi işe yarar. Sonraki blok lansman günü olan 29 Mart’a bir çizgi ekler. <code>yref='paper'</code> ile <code>add_shape()</code> kullanır; bu, eksen ne derse desin çizginin grafiğin altından üstüne uzanması demektir. Etiket, Bölüm 16.7’deki gibi bir nottur (annotation):</p>
+<div class="cell"><textarea>fig = px.timeline(
+    plan, x_start='start', x_end='finish', y='task',
+    color='team', template='simple_white',
+    color_discrete_map={'Marketing': '#0b3a47',
+                        'Design': '#b26a00',
+                        'Development': '#6fb3c2'},
+    category_orders={'task': list(plan['task'])},
+    labels={'team': 'Team', 'task': ''},
+    title='The checkout test ends just before the launch')
+fig.add_shape(type='line', x0='2027-03-29', x1='2027-03-29',
+              y0=0, y1=1, yref='paper',
+              line_width=2, line_dash='dash', line_color='#000',
+              opacity=1, layer='above')
+fig.add_annotation(x='2027-03-29', y=1.07, yref='paper',
+                   text='Launch', showarrow=False)
+fig.show()</textarea></div>
+<p class="figdesc">Aynı Gantt şeması; 29 Mart’ta grafiğin üstünde “Launch” etiketli kesikli koyu dikey bir çizgi var. Çizgi Launch campaign çubuğunun başına değiyor ve checkout testi çubuğunun bitişinin hemen sonrasında duruyor.</p>
+<div class="callout warn"><span class="t">⚠ Dikkat</span>Bölüm 16.3’ün uyardığı gibi, <code>template='simple_white'</code>, <code>add_shape()</code> ile eklenen çizgileri görünmez (kalınlık sıfır) ve soluk (opaklık 0,3) yapar. Yukarıdaki kodda olduğu gibi her zaman <code>line_width=</code>, <code>line_color=</code> ve <code>opacity=1</code> verin.</div>
+
+<h3 id="s17-4-bar">Çubuk grafik ne zaman daha iyi?</h3>
+<p>Zaman çizelgesi, başlangıcı ve sonu olan bir çubuk grafiktir; bu yüzden onu yalnızca tarihler önemli olduğunda kullanın. Soru “hangi görev en uzun sürüyor?” ise görev başına gün sayısını sıradan çubuklar olarak çizin (Bölüm 5.1) ve sıralayın. Aylık satış gibi zaman içinde tek bir sayıyı izliyorsanız bir çizgi kullanın (Bölüm 4.1). Yüzlerce görevli bir plan için elektronik tablo gibi bir proje aracı daha uygun yerdir. Görev sürelerini çubuk olarak deneyin:</p>
+<div class="cell"><textarea># Deneme: görev başına gün sayısı, sıralı çubuklar
+plan['days'] = (plan['finish'] - plan['start']).dt.days
+fig = px.bar(plan.sort_values('days'), x='days', y='task', orientation='h',
+             color='team', template='simple_white',
+             color_discrete_map={'Marketing': '#0b3a47', 'Design': '#b26a00',
+                                 'Development': '#6fb3c2'},
+             labels={'days': 'Days', 'task': '', 'team': 'Team'},
+             title='Design mockups take the longest')
+fig.show()</textarea></div>
+</section>
+
+<!-- ============ 17.5 ============ -->
+<section>
+<h2 id="s17-5"><span class="num">17.5</span>Şelale Grafikleri (Waterfall)</h2>
+<p>Bir <em>şelale grafiği</em> bir toplamı açıklar. Bir sayıyla başlar, parçaları birer birer yüzen çubuklar olarak ekleyip çıkarır ve sonuçla biter. “Bu sayıdan şu sayıya nasıl geldik?” sorusunu yanıtlar. Olağan kullanımları kâr köprüsü, bütçe değişimi ve çalışan sayısı değişimidir.</p>
+<p><code>profit.csv</code> mağazanın bir ayını içerir: gelir, ondan çıkan maliyetler ve ardından küçük bir ek gelir. Maliyetler negatiftir:</p>
+<pre class="data">item,amount
+Revenue,120000
+Cost of goods,-52000
+...</pre>
+
+<h3 id="s17-5-why">Express’te neden şelale yok?</h3>
+<p>Express grafikleri, her satırın bir işaret olduğu ve her sütunun x, y ya da rengi belirlediği bir tablodan kurulur. Şelale daha fazlasını ister: her çubuk bir öncekinin bittiği yerde başlar ve son çubuk diğerlerinin toplamıdır. Express’te bunun için bir fonksiyon yoktur; bu yüzden birkaç satır fazlası pahasına plotly’nin çizebildiği her grafiği veren <code>plotly.graph_objects</code>’i kullanırsınız.</p>
+
+<h3 id="s17-5-go"><code>go.Figure()</code> ve <code>go.Waterfall()</code></h3>
+<p><code>import plotly.graph_objects as go</code>, onu alışılmış kısa adı <code>go</code> ile yükler. <code>go.Figure</code>’ı, <code>px</code>’in geri verdiği nesneyle aynı türdendir. Bunu herhangi bir express grafiğinde, burada kâr tablosunun bir çubuk grafiğinde kontrol edin. (Çıktı, modülün iç adı olan <code>graph_objs</code>’u söyler; aynı şeydir.) <code>graph_objects</code> ile parçaları kendiniz kurarsınız: <code>go.Waterfall(...)</code> gibi bir iz (trace, Bölüm 16.7) yapar ve onu <code>go.Figure(...)</code> ile sararsınız. Sonrasında <code>update_layout()</code>, <code>update_traces()</code>, <code>fig.show()</code> ve <code>write_html()</code> tam olarak Bölüm 16’daki gibi çalışır.</p>
+<div class="cell"><textarea>import plotly.graph_objects as go
+
+profit = pd.read_csv('profit.csv')
+type(px.bar(profit, x='item', y='amount'))</textarea></div>
+<p>Express sizin için bir <code>Figure</code> kurdu. Şimdi şelale için listeleri hazırlayın; her çubuk için bir giriş:</p>
+<div class="cell"><textarea>steps = list(profit['item']) + ['Profit']
+amounts = list(profit['amount']) + [0]
+measure = ['absolute'] + ['relative'] * 5 + ['total']
+total = int(profit['amount'].sum())
+labels = [f'{a:,}' for a in profit['amount']] + [f'{total:,}']
+total</textarea></div>
+<p><code>amounts</code>’un sonundaki fazladan <code>0</code>, Profit çubuğu için bir yer tutucudur. Bir <code>'total'</code> çubuğu kendi değerini yok sayar ve birikimli toplamı çizer. <code>[f'{a:,}' for a in profit['amount']]</code> liste üreteci, çubuk etiketleri için her sayıyı virgüllü metne çevirir.</p>
+<p><code>measure</code> listesi ana fikirdir. Her çubuk üç türden biridir. <code>'absolute'</code> grafiği kendi değerinden başlatır, <code>'relative'</code> kendi değerini birikimli toplama ekler (negatif bir değer ondan çıkarır) ve <code>'total'</code> o ana kadarki birikimli toplamı çizer, kendi değeri yok sayılır. Gelir başlangıçtır, beş adım görecelidir ve son çubuk toplamdır. <code>labels</code> listesi çubukların metnidir; negatif sayı eksi işaretini korur.</p>
+<p>Şimdi grafik. <code>go.Waterfall()</code> adım adlarını <code>x=</code>’te, tutarları <code>y=</code>’de ve measure listesini <code>measure=</code>’da alır. Renkler üç küçük sözlüğe gider: biri yukarı adımlar (<code>increasing</code>), biri aşağı adımlar (<code>decreasing</code>), biri toplamlar için. İlk çubuk <code>'absolute'</code> olduğu için o da <code>totals</code> rengini alır; Revenue ile Profit’in aynı renk olmasının nedeni budur. İç içe sözlükler tuhaf görünür ama olduğu gibi kopyalayıp yalnızca renkleri değiştirebilirsiniz:</p>
+<div class="cell"><textarea>fig = go.Figure(go.Waterfall(
+    x=steps, y=amounts, measure=measure,
+    text=labels, textposition='outside',
+    increasing={'marker': {'color': '#0b3a47'}},
+    decreasing={'marker': {'color': '#b26a00'}},
+    totals={'marker': {'color': '#6fb3c2'}},
+    connector={'line': {'color': '#888', 'width': 1}}))
+fig.update_layout(
+    template='simple_white', showlegend=False,
+    title='A month of $120,000 in sales leaves $43,000 profit',
+    yaxis={'title': 'Dollars', 'tickformat': ','})
+fig.show()</textarea></div>
+<p class="figdesc">Bir şelale grafiği. 120.000’lik uzun açık mavi Revenue çubuğu sıfırdan başlıyor. Cost of goods, Shipping, Advertising ve Returns için dört kehribar çubuk sırayla aşağı iniyor; ilki en uzunu. Gift card sales için kısa koyu camgöbeği bir çubuk 3.000 yukarı çıkıyor. Sondaki Profit etiketli açık mavi çubuk 43.000’de duruyor. İnce çizgiler her çubuğu bir sonrakine bağlıyor.</p>
+<p>Soldan sağa okuyun. Revenue, son toplamla aynı açık mavi renkte sıfır çizgisinin üzerinde durur; her maliyet son çubuğun ulaştığı seviyeden sarkar ve küçük camgöbeği hediye kartı çubuğu seviyeyi biraz yükseltir. Son çubuk geriye kalanı gösterir. 52.000 ile Cost of goods açık ara en büyük kesintidir. <code>connector</code> çizgileri her çubuğun nerede başladığını gösterir. Bir çubuğun üzerine gelmek adımını ve birikimli toplamını gösterir.</p>
+<p>Eksenin sıfırdan başladığına dikkat edin. Şelale, adımları toplama göre küçük gösterir; bu yüzden dürüst eksenler (Bölüm 10.1) burada da bir çubuk grafikteki kadar önemlidir.</p>
+
+<h3 id="s17-5-bar">Çubuk grafik ne zaman daha iyi?</h3>
+<p>Tek soru “hangi maliyet en büyük?” ise maliyetlerin sıralı çubukları (Bölüm 5.1) bunu daha hızlı yanıtlar, çünkü tüm çubuklar aynı çizgiden başlar. Şelale, okuyucunun aritmetiğe, yani parçaların bir toplama nasıl eklendiğine ihtiyaç duyduğunda yerini hak eder. Renkler yöne göre ayarlandığı için Bölüm 9.2’nin fikrini de kullanabilirsiniz: önemsemediğiniz adımlar için gri, insanların bakmasını istediğiniz adım için tek renk. Deneyin:</p>
+<div class="cell"><textarea># Deneme: tek vurgu — yalnızca maliyet adımları kehribar, geri kalanı gri
+fig = go.Figure(go.Waterfall(
+    x=steps, y=amounts, measure=measure,
+    text=labels, textposition='outside',
+    increasing={'marker': {'color': '#c4c9ce'}},
+    decreasing={'marker': {'color': '#b26a00'}},
+    totals={'marker': {'color': '#c4c9ce'}},
+    connector={'line': {'color': '#888', 'width': 1}}))
+fig.update_layout(template='simple_white', showlegend=False,
+                  title='Costs take $80,000 of every $120,000',
+                  yaxis={'title': 'Dollars', 'tickformat': ','})
+fig.show()</textarea></div>
+</section>
+
+<!-- ============ 17.6 ============ -->
+<section>
+<h2 id="s17-6"><span class="num">17.6</span>Aralarından Seçim Yapmak</h2>
+<p>Bu bölümdeki her grafik bir tür soruyu yanıtlar. Tablo, her biriyle yarışan düz grafikle birlikte bunları listeler:</p>
+<div style="overflow-x:auto"><table class="choose">
+<thead><tr><th>Soru</th><th>Grafik</th><th>Çubuk grafik şu durumda daha iyi</th></tr></thead>
+<tbody>
+<tr><td>Coğrafyayı izliyor mu?</td><td><code>px.choropleth()</code></td><td>Bir sıralama ya da tam değerler gerektiğinde</td></tr>
+<tr><td>Toplam nelerden oluşuyor?</td><td><code>px.treemap()</code></td><td>Yakın değerleri karşılaştırdığınızda ya da kategori az olduğunda</td></tr>
+<tr><td>İnsanları nerede kaybediyoruz?</td><td><code>px.funnel()</code></td><td>Yalnızca birkaç adım olduğunda ve etiket istediğinizde</td></tr>
+<tr><td>Kim neyi, ne zaman yapıyor?</td><td><code>px.timeline()</code></td><td>Tarihler değil yalnızca süre önemli olduğunda</td></tr>
+<tr><td>A’dan B’ye nasıl geldik?</td><td><code>go.Waterfall()</code></td><td>Yalnızca hangi parçanın en büyük olduğunu bilmek istediğinizde</td></tr>
+</tbody></table></div>
+<p>Soruyu bir çubuk grafikle yanıtlayabiliyorsanız ve izleyiciniz onu anlıyorsa çubuk grafiği kullanın. Bu grafikleri şekilleri mesajı taşıdığında seçin ve onları diğer grafikler gibi tasarlayın: tek vurgu rengi, bulguyu söyleyen bir başlık ve okuyucunun ihtiyaç duyduğu yerde sayılar.</p>
+</section>
+
+<!-- ============ Özet ============ -->
+<section>
+<h2 id="ozet">Bölüm Özeti</h2>
+<ul class="summary">
+<li>Koroplet harita bölgeleri bir sayıya göre renklendirir. ABD eyaletlerini <code>px.choropleth()</code> ile, <code>locations=</code> iki harfli kodlar, <code>locationmode='USA-states'</code> ve <code>scope='usa'</code> ile çizin.</li>
+<li>Toplam değil, 100.000 kişi başına sipariş gibi bir oran haritalayın; yoksa en büyük eyaletler hep en koyu olur. <code>'Blues'</code> gibi tek tonlu bir skala kullanın.</li>
+<li>Harita sınırları grafik çizilirken indirilir; bu yüzden internet bağlantısı gerekir.</li>
+<li><code>px.treemap()</code>, gruplar için <code>path=</code>, alan için <code>values=</code> alır. Bir toplamın nelerden oluştuğunu gösterir, ama alanları karşılaştırmak zordur.</li>
+<li><code>px.funnel()</code> her adımda kalan kişi sayısını tablonuzun sırasıyla gösterir. En çok kaybeden adım her zaman düzeltilecek adım değildir.</li>
+<li><code>px.timeline()</code>, gerçek tarihlerle <code>x_start=</code> ve <code>x_end=</code> alır; <code>category_orders=</code> görevleri tablo sırasında, ilk görev en üstte tutar.</li>
+<li><code>go.Figure(go.Waterfall(...))</code> bir şelale kurar. <code>measure=</code> listesi hangi çubukların <code>'absolute'</code>, <code>'relative'</code> ya da <code>'total'</code> olduğunu söyler. <code>graph_objects</code>, express’in üzerine kurulduğu şeydir; bu yüzden <code>update_layout()</code> ve <code>fig.show()</code> aynı çalışır.</li>
+<li><code>simple_white</code> ile <code>add_shape()</code> ya da <code>add_hline()</code> ile eklenen çizgilerin görünmesi için <code>line_width=</code>, dolgun görünmesi için <code>opacity=1</code> gerekir.</li>
+<li>Önce sıralı bir çubuk grafiğin soruyu yanıtlayıp yanıtlamadığını sorun. Bu grafikler, şekil mesaj olduğunda yerini hak eder.</li>
+</ul>
+<p>Bölüm 18 tüm kitabı bir araya getiriyor: beş iş sorusunu beş grafikle yanıtlayacak ve tamamlanmış tek sayfalık satış raporunu kuracaksınız.</p>
+
+<h3 id="oyun">Kendi kodunuzu deneyin</h3>
+<p>Aşağıdaki hücre boş bir oyun alanı. Yukarıdaki tüm değişkenler (<code>states</code>, <code>categories</code>, <code>funnel</code>, <code>plan</code>, <code>profit</code>…) burada kullanılabilir (önceki hücreler otomatik çalıştırılır).</p>
+<div class="cell"><textarea># Örnek: sipariş başına ortalama satış ($) haritası, viridis skalasıyla
+states['avg_order'] = (states['sales'] / states['orders']).round(1)
+fig = px.choropleth(states, locations='state', locationmode='USA-states',
+                    scope='usa', color='avg_order',
+                    color_continuous_scale='viridis', template='simple_white',
+                    hover_name='state',
+                    labels={'avg_order': 'Average order ($)'},
+                    title='Average order value by state')
+fig.show()</textarea></div>
+</section>
+
+<!-- ============ Quiz ============ -->
+<section>
+<h2 id="quiz">Sınav</h2>
+<p>Bir seçeneğe tıklayın; doğru cevap ve açıklama hemen görünür. Puan: <span id="score">0 / 10</span> &nbsp;<button class="btn ghost" id="quizReset">Sıfırla</button></p>
+<div id="quizBox"></div>
+</section>
+<div class="chnav"><a href="bolum16_plotly_express.html">← Bölüm 16</a><div class="all">Bölümler: <a href="bolum01_ortami_kurmak.html" class="" title="Görselleştirme Ortamını Kurmak">1</a><a href="bolum02_cizmeden_once_dusunmek.html" class="" title="Çizmeden Önce Düşünmek">2</a><a href="bolum03_matplotlib_temelleri.html" class="" title="matplotlib Temelleri">3</a><a href="bolum04_cizgiler_noktalar.html" class="" title="Çizgiler ve Noktalar">4</a><a href="bolum05_cubuklar_pastalar_tablolar.html" class="" title="Çubuklar, Pastalar ve Tablolar">5</a><a href="bolum06_dagilimlar_izgaralar.html" class="" title="Dağılımlar ve Değer Izgaraları">6</a><a href="bolum07_ozellestirme.html" class="" title="Bir Grafiğin Her Parçasını Özelleştirmek">7</a><a href="bolum08_yerlesimler.html" class="" title="Yerleşimler: Bir Figürde Birçok Grafik">8</a><a href="bolum09_iletisim_kuran_tasarim.html" class="" title="İletişim Kuran Tasarım">9</a><a href="bolum10_yalan_soyleyen_grafikler.html" class="" title="Yalan Söyleyen Grafikler">10</a><a href="bolum11_seaborn_temelleri.html" class="" title="seaborn Temelleri">11</a><a href="bolum12_iliskiler_regresyon.html" class="" title="İlişkiler ve Regresyon">12</a><a href="bolum13_kategoriler.html" class="" title="Kategoriler">13</a><a href="bolum14_dagilimlar.html" class="" title="Dağılımlar">14</a><a href="bolum15_izgaralar_matrisler.html" class="" title="Izgaralar ve Matrisler">15</a><a href="bolum16_plotly_express.html" class="" title="plotly express ile Etkileşimli Grafikler">16</a><a href="bolum17_haritalar_is_grafikleri.html" class="cur" title="Haritalar ve İş Grafikleri">17</a></div><span></span></div>
+</main>
+</div>
+<footer>Bölüm 17 · Haritalar ve İş Grafikleri — Pyodide ile etkileşimli Türkçe sürüm</footer>
+
+<script>
+const DATA = {"categories.csv": "group,category,sales\nComputers,Laptops,48200\nComputers,Tablets,21500\nComputers,Monitors,18900\nAccessories,Keyboards,9400\nAccessories,Mice,6100\nAccessories,Cables,4300\nAccessories,Webcams,7200\nAudio,Headphones,16800\nAudio,Speakers,8900\nAudio,Microphones,3600\n", "funnel.csv": "stage,people\nVisited the shop,48000\nAdded to cart,9600\nStarted checkout,5400\nPaid,3240\n", "plan.csv": "task,team,start,finish\nWrite page content,Marketing,2027-01-04,2027-01-22\nDesign mockups,Design,2027-01-11,2027-02-12\nTake product photos,Marketing,2027-02-01,2027-03-05\nBuild new pages,Development,2027-02-08,2027-03-19\nTest the checkout,Development,2027-03-15,2027-03-26\nLaunch campaign,Marketing,2027-03-29,2027-04-09\n", "profit.csv": "item,amount\nRevenue,120000\nCost of goods,-52000\nShipping,-9500\nAdvertising,-14000\nReturns,-4500\nGift card sales,3000\n", "states.csv": "state,population,orders,sales\nCA,38965,1870,168300\nTX,30503,1190,97580\nFL,22610,927,84357\nNY,19572,1018,83476\nPA,12961,337,29656\nIL,12549,326,29666\nOH,11786,436,38368\nGA,11030,485,46075\nNC,10835,433,34640\nMI,10037,381,36195\nNJ,9290,242,22748\nVA,8715,270,23760\nWA,7812,562,51704\nAZ,7431,253,20240\nTN,7126,242,20328\nMA,7001,420,39060\nIN,6862,206,16892\nMO,6196,229,21297\nMD,6180,278,23630\nWI,5911,231,20328\nCO,5877,388,34532\nMN,5737,178,14596\nSC,5373,167,13527\nAL,5108,230,18630\nLA,4573,160,14880\nKY,4526,208,17264\nOR,4233,250,23000\nOK,4054,138,12834\nCT,3617,94,8366\nUT,3418,120,11160\nIA,3207,115,9890\nNV,3194,121,10890\nAR,3067,104,8632\nKS,2940,106,9434\nMS,2940,121,10890\nNM,2114,70,5600\nNE,1978,73,6643\nID,1964,77,6853\nWV,1770,76,6612\nHI,1435,39,3510\nNH,1402,79,6952\nME,1395,42,3486\nMT,1133,60,5040\nRI,1096,34,3026\nDE,1032,40,3360\nSD,919,24,2160\nND,784,33,2904\nAK,733,28,2296\nVT,647,55,4565\nWY,585,25,2275\n"};
+</script>
+<script>
+// ---------------- Quiz -----------------
+const QUIZ = [
+ {q:"Eyaletlere göre toplam satış haritası neden büyük ölçüde insanların nerede yaşadığını gösterir?",
+  o:["Koroplet haritalar eyaletleri her zaman nüfusa göre renklendirir","Daha çok insanı olan eyaletler daha çok sipariş verir","plotly eyaletleri çizmeden önce nüfusa göre sıralar","Küçük eyaletler haritadan çıkarılır, büyükler öne çıkar"],a:1,
+  e:"On kat insanı olan eyalet yaklaşık on kat satış yapar; bu yüzden bir oran haritalanmalıdır (17.1)."},
+ {q:"<code>px.choropleth(df, locations='state', color='sales', scope='usa')</code> boş bir harita çiziyor, oysa <code>state</code> sütunu <code>CA</code> gibi kodlar tutuyor. Eksik olan nedir?",
+  o:["<code>color_continuous_scale='Blues'</code>","<code>locationmode='USA-states'</code>","<code>template='simple_white'</code>","<code>labels={'state': 'State'}</code>"],a:1,
+  e:"Bu olmadan plotly <code>CA</code>’yı ülke kodu sanar, böyle bir ülke bulamaz ve boş harita çizer."},
+ {q:"İnternet bağlantısı olmayan bir dizüstü bilgisayarda koroplet harita çizerseniz ne olur?",
+  o:["Harita sınırları yüklenemez, harita boş kalır","plotly bilgisayarınıza kaydedilmiş daha basit bir haritaya döner","Eyalet kodları kontrol edilemediği için hata verir","Eyaletler çizilir ama renksiz olur"],a:0,
+  e:"Sınırlar grafik çizilirken tarayıcıda indirilir; çevrimdışıyken boş bir çerçeve alırsınız."},
+ {q:"Siyah-beyaz okunması gereken bir koroplet haritaya hangi renk skalası uyar?",
+  o:["Her değer aralığı kendi rengini alsın diye gökkuşağı skalası","Eyaletler ayrışsın diye parlak, birbirinden çok farklı renkler","Aralığın her yarısı için bir tane, iki ilgisiz renk tonu","<code>'Blues'</code> gibi soluktan koyuya tek renk tonu"],a:3,
+  e:"Açıklığı düzenli değişen tek tonlu skala griye çevrildiğinde de sırayı korur; gökkuşağı sahte sınırlar uydurur."},
+ {q:"<code>px.treemap(df, path=['group', 'category'], values='sales')</code> içinde <code>values='sales'</code> neyi belirler?",
+  o:["Her dikdörtgenin rengini","Grupların sırasını","Her dikdörtgenin alanını","Her dikdörtgenin etiketini"],a:2,
+  e:"<code>path=</code> grupları, <code>values=</code> ise alanı belirler."},
+ {q:"12 ürün kategorisini en iyiden en kötüye sıralamanız gerekiyor. Hangi grafiği seçersiniz?",
+  o:["Ağaç haritası, çünkü alan büyüklüğü gösterir","Sıralı yatay çubuk grafik","Koroplet harita, çünkü renk kullanır","Huni"],a:1,
+  e:"Gözlerimiz uzunlukları alanlardan çok daha iyi karşılaştırır (17.2)."},
+ {q:"Huni tablonuz adımları Paid, Started checkout, Added to cart, Visited the shop sırasıyla listeliyor. <code>px.funnel()</code> ne çizer?",
+  o:["En geniş çubuğu üstte olan, büyüklüğe göre sıralı bir huni","Adımlar sıralı olmadığı için bir hata","Yalnızca ilk iki adımı gösteren bir huni","Satır sıranızla, ters dönmüş bir huni"],a:3,
+  e:"<code>px.funnel()</code> satırları tablodaki sırasıyla tutar; büyüklüğe göre sıralamaz."},
+ {q:"<code>px.timeline()</code>’a her görevin çubuğunun nerede başlayıp bittiğini hangi parametreler söyler?",
+  o:["<code>x=</code> ve <code>y=</code>","<code>x_start=</code> ve <code>x_end=</code>","<code>scope=</code> ve <code>color=</code>","<code>category_orders=</code>"],a:1,
+  e:"İki tarih parametresi <code>x_start=</code> ve <code>x_end=</code>’dir; <code>y=</code> görev adıdır."},
+ {q:"Bu bölümdeki şelale grafiği neden <code>px</code> değil de <code>plotly.graph_objects</code> kullanıyor?",
+  o:["Express grafikleri <code>write_html()</code> ile kaydedilemez","Express’te şelale grafiği için bir fonksiyon yoktur","<code>go</code> grafikleri durağan resimdir, rapora uyar","Express maliyet gibi negatif değerleri gösteremez"],a:1,
+  e:"Her çubuğun bir öncekinin bittiği yerde başlaması gerekir; express’in bunun için fonksiyonu yok (17.5)."},
+ {q:"Bir <code>go.Waterfall()</code> içinde <code>measure=['absolute', 'relative', 'relative', 'total']</code> plotly’ye ne söyler?",
+  o:["Başlangıç değeri, iki adım, ardından birikimli toplam","İlk çubuk en büyük, son çubuk en küçüktür","Bir çubuk grafikteki gibi her çubuk sıfırdan başlar","İlk çubuk sabit kalır, diğerleri gizlenir"],a:0,
+  e:"<code>'absolute'</code> başlatır, <code>'relative'</code> ekler/çıkarır, <code>'total'</code> birikimli toplamı çizer."}
+];
+function buildQuiz(){
+  const box=document.getElementById('quizBox'); box.innerHTML='';
+  const L='ABCD';
+  QUIZ.forEach((it,i)=>{
+    const d=document.createElement('div'); d.className='q'; d.id='q'+(i+1);
+    d.innerHTML=`<div class="qt">${i+1}. ${it.q}</div>`+
+      it.o.map((o,j)=>`<label><input type="radio" name="q${i}" value="${j}"><strong>${L[j]}.</strong> ${o}</label>`).join('')+
+      `<div class="fb"></div>`;
+    d.querySelectorAll('input').forEach(inp=>inp.addEventListener('change',()=>{
+      if(d.dataset.done) return; d.dataset.done=1;
+      const j=+inp.value, labs=d.querySelectorAll('label');
+      labs[it.a].classList.add('ok'); if(j!==it.a) labs[j].classList.add('no');
+      d.querySelectorAll('input').forEach(x=>x.disabled=true);
+      const fb=d.querySelector('.fb'); fb.classList.add('show');
+      fb.innerHTML=(j===it.a?'✅ <strong>Doğru.</strong> ':'❌ <strong>Doğru cevap '+L[it.a]+'.</strong> ')+it.e;
+      if(j===it.a) d.dataset.ok=1; updateScore();
+    }));
+    box.appendChild(d);
+  });
+  updateScore();
+}
+function updateScore(){
+  const ok=document.querySelectorAll('.q[data-ok]').length, done=document.querySelectorAll('.q[data-done]').length;
+  document.getElementById('score').textContent=`${ok} / ${QUIZ.length}`+(done?` (cevaplanan: ${done})`:'');
+}
+document.getElementById('quizReset').onclick=buildQuiz;
+buildQuiz();
+
+// ---------------- Data list -----------------
+function csvToTable(txt,max=200){
+  const rows=txt.trim().split(/\r?\n/).map(r=>r.split(','));
+  const h=rows.shift();
+  return '<table><thead><tr>'+h.map(x=>`<th>${x}</th>`).join('')+'</tr></thead><tbody>'+
+    rows.slice(0,max).map(r=>'<tr>'+r.map(x=>`<td>${x}</td>`).join('')+'</tr>').join('')+'</tbody></table>';
+}
+(function(){
+  const host=document.getElementById('dataList');
+  Object.entries(DATA).forEach(([name,txt])=>{
+    const n=txt.trim().split(/\r?\n/).length-1;
+    const url=URL.createObjectURL(new Blob([txt],{type:'text/csv'}));
+    const d=document.createElement('details'); d.className='data';
+    d.innerHTML=`<summary>${name} <span style="font-weight:400;color:#5f6b72">— ${n} satır</span> · <a href="${url}" download="${name}">indir</a></summary><div class="tbl">${csvToTable(txt)}</div>`;
+    host.appendChild(d);
+  });
+})();
+
+// ---------------- Code cells -----------------
+const cells=[];
+document.querySelectorAll('.cell').forEach((el,i)=>{
+  const ta=el.querySelector('textarea'); const src=ta.value;
+  const bar=document.createElement('div'); bar.className='bar';
+  bar.innerHTML=`<span class="lbl">In [<span class="cnt"> </span>]:</span><span class="sp"></span>
+    <button class="btn ghost reset" title="Orijinal koda dön">↺ Orijinal</button>
+    <button class="btn run" disabled>▶ Çalıştır</button>`;
+  el.insertBefore(bar,ta);
+  const cm=CodeMirror.fromTextArea(ta,{mode:'python',lineNumbers:false,indentUnit:4,viewportMargin:Infinity,
+     extraKeys:{'Shift-Enter':()=>runCell(i),'Ctrl-Enter':()=>runCell(i),Tab:c=>c.replaceSelection('    ')}});
+  const out=document.createElement('div'); out.className='out'; el.appendChild(out);
+  const c={el,cm,out,src,ran:false,idx:i,btn:bar.querySelector('.run'),cnt:bar.querySelector('.cnt')};
+  bar.querySelector('.run').onclick=()=>runCell(i);
+  bar.querySelector('.reset').onclick=()=>cm.setValue(src);
+  el.id='hucre-'+(i+1);
+  cells.push(c);
+});
+
+// ---------------- Pyodide -----------------
+let py=null, execCount=0, busy=false;
+const st=document.getElementById('status'), stT=document.getElementById('statusText');
+window.__currentOut=null;
+window.renderPlot=function(json){
+  const spec=JSON.parse(json); const div=document.createElement('div'); div.className='plot';
+  const inner=document.createElement('div'); div.appendChild(inner);
+  window.__currentOut.appendChild(div);
+  Plotly.newPlot(inner,spec.data,spec.layout||{},{responsive:true,displaylogo:false,locale:'tr'});
+};
+const PY_SETUP=`
+import sys, io, ast, os, contextlib, js
+import pandas as pd
+import plotly.io as pio
+from plotly.basedatatypes import BaseFigure
+def _show(self, *a, **k):
+    js.renderPlot(self.to_json())
+BaseFigure.show = _show
+pd.set_option('display.width', 120)
+def __run_cell(src, ns):
+    buf = io.StringIO()
+    before = set(f for f in os.listdir('.') if not f.endswith('.csv'))
+    res = {'stdout':'', 'html':None, 'text':None, 'files':[]}
+    with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(buf):
+        tree = ast.parse(src)
+        last = None
+        if tree.body and isinstance(tree.body[-1], ast.Expr):
+            last = ast.Expression(tree.body.pop().value)
+        exec(compile(tree, '<hücre>', 'exec'), ns)
+        val = eval(compile(last, '<hücre>', 'eval'), ns) if last is not None else None
+    res['stdout'] = buf.getvalue()
+    if val is not None:
+        if isinstance(val, BaseFigure):
+            val.show()
+        elif isinstance(val, (pd.DataFrame, pd.Series)):
+            df = val.to_frame() if isinstance(val, pd.Series) else val
+            res['html'] = df.to_html(max_rows=30, border=0)
+        else:
+            res['text'] = repr(val)
+    after = set(f for f in os.listdir('.') if not f.endswith('.csv'))
+    res['files'] = sorted((after - before) | (set(_written(src)) & after))
+    return res
+def _written(src):
+    import re
+    return re.findall(r"write_(?:html|json)\\(\\s*['\\"]([^'\\"]+)['\\"]", src)
+def __new_ns():
+    return {'__name__':'__main__'}
+`;
+async function initPy(){
+  try{
+    stT.textContent='Pyodide yükleniyor…';
+    py=await loadPyodide();
+    stT.textContent='pandas yükleniyor…';
+    await py.loadPackage(['pandas','micropip']);
+    stT.textContent='plotly yükleniyor…';
+    const mp=py.pyimport('micropip');
+    await mp.install('plotly==5.24.1');
+    for(const [n,t] of Object.entries(DATA)) py.FS.writeFile(n,t);
+    await py.runPythonAsync(PY_SETUP);
+    window.__ns=py.runPython('__new_ns()');
+    st.className='ready'; stT.textContent='Python hazır';
+    cells.forEach(c=>c.btn.disabled=false);
+  }catch(e){ st.className='err'; stT.textContent='Yükleme hatası'; console.error(e);
+    alert('Pyodide yüklenemedi. İnternet bağlantınızı kontrol edin.\n'+e); }
+}
+async function execOne(c){
+  c.out.innerHTML=''; c.out.classList.add('show'); window.__currentOut=c.out;
+  c.el.style.opacity=1;
+  try{
+    const fn=py.globals.get('__run_cell');
+    const r=fn(c.cm.getValue(), window.__ns).toJs({dict_converter:Object.fromEntries});
+    fn.destroy();
+    if(r.stdout){const p=document.createElement('pre');p.className='txt';p.textContent=r.stdout;c.out.prepend(p);}
+    if(r.html){const d=document.createElement('div');d.style.overflowX='auto';d.innerHTML=r.html;c.out.appendChild(d);}
+    if(r.text){const p=document.createElement('pre');p.className='txt';p.textContent=r.text;c.out.appendChild(p);}
+    for(const f of (r.files||[])){
+      const bytes=py.FS.readFile(f); const url=URL.createObjectURL(new Blob([bytes],{type:f.endsWith('.html')?'text/html':'application/octet-stream'}));
+      const d=document.createElement('div');d.className='dl';
+      d.innerHTML=`<a href="${url}" download="${f}">⬇ ${f} dosyasını indir (${(bytes.length/1048576).toFixed(1)} MB)</a> &nbsp;<a href="${url}" target="_blank" style="background:#0b3a47">Yeni sekmede aç</a>`;
+      c.out.appendChild(d);
+    }
+    if(!c.out.children.length){const p=document.createElement('pre');p.className='txt';p.style.color='#8a9296';p.textContent='✓ Çalıştı (çıktı yok)';c.out.appendChild(p);}
+    c.ran=true; c.cnt.textContent=++execCount; return true;
+  }catch(e){
+    let msg=String(e.message||e); const k=msg.lastIndexOf('File "<hücre>"');
+    if(k>0) msg=msg.slice(k);
+    const p=document.createElement('pre');p.className='txt err';p.textContent=msg;c.out.appendChild(p);
+    c.cnt.textContent='!'; return false;
+  }
+}
+async function runCell(i){
+  if(!py||busy) return; busy=true;
+  const target=cells[i];
+  target.btn.disabled=true; target.btn.textContent='⏳';
+  await new Promise(r=>setTimeout(r,20));
+  for(let k=0;k<i;k++){ if(!cells[k].ran){ cells[k].btn.textContent='⏳'; await new Promise(r=>setTimeout(r,10)); await execOne(cells[k]); cells[k].btn.textContent='▶ Çalıştır'; } }
+  await execOne(target);
+  target.btn.disabled=false; target.btn.textContent='▶ Çalıştır'; busy=false;
+}
+document.getElementById('runAll').onclick=async()=>{ if(!py)return; for(let i=0;i<cells.length;i++){ cells[i].ran=false; } await runCell(cells.length-1); };
+document.getElementById('resetNs').onclick=()=>{ if(!py)return; window.__ns=py.runPython('__new_ns()'); execCount=0;
+  cells.forEach(c=>{c.ran=false;c.cnt.textContent=' ';c.out.innerHTML='';c.out.classList.remove('show');}); };
+initPy();
+
+// ---------------- TOC -----------------
+const toc=document.getElementById('tocLinks');
+const heads=[...document.querySelectorAll('main h2[id], main h3[id]')];
+heads.forEach(h=>{const a=document.createElement('a');a.href='#'+h.id;a.innerHTML=h.innerHTML.replace(/<span class="num">(.*?)<\/span>/,'$1 ');if(h.tagName==='H3')a.className='sub';toc.appendChild(a);});
+const tocLinks=[...toc.querySelectorAll('a')];
+const io2=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){tocLinks.forEach(a=>a.classList.toggle('active',a.getAttribute('href')==='#'+e.target.id));}})},{rootMargin:'-80px 0px -70% 0px'});
+heads.forEach(h=>io2.observe(h));
+
+// ---------------- Search -----------------
+const norm=s=>s.toLocaleLowerCase('tr').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/ı/g,'i');
+const index=[];
+(function buildIndex(){
+  let sec='Giriş';
+  document.querySelectorAll('main h1, main h2, main h3, main p, main li, main .callout, main .cell, main .q, main pre.data').forEach(el=>{
+    if(el.closest('.callout')&&el.tagName!=='DIV') return;
+    if(el.closest('#datasets')) return;
+    if(el.matches('.q')){ index.push({el,sec:'Sınav',kind:'soru',text:el.querySelector('.qt').textContent+' '+[...el.querySelectorAll('label')].map(l=>l.textContent).join(' ')}); return; }
+    if(el.closest('.q')) return;
+    if(el.matches('h2,h3')){ sec=el.textContent; }
+    let kind='metin', text=el.textContent;
+    if(el.matches('.cell')){ kind='kod'; const c=cells.find(c=>c.el===el); text=c?c.cm.getValue():text; }
+    else if(el.matches('h1,h2,h3')) kind='başlık';
+    else if(el.matches('.callout')) kind='kutu';
+    else if(el.matches('.figdesc')) kind='grafik';
+    else if(el.matches('pre.data')) kind='veri';
+    index.push({el,sec,kind,text:text.replace(/\s+/g,' ').trim()});
+  });
+  index.forEach(x=>x.n=norm(x.text));
+})();
+const si=document.getElementById('search'), res=document.getElementById('results');
+let hits=[], act=-1;
+function esc(s){return s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+function snippet(text,terms){
+  const n=norm(text); let pos=-1;
+  for(const t of terms){const p=n.indexOf(t);if(p>=0){pos=p;break;}}
+  let s=Math.max(0,pos-60), e=Math.min(text.length,(pos<0?0:pos)+140);
+  let out=(s>0?'…':'')+text.slice(s,e)+(e<text.length?'…':'');
+  // highlight (norm keeps length for Turkish chars after NFD strip mostly; do case-insensitive regex)
+  let h=esc(out);
+  terms.forEach(t=>{ if(!t) return;
+    const re=new RegExp(t.split('').map(ch=>{const m={'i':'[iıİI]','s':'[sşŞS]','c':'[cçÇC]','g':'[gğĞG]','o':'[oöÖO]','u':'[uüÜU]'}; return m[ch]||ch.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}).join(''),'gi');
+    h=h.replace(re,m=>`<mark>${m}</mark>`); });
+  return h;
+}
+function doSearch(){
+  const q=si.value.trim();
+  if(q.length<2){res.classList.remove('open');res.innerHTML='';return;}
+  const terms=norm(q).split(/\s+/).filter(Boolean);
+  hits=index.map(x=>{let sc=0;for(const t of terms){const c=x.n.split(t).length-1;if(!c)return null;sc+=c;} if(x.kind==='başlık')sc+=5; if(x.kind==='kod')sc+=1; return {x,sc};}).filter(Boolean).sort((a,b)=>b.sc-a.sc).slice(0,40);
+  act=-1;
+  res.innerHTML=hits.length?`<div class="count">${hits.length} sonuç · <kbd>↑</kbd><kbd>↓</kbd> ile gez, <kbd>Enter</kbd> ile git</div>`+hits.map((h,i)=>`<div class="r" data-i="${i}"><div class="sec">${esc(h.x.sec)}<span class="kind">${h.x.kind}</span></div><div class="snip">${snippet(h.x.text,terms)}</div></div>`).join('')
+    :'<div class="empty">Sonuç bulunamadı.</div>';
+  res.classList.add('open');
+  res.querySelectorAll('.r').forEach(r=>r.onclick=()=>go(+r.dataset.i));
+}
+function go(i){
+  const el=hits[i].x.el; res.classList.remove('open');
+  const det=el.closest('details'); if(det) det.open=true;
+  el.scrollIntoView({behavior:'smooth',block:'center'});
+  el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
+}
+si.addEventListener('input',doSearch);
+si.addEventListener('focus',()=>{if(si.value.trim().length>=2)doSearch();});
+si.addEventListener('keydown',e=>{
+  const rs=[...res.querySelectorAll('.r')];
+  if(e.key==='ArrowDown'){act=Math.min(rs.length-1,act+1);}
+  else if(e.key==='ArrowUp'){act=Math.max(0,act-1);}
+  else if(e.key==='Enter'){ if(hits.length) go(act<0?0:act); return; }
+  else if(e.key==='Escape'){res.classList.remove('open');si.blur();return;}
+  else return;
+  e.preventDefault(); rs.forEach((r,k)=>r.classList.toggle('act',k===act)); if(rs[act]) rs[act].scrollIntoView({block:'nearest'});
+});
+document.addEventListener('keydown',e=>{ if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();si.focus();si.select();}
+  else if(e.key==='/'&&document.activeElement.tagName!=='INPUT'&&!document.activeElement.closest('.CodeMirror')){e.preventDefault();si.focus();}});
+document.addEventListener('click',e=>{if(!e.target.closest('.search-wrap'))res.classList.remove('open');});
+</script>
+</body>
+</html>

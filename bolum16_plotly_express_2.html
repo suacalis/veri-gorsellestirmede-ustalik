@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bölüm 16: plotly express ile Etkileşimli Grafikler</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+<style>
+:root{
+  --teal:#0b3a47; --amber:#b26a00; --lteal:#6fb3c2; --sand:#f0c987;
+  --bg:#f7f6f2; --paper:#ffffff; --ink:#1f2a30; --muted:#5f6b72; --line:#e2e0d8;
+  --code-bg:#fbfaf6;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:80px}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.65 "Segoe UI",system-ui,-apple-system,Roboto,sans-serif}
+header.top{position:sticky;top:0;z-index:50;background:var(--teal);color:#fff;display:flex;align-items:center;gap:16px;padding:10px 20px;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+header.top .brand{font-weight:600;white-space:nowrap}
+header.top .brand small{opacity:.7;font-weight:400;margin-left:6px}
+.search-wrap{position:relative;flex:1;max-width:560px;margin-left:auto}
+#search{width:100%;padding:9px 14px 9px 36px;border-radius:8px;border:none;font-size:15px;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235f6b72' stroke-width='2.5'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E") no-repeat 11px center}
+#search:focus{outline:3px solid var(--sand)}
+#results{position:absolute;top:44px;left:0;right:0;background:#fff;color:var(--ink);border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,.2);max-height:70vh;overflow:auto;display:none}
+#results.open{display:block}
+#results .r{padding:10px 14px;border-bottom:1px solid var(--line);cursor:pointer}
+#results .r:hover,#results .r.act{background:#eef5f6}
+#results .r .sec{font-size:12px;color:var(--amber);font-weight:600;text-transform:uppercase;letter-spacing:.03em}
+#results .r .kind{font-size:11px;background:var(--line);border-radius:4px;padding:0 5px;margin-left:6px;color:var(--muted);text-transform:none;letter-spacing:0}
+#results .r .snip{font-size:14px}
+#results .empty,#results .count{padding:10px 14px;color:var(--muted);font-size:13px}
+mark{background:#ffe08a;color:inherit;border-radius:2px;padding:0 1px}
+#status{font-size:13px;white-space:nowrap;display:flex;align-items:center;gap:8px}
+#status .dot{width:10px;height:10px;border-radius:50%;background:#f0c987;box-shadow:0 0 0 0 rgba(240,201,135,.7);animation:pulse 1.4s infinite}
+#status.ready .dot{background:#7bd88f;animation:none}
+#status.err .dot{background:#ff6b6b;animation:none}
+@keyframes pulse{70%{box-shadow:0 0 0 8px rgba(240,201,135,0)}100%{box-shadow:0 0 0 0 rgba(240,201,135,0)}}
+.layout{display:grid;grid-template-columns:260px minmax(0,1fr);gap:28px;max-width:1240px;margin:0 auto;padding:24px 20px 80px}
+nav.toc{position:sticky;top:76px;align-self:start;max-height:calc(100vh - 96px);overflow:auto;font-size:14px}
+nav.toc h4{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+nav.toc a{display:block;color:var(--ink);text-decoration:none;padding:4px 10px;border-left:3px solid transparent;border-radius:0 4px 4px 0}
+nav.toc a.sub{padding-left:24px;font-size:13px;color:var(--muted)}
+nav.toc a:hover{background:#ece9df}
+nav.toc a.active{border-left-color:var(--amber);background:#fff;font-weight:600;color:var(--teal)}
+nav.toc .tools{margin-top:16px;display:flex;flex-direction:column;gap:6px}
+main{background:var(--paper);border-radius:12px;padding:36px 48px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+h1{font-size:2rem;color:var(--teal);margin:0 0 4px;line-height:1.25}
+.subtitle{color:var(--muted);margin:0 0 24px}
+h2{font-size:1.45rem;color:var(--teal);border-bottom:2px solid var(--sand);padding-bottom:6px;margin:48px 0 16px}
+h2 .num{color:var(--amber);margin-right:8px}
+h3{font-size:1.12rem;margin:30px 0 10px;color:var(--ink)}
+code{font-family:"JetBrains Mono",Consolas,Menlo,monospace;font-size:.88em;background:#f1efe8;padding:1px 5px;border-radius:4px;color:#7a3e00}
+.lead{font-size:1.08rem;border-left:4px solid var(--amber);padding:4px 0 4px 16px;color:#33424a}
+.goals{background:#eef5f6;border-radius:10px;padding:16px 22px}
+.goals ul{margin:6px 0 0;padding-left:20px}
+.callout{border-radius:10px;padding:12px 18px;margin:18px 0;border-left:5px solid}
+.callout .t{font-weight:700;display:block;margin-bottom:2px}
+.callout.warn{background:#fff4e5;border-color:var(--amber)}
+.callout.warn .t{color:var(--amber)}
+.callout.tip{background:#eaf6f1;border-color:#2f8f6b}
+.callout.tip .t{color:#2f8f6b}
+.callout.note{background:#eef2f7;border-color:#4b6a8a}
+.callout.note .t{color:#4b6a8a}
+pre.data{background:var(--code-bg);border:1px dashed var(--line);border-radius:8px;padding:10px 14px;font-size:13px;overflow:auto}
+/* code cells */
+.cell{border:1px solid var(--line);border-radius:10px;margin:18px 0;overflow:hidden;background:var(--code-bg)}
+.cell .bar{display:flex;align-items:center;gap:8px;padding:6px 10px;background:#f1efe8;border-bottom:1px solid var(--line);font-size:12px;color:var(--muted)}
+.cell .bar .lbl{font-family:Consolas,monospace}
+.cell .bar .sp{flex:1}
+button{font:inherit;cursor:pointer;border-radius:6px;border:1px solid transparent}
+.btn{background:var(--teal);color:#fff;padding:4px 12px;font-size:13px}
+.btn:hover{filter:brightness(1.2)}
+.btn:disabled{opacity:.5;cursor:wait}
+.btn.ghost{background:transparent;color:var(--teal);border-color:#c9d3d6}
+.btn.ghost:hover{background:#fff}
+.btn.amber{background:var(--amber)}
+.CodeMirror{height:auto;font-size:14px;background:var(--code-bg);font-family:"JetBrains Mono",Consolas,Menlo,monospace}
+.CodeMirror-scroll{min-height:30px}
+.cm-s-default .cm-keyword{color:#8a3ffc}.cm-s-default .cm-string{color:#0b7a4b}.cm-s-default .cm-number{color:#b26a00}.cm-s-default .cm-comment{color:#8a9296;font-style:italic}.cm-s-default .cm-builtin{color:#0b5f7a}
+.out{border-top:1px solid var(--line);background:#fff;padding:0;display:none}
+.out.show{display:block}
+.out .txt{margin:0;padding:10px 14px;font:13px/1.5 Consolas,Menlo,monospace;white-space:pre-wrap;color:#333}
+.out .txt.err{color:#b00020;background:#fff5f5}
+.out .plot{padding:6px;overflow-x:auto}
+.out table{border-collapse:collapse;margin:10px 14px;font-size:13px}
+.out th,.out td{border:1px solid var(--line);padding:4px 10px;text-align:right}
+.out th{background:#f1efe8}
+.out .dl{margin:10px 14px}
+.out .dl a{display:inline-block;background:var(--amber);color:#fff;text-decoration:none;padding:5px 12px;border-radius:6px;font-size:13px}
+.figdesc{font-size:14px;color:var(--muted);background:#f6f5f0;border-radius:8px;padding:8px 14px;margin:-8px 0 14px;border:1px solid var(--line)}
+.figdesc::before{content:"🖼 Beklenen grafik: ";font-weight:600;color:var(--teal)}
+.flash{animation:flash 2.2s ease}
+@keyframes flash{0%,40%{background:#fff1bf;box-shadow:0 0 0 6px #fff1bf}100%{background:transparent;box-shadow:none}}
+details.data{border:1px solid var(--line);border-radius:8px;margin:8px 0;background:#fff}
+details.data summary{cursor:pointer;padding:8px 14px;font-weight:600;color:var(--teal)}
+details.data .tbl{max-height:260px;overflow:auto;padding:0 14px 10px}
+details.data table{border-collapse:collapse;font-size:13px}
+details.data td,details.data th{border:1px solid var(--line);padding:3px 8px}
+details.data th{background:#f1efe8;position:sticky;top:0}
+/* quiz */
+.q{border:1px solid var(--line);border-radius:10px;padding:14px 18px;margin:14px 0}
+.q .qt{font-weight:600;margin-bottom:8px}
+.q label{display:block;padding:6px 10px;border-radius:6px;cursor:pointer;border:1px solid transparent}
+.q label:hover{background:#f4f2ea}
+.q label.ok{background:#e3f4ea;border-color:#2f8f6b}
+.q label.no{background:#fde8e8;border-color:#d05353}
+.q input{margin-right:8px}
+.q .fb{font-size:14px;margin-top:6px;display:none}
+.q .fb.show{display:block}
+#score{font-weight:700;color:var(--teal)}
+.chnav{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:14px;margin:0 0 18px}.chnav a{color:var(--teal);text-decoration:none;border:1px solid var(--line);border-radius:6px;padding:4px 10px}.chnav a:hover{background:#eef5f6}.chnav .all{display:flex;gap:4px;flex-wrap:wrap}.chnav .all a.cur{background:var(--teal);color:#fff}
+.summary li{margin-bottom:6px}
+footer{text-align:center;color:var(--muted);font-size:13px;padding:30px}
+kbd{border:1px solid #bbb;border-bottom-width:2px;border-radius:4px;padding:0 5px;font-size:12px;background:#fff;color:#333}
+@media (max-width:900px){.layout{grid-template-columns:1fr}nav.toc{display:none}main{padding:22px 18px}header.top .brand small{display:none}#status span{display:none}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">Bölüm 16 <small>plotly express ile Etkileşimli Grafikler</small></div>
+  <div class="search-wrap">
+    <input id="search" type="search" placeholder="Bölümde ara… (ör. hover_data, pasta, kaydet)   Ctrl+K" autocomplete="off">
+    <div id="results"></div>
+  </div>
+  <div id="status"><div class="dot"></div><span id="statusText">Python yükleniyor…</span></div>
+</header>
+
+<div class="layout">
+<nav class="toc" id="toc">
+  <h4>İçindekiler</h4>
+  <div id="tocLinks"></div>
+  <div class="tools">
+    <button class="btn" id="runAll">▶ Tüm hücreleri çalıştır</button>
+    <button class="btn ghost" id="resetNs">↺ Python ortamını sıfırla</button>
+  </div>
+</nav>
+
+<main id="content">
+<div class="chnav"><a href="bolum15_izgaralar_matrisler.html">← Bölüm 15</a><div class="all">Bölümler: <a href="bolum01_ortami_kurmak.html" class="" title="Görselleştirme Ortamını Kurmak">1</a><a href="bolum02_cizmeden_once_dusunmek.html" class="" title="Çizmeden Önce Düşünmek">2</a><a href="bolum03_matplotlib_temelleri.html" class="" title="matplotlib Temelleri">3</a><a href="bolum04_cizgiler_noktalar.html" class="" title="Çizgiler ve Noktalar">4</a><a href="bolum05_cubuklar_pastalar_tablolar.html" class="" title="Çubuklar, Pastalar ve Tablolar">5</a><a href="bolum06_dagilimlar_izgaralar.html" class="" title="Dağılımlar ve Değer Izgaraları">6</a><a href="bolum07_ozellestirme.html" class="" title="Bir Grafiğin Her Parçasını Özelleştirmek">7</a><a href="bolum08_yerlesimler.html" class="" title="Yerleşimler: Bir Figürde Birçok Grafik">8</a><a href="bolum09_iletisim_kuran_tasarim.html" class="" title="İletişim Kuran Tasarım">9</a><a href="bolum10_yalan_soyleyen_grafikler.html" class="" title="Yalan Söyleyen Grafikler">10</a><a href="bolum11_seaborn_temelleri.html" class="" title="seaborn Temelleri">11</a><a href="bolum12_iliskiler_regresyon.html" class="" title="İlişkiler ve Regresyon">12</a><a href="bolum13_kategoriler.html" class="" title="Kategoriler">13</a><a href="bolum14_dagilimlar.html" class="" title="Dağılımlar">14</a><a href="bolum15_izgaralar_matrisler.html" class="" title="Izgaralar ve Matrisler">15</a><a href="bolum16_plotly_express.html" class="cur" title="plotly express ile Etkileşimli Grafikler">16</a><a href="bolum17_haritalar_is_grafikleri.html" class="" title="Haritalar ve İş Grafikleri">17</a></div><a href="bolum17_haritalar_is_grafikleri.html">Bölüm 17 →</a></div>
+<h1>Bölüm 16: plotly express ile Etkileşimli Grafikler</h1>
+<p class="subtitle">Kod hücreleri tarayıcınızda <strong>Pyodide</strong> ile çalışır; Python kurmanıza gerek yok. Kodu değiştirip yeniden çalıştırabilirsiniz (<kbd>Shift</kbd>+<kbd>Enter</kbd>).</p>
+
+<p class="lead">Yöneticiniz satış raporunu dizüstü bilgisayarında açıyor ve soruyor: “Mart’taki o sıçramada gelir neydi?” Elinizde bir resim varsa veriye geri dönüp bakmanız gerekir. Etkileşimli bir grafikte ise yönetici sıçramanın üzerine gelir ve tam sayı belirir.</p>
+
+<p>plotly’nin size kazandırdığı şey budur: üzerine gelinebilen, yakınlaştırılabilen ve tek bir dosya olarak gönderilebilen grafikler çizer. Bu bölüm, Kısım 5’i <code>plotly.express</code> ile açıyor; bu, plotly’nin tek bir çağrıyla grafik üreten kısmıdır, tıpkı Kısım 4’teki seaborn gibi. Önceki bölümlerdeki grafik türlerini yeniden kuracak, yalnızca ekranın sunabileceği özellikleri ekleyecek ve sonucu kaydedeceksiniz.</p>
+
+<div class="goals">
+<strong>Bu bölümün sonunda şunları yapabileceksiniz:</strong>
+<ul>
+<li>Bir grafiği neyin etkileşimli yaptığını ve ne zaman durağan (statik) grafiğin daha iyi bir seçim olduğunu söylemek</li>
+<li><code>px.scatter()</code>, <code>px.line()</code>, <code>px.area()</code>, <code>px.bar()</code>, <code>px.histogram()</code>, <code>px.box()</code> ve <code>px.pie()</code> ile saçılım, çizgi, alan, çubuk, histogram, kutu ve pasta grafikleri çizmek</li>
+<li><code>color_discrete_sequence</code>, <code>labels</code> ve <code>hover_data</code> ile renkleri, etiketleri ve üzerine gelme (hover) metnini seçmek</li>
+<li><code>category_orders</code> ile kategorilerin sırasını sabitlemek ve <code>facet_col</code> ile grafiği panellere bölmek</li>
+<li><code>update_layout()</code>, <code>update_traces()</code>, <code>add_hline()</code> ve <code>add_annotation()</code> ile grafiğe son rötuşu yapmak</li>
+<li>Grafiği <code>write_html()</code> ile HTML dosyası olarak, kamera düğmesiyle de resim olarak kaydetmek</li>
+</ul>
+</div>
+
+<details class="data" id="datasets">
+<summary>📁 Bu bölümün veri dosyaları (sayfaya gömülü — Python’da doğrudan <code>pd.read_csv()</code> ile okunur)</summary>
+<div id="dataList" style="padding:0 14px 10px"></div>
+</details>
+
+<!-- ============ 16.1 ============ -->
+<section>
+<h2 id="s16-1"><span class="num">16.1</span>“Etkileşimli” Ne Demek?</h2>
+<p><em>Etkileşimli</em> bir grafik fareye tepki verir. Bir noktanın üzerine gelin, küçük bir kutu o noktanın tam değerlerini gösterir. Bir dikdörtgen sürükleyin, grafik o alana yakınlaşır. Göstergede (legend) bir adı tıklayın, o grup kaybolur. Çift tıklayın, her şey başlangıca döner. Bu bölümde çizdiğiniz her grafik, ek kod gerekmeden bunları yapar.</p>
+<p>Bu, okuyucunuz veriyi bir ekranda keşfederken en çok işe yarar: bir gösterge paneli (dashboard), bir defter (notebook), e-postayla gönderilen bir HTML dosyası. Durağan bir grafik (Kısım 2–4’teki türden) ise üç durumda daha iyidir. Kâğıt üzerinde fare hiçbir şey yapmaz. Bir slaytta izleyicinin neye bakacağını siz yönetirsiniz ve konuşmanın ortasında beliren bir hover kutusu dikkati dağıtır. Bir grafik tek bir net mesajı beş saniyede vermek zorundaysa da fazladan özgürlük işi zorlaştırır. Bölüm 9 ve 10’daki tasarım ilkelerinin tamamı plotly grafikleri için de geçerlidir.</p>
+<p>Kitap basılı olduğu için oradaki şekiller grafiklerin resimleridir. Bu sayfada ise grafikler <strong>canlıdır</strong>: hücreyi çalıştırın, üzerine gelin, yakınlaştırın, göstergeye tıklayın.</p>
+
+<h3 id="s16-1-fig">Figür nesnesi</h3>
+<p>Her plotly grafiği tek bir nesnede saklanır; bu kitapta adı <code>fig</code>’dir. Veriyi, grafik türünü ve tüm ayarları tutar; henüz bir resim değildir. <code>px.scatter()</code> ve diğer fonksiyonlar nesneyi kurar, <code>fig.show()</code> ise onu çizer. <code>fig</code> bellekte kaldığı için, tıpkı Kısım 2’de bir <code>ax</code>’i değiştirdiğiniz gibi, onu kurduktan sonra da değiştirebilirsiniz.</p>
+
+<h3 id="s16-1-scatter"><code>px.scatter()</code></h3>
+<p><code>plotly.express</code>, <code>px</code> adıyla içe aktarılır. Fonksiyonları seaborn’unkiler gibi çalışır: önce DataFrame’i verirsiniz, sonra sütun adlarını metin olarak yazarsınız. İlk tabloda, Bölüm 11.1’dekiyle aynı on iki mağaza vardır:</p>
+<pre class="data">store,region,visitors,daily_revenue,conversion
+Seattle,Pacific,310,2100,0.021
+Oakland,Pacific,180,1650,0.027
+...
+Albuquerque,Mountain,120,900,0.022</pre>
+<div class="cell"><textarea>import pandas as pd
+import plotly.express as px
+
+stores = pd.read_csv('stores.csv')
+fig = px.scatter(stores, x='visitors', y='daily_revenue',
+                 color='region')
+fig.show()</textarea></div>
+<p class="figdesc">Gri arka planlı ve beyaz kılavuz çizgili bir mağaza saçılım grafiği. Pacific mağazaları mavi, Mountain mağazaları kırmızı noktalar; sağda gösterge var. Günlük gelir, günlük ziyaretçiyle birlikte artıyor.</p>
+<p>Grafik gri bir kılavuz arka planı, mavi ve kırmızı noktalar ve eksen başlığı olarak sütun adlarını gösterir. Bunlar plotly’nin varsayılanlarıdır. Grafik hücrenin altında belirir ve canlıdır: herhangi bir noktanın üzerine gelin; ziyaretçi sayısını, geliri ve bölgeyi görürsünüz.</p>
+<p><code>px.scatter()</code>’ın ne döndürdüğüne bakın:</p>
+<div class="cell"><textarea>type(fig)</textarea></div>
+
+<div class="callout warn"><span class="t">⚠ Dikkat</span>Kendi Jupyter ortamınızda <code>fig.show()</code>, <code>nbformat</code>’tan söz eden bir hata verirse Anaconda Prompt’ta <code>conda install --override-channels -c conda-forge nbformat</code> çalıştırın (Bölüm 1.1’deki gibi; <code>pip install nbformat</code> da olur) ve çekirdeği (kernel) yeniden başlatın. Grafik alanı boş kalırsa hücreyi tekrar çalıştırın. Bu sayfada böyle bir kurulum gerekmez.</div>
+</section>
+
+<!-- ============ 16.2 ============ -->
+<section>
+<h2 id="s16-2"><span class="num">16.2</span>Saçılım Grafikleri: Görünüm, Etiketler ve Hover</h2>
+<p>Varsayılan grafik çalışıyor ama kitabın görünümüne uymuyor ve eksen başlıkları <code>daily_revenue</code> gibi sütun adları. Üç parametre bunu düzeltir.</p>
+
+<h3 id="s16-2-tpl">Şablon ve renkler</h3>
+<p>Bir plotly <em>şablonu</em> (template), görünüm ayarlarından oluşan bir pakettir: arka plan, kılavuz, yazı tipleri ve renkler. <code>template='simple_white'</code> beyaz arka plan, kılavuzsuz bir alan ve ince eksen çizgileri verir; bu da Bölüm 9.1’deki sade grafiklerle örtüşür. <code>color_discrete_sequence</code> gruplar için renk listesidir. Burada kitabın dört rengi, bir kez bir değişkene kaydedilerek kullanılıyor:</p>
+<div class="cell"><textarea>colors = ['#0b3a47', '#b26a00', '#6fb3c2', '#f0c987']
+fig = px.scatter(stores, x='visitors', y='daily_revenue',
+                 color='region', template='simple_white',
+                 color_discrete_sequence=colors)
+fig.show()</textarea></div>
+<p class="figdesc">Beyaz, kılavuzsuz arka planda mağaza saçılım grafiği. Pacific mağazaları koyu camgöbeği, Mountain mağazaları kehribar renginde; sağda “region” başlıklı gösterge.</p>
+<p>Arka plan sadeleşti ve noktalar artık kitabın renklerini kullanıyor; böylece gri bir çıktıda da birbirinden ayrılıyorlar. Parametre adındaki “discrete” (kesikli) sözcüğü ayrı gruplar anlamına gelir. <code>color=</code> ile renklendirilen sayısal bir sütun ise bunun yerine yumuşak bir renk geçişi (gradyan) alır.</p>
+<div class="callout tip"><span class="t">💡 İpucu</span>Aynı iki parametreyi yazmaktan sıkıldınız mı? <code>px.defaults.template = 'simple_white'</code>, çekirdeği yeniden başlatana kadar her grafiğin şablonunu ayarlar. Kitap her örneği tek başına çalışsın diye bunu her seferinde açıkça yazar.</div>
+
+<h3 id="s16-2-labels"><code>labels</code> ve <code>hover_data</code></h3>
+<p><code>labels</code>, sütunları yeniden adlandıran bir sözlüktür. Eksen başlıklarını, gösterge başlığını ve hover kutusunu tek seferde değiştirir. <code>hover_name</code>, hover kutusunun kalın başlığını seçer; <code>hover_data</code> ise ek sütunlar ekler ya da biçimlendirir. Bir sözlük alır: <code>False</code> bir sütunu gizler, bir biçim dizgesi (format string) ise sütunu sizin istediğiniz biçimde gösterir:</p>
+<div class="cell"><textarea>fig = px.scatter(
+    stores, x='visitors', y='daily_revenue', color='region',
+    symbol='region', hover_name='store',
+    hover_data={'region': False, 'conversion': ':.1%'},
+    labels={'visitors': 'Visitors per day',
+            'daily_revenue': 'Revenue per day ($)',
+            'conversion': 'Conversion', 'region': 'Region'},
+    template='simple_white', color_discrete_sequence=colors)
+fig.update_traces(marker_size=10)
+fig.show()</textarea></div>
+<p class="figdesc">Eksen başlıkları “Visitors per day” ve “Revenue per day ($)”, gösterge başlığı “Region” olan mağaza saçılım grafiği. Pacific mağazaları koyu camgöbeği daireler, Mountain mağazaları kehribar baklavalar. Dört Mountain işaretçisinin üçü alt uçta.</p>
+<p><code>symbol='region'</code> her gruba renginin yanı sıra kendi işaretçi şeklini de verir (Bölüm 11.4’teki <code>style=</code> numarası); böylece gruplar gri bir çıktıda da ayrışır. <code>update_traces(marker_size=10)</code> noktaları büyütür (<code>update_traces()</code> Bölüm 16.7’de ele alınıyor). Eksen başlıkları artık okunur. En üstteki noktanın üzerine gelin: kutuda kalın harflerle “Los Angeles”, ardından “Visitors per day=480”, “Revenue per day ($)=4600” ve “Conversion=3.4%” yazar. <code>':.1%'</code>, Bölüm 1.4’teki biçim diliyle aynıdır; burada 0.034’ü %3,4’e çevirir. <code>hover_data</code>’nın gizlediği sütun <code>region</code>’dır, çünkü gösterge ve renk bunu zaten gösteriyor.</p>
+<p>Noktalar bir hikâye de anlatıyor: dört Mountain mağazasından üçü sol alt köşede. Okuyucu artık hangi noktanın hangi mağaza olduğunu tahmin etmek zorunda değil, çünkü hover kutusu adını veriyor. Durağan bir grafikte her noktaya etiket koymak gerekirdi.</p>
+</section>
+
+<!-- ============ 16.3 ============ -->
+<section>
+<h2 id="s16-3"><span class="num">16.3</span>Çizgiler ve Alanlar</h2>
+<p>Çizgiler zaman içindeki değişimi (Bölüm 4.1), alanlar ise parçaların nasıl toplandığını (Bölüm 5.4) gösterir. plotly ikisini de aynı kalıpla çizer. Sıradaki tablo, mağazanın ilk 112 gününün günlük gelirini içeriyor:</p>
+<div class="cell"><textarea>daily = pd.read_csv('daily_sales.csv', parse_dates=['date'])
+daily.head(3)</textarea></div>
+
+<h3 id="s16-3-line"><code>px.line()</code></h3>
+<p><code>px.line()</code> noktaları satırların sırasına göre birleştirir; tablo tarihe göre sıralı değilse önce sıralayın. <code>parse_dates</code>, <code>date</code> sütununu gerçek tarihlere çevirdi; plotly de tarih işaretlerini grafiğin genişliğine göre seçer (ör. ayda bir ya da iki haftada bir):</p>
+<div class="cell"><textarea>fig = px.line(daily, x='date', y='revenue',
+              labels={'date': '', 'revenue': 'Revenue per day ($)'},
+              template='simple_white', color_discrete_sequence=colors)
+fig.show()</textarea></div>
+<p class="figdesc">Ocak’tan Nisan sonuna (2025) günlük gelir çizgi grafiği. Koyu camgöbeği çizgi günden güne yaklaşık 1.500 $ ile 2.900 $ arasında iniş çıkış yapıyor; hafif bir yukarı eğilim var.</p>
+<p>Günlük gelir çok dalgalı, bu da eğilimi görmeyi zorlaştırıyor. Grafikte birkaç haftanın üzerine bir dikdörtgen sürükleyip yakından bakabilirsiniz. Bu, etkileşimin iyi bir kullanımıdır; sıradaki iki yöntem bunu daha da kolaylaştırır.</p>
+
+<h3 id="s16-3-hline"><code>fig.update_xaxes()</code> ve <code>fig.add_hline()</code></h3>
+<p><code>update_</code> ile başlayan yöntemler var olan bir figürü değiştirir. <code>fig.update_xaxes()</code> x eksenini değiştirir; <code>rangeslider_visible=True</code> grafiğin altına dar bir genel bakış şeridi ekler. Şeridin kenarlarını sürükleyerek ana grafikte hangi tarihlerin görüneceğini seçersiniz. <code>fig.add_hline()</code> bir değerde yatay çizgi çizer; burada ortalama günlük gelirde. Grafiğin altındaki uyarı <code>line_width</code> ve <code>opacity</code>’yi açıklıyor:</p>
+<div class="cell"><textarea>average = daily['revenue'].mean()
+round(average)</textarea></div>
+<div class="cell"><textarea>fig.update_xaxes(rangeslider_visible=True)
+fig.add_hline(y=average, line_width=2, line_dash='dash',
+              line_color='#b26a00', opacity=1,
+              annotation_text='Average: $2,175',
+              annotation_position='bottom right',
+              annotation_bgcolor='white')
+fig.show()</textarea></div>
+<p class="figdesc">Aynı günlük gelir çizgisi; şimdi tarih ekseninin altında ince bir genel bakış şeridi ve 2.175 $’da kesikli kehribar yatay çizgi, sağ uçta çizginin hemen altında “Average: $2,175” etiketi.</p>
+<p>Grafiğin altındaki şerit, tüm çizginin küçük bir kopyası olan <em>aralık kaydırıcısıdır</em> (range slider). Kesikli kehribar çizgi ortalamayı işaretler; okuyucu hangi günlerin ortalamayı geçtiğini görür.</p>
+<div class="callout warn"><span class="t">⚠ Dikkat</span><code>simple_white</code>, <code>add_hline()</code>, <code>add_vline()</code> ve <code>add_shape()</code> ile eklenen çizgilerin kalınlığını sıfıra, opaklığını da %30’a ayarlar. <code>line_width=</code> olmadan çizgi vardır ama göremezsiniz; <code>opacity=1</code> olmadan da soluk görünür. Her zaman <code>line_width=</code>, <code>line_color=</code> ve <code>opacity=1</code> verin.</div>
+
+<h3 id="s16-3-area"><code>px.area()</code></h3>
+<p><code>px.area()</code>, Bölüm 5.4’teki <code>df.plot.area()</code> gibi grupları üst üste yığar. Bölüm 11.5’teki gibi her kanal için bir sütunu olan <em>geniş</em> bir tabloyu da kabul eder: sütun adlarını <code>y=</code>’ye liste olarak verin. plotly bu durumda yeni gösterge sütununa <code>variable</code>, sayılara <code>value</code> der; <code>labels</code> ikisini de yeniden adlandırır:</p>
+<div class="cell"><textarea>channels = pd.read_csv('channel_monthly.csv')
+fig = px.area(channels, x='month', y=['Online', 'In store', 'Phone'],
+              labels={'month': '', 'value': 'Revenue per month ($)',
+                      'variable': 'Channel'},
+              template='simple_white', color_discrete_sequence=colors)
+fig.show()</textarea></div>
+<p class="figdesc">Ocak–Aralık arası kanala göre aylık gelirin yığılmış alan grafiği. Online altta koyu camgöbeği, In store ortada kehribar, Phone üstte açık camgöbeği. Toplam Ekim’e kadar yavaşça artıyor, Kasım ve Aralık’ta sıçrıyor.</p>
+<p>Toplam, Ocak’taki yaklaşık 26.600 $’dan Aralık’ta 54.600 $’a çıkıyor ve sıçramanın çoğu Kasım ile Aralık’ta. Hover, o ay için tek bir kanalın değerini gösterir. Üçünü birlikte görmek için <code>fig.update_layout(hovermode='x unified')</code> ekleyin — hemen deneyin:</p>
+<div class="cell"><textarea>fig.update_layout(hovermode='x unified')
+fig.show()</textarea></div>
+</section>
+
+<!-- ============ 16.4 ============ -->
+<section>
+<h2 id="s16-4"><span class="num">16.4</span>Çubuk Grafikler ve Kategori Sırası</h2>
+<p>Çubuklar kategorileri karşılaştırır (Bölüm 5). Bu kısım mağazanın 120 siparişini kullanıyor. Her satır; ürünü, kanalı ve tutarıyla bir siparişi temsil eder:</p>
+<pre class="data">order_id,product,channel,order_value
+1001,Mouse,Phone,30
+1002,Keyboard,Online,52
+...</pre>
+<div class="cell"><textarea>orders = pd.read_csv('orders.csv')
+product_totals = orders.groupby('product', as_index=False)[
+    'order_value'].sum()
+product_totals</textarea></div>
+
+<h3 id="s16-4-bar"><code>px.bar()</code></h3>
+<p><code>px.bar()</code> her satır için bir çubuk çizer. Kategorileri <code>x=</code>’ten, yükseklikleri <code>y=</code>’den alır:</p>
+<div class="cell"><textarea>fig = px.bar(product_totals, x='product', y='order_value',
+             labels={'product': '', 'order_value': 'Revenue ($)'},
+             template='simple_white', color_discrete_sequence=colors)
+fig.show()</textarea></div>
+<p class="figdesc">Ürüne göre gelir çubuk grafiği, alfabetik sırada: Headphones, Keyboard, Monitor, Mouse, Webcam. Tüm çubuklar koyu camgöbeği. En uzun çubuk 2.536 $ ile Monitor.</p>
+<p>Çubuklar alfabe sırasını izliyor, çünkü <code>groupby()</code> ürünleri sıraladı. Bölüm 5.1’de tablo çizimden önce <code>sort_values()</code> ile sıralanmıştı. plotly’nin ikinci bir yolu var.</p>
+
+<h3 id="s16-4-order"><code>category_orders</code></h3>
+<p><code>category_orders</code>, bir sütundaki değerlerin sırasını sabitleyen bir sözlüktür. Çubuklar, gösterge ve grafiğin panelleri için çalışır. Burada ürünleri en yüksek gelirden en düşüğe doğru, adları sıralanmış tablodan alarak listeliyoruz:</p>
+<div class="cell"><textarea>best_first = (product_totals
+              .sort_values('order_value', ascending=False)['product']
+              .tolist())
+fig = px.bar(product_totals, x='product', y='order_value',
+             category_orders={'product': best_first},
+             labels={'product': '', 'order_value': 'Revenue ($)'},
+             template='simple_white', color_discrete_sequence=colors)
+fig.show()</textarea></div>
+<p class="figdesc">Aynı çubuk grafik, en uzundan en kısaya sıralı: Monitor, Webcam, Headphones, Keyboard, Mouse. Tüm çubuklar koyu camgöbeği.</p>
+<p>Artık gözünüz sıralamayı soldan sağa okuyor. Doğru sıra alfabetik ya da satır sırası olmadığında <code>category_orders</code>’a başvurursunuz: aylar, bedenler ya da bir sıralama. Diğer çubuk varyasyonları aynı parametrelerden gelir: <code>color='channel'</code> çubukları gruba göre yığar, <code>barmode='group'</code> ise yan yana koyar. Deneyin:</p>
+<div class="cell"><textarea># Deneme: kanala göre yan yana çubuklar
+fig = px.bar(orders.groupby(['product', 'channel'], as_index=False)['order_value'].sum(),
+             x='product', y='order_value', color='channel', barmode='group',
+             category_orders={'product': best_first},
+             labels={'product': '', 'order_value': 'Revenue ($)', 'channel': 'Channel'},
+             template='simple_white', color_discrete_sequence=colors)
+fig.show()</textarea></div>
+</section>
+
+<!-- ============ 16.5 ============ -->
+<section>
+<h2 id="s16-5"><span class="num">16.5</span>Histogramlar, Kutu Grafikleri ve Paneller</h2>
+<p>Bölüm 6.1 ve 6.2, histogramların ve kutu grafiklerinin ne gösterdiğini açıklamıştı: bir sütunun dağılımını. plotly’de ikisi de tek çağrıdır ve ikisi de hover’da sayıları gösterir.</p>
+
+<h3 id="s16-5-hist"><code>px.histogram()</code></h3>
+<p><code>px.histogram()</code> tek bir sütun alır ve onu kutulara (bin) ayırarak sayar. <code>nbins=</code> kaç kutu kullanılacağını önerir; plotly bu sayıya yakın, düzgün sınırlar seçer:</p>
+<div class="cell"><textarea>fig = px.histogram(orders, x='order_value', nbins=15,
+                   labels={'order_value': 'Order value ($)'},
+                   template='simple_white',
+                   color_discrete_sequence=colors)
+fig.show()</textarea></div>
+<p class="figdesc">120 sipariş tutarının histogramı. Siparişlerin çoğu 0–100 $ arasındaki ilk birkaç çubukta; sağdaki birkaç çubuk 275 $’a kadar uzanıyor. Y ekseninin başlığı “count”.</p>
+<p>Siparişlerin çoğu küçük; büyük olanlar bir kuyruk oluşturuyor ve bunlar büyük olasılıkla monitörler. En yüksek çubuğun üzerine gelin: sipariş tutarı aralığını ve sayısını, 41’i görürsünüz. Y ekseninin başlığı “count”; bunu plotly kendisi ekler.</p>
+
+<h3 id="s16-5-facet"><code>facet_col</code></h3>
+<p>Üç satış kanalının sipariş büyüklükleri aynı mı? <code>facet_col</code>, grafiği bir sütundaki her değer için bir panele böler; bunlar Bölüm 15.1’deki küçük çoklulardır (small multiples). <code>category_orders</code> panel sırasını belirler; paneller aynı eksenleri paylaşır, böylece çubuklar karşılaştırılabilir:</p>
+<div class="cell"><textarea>fig = px.histogram(
+    orders, x='order_value', nbins=15, facet_col='channel',
+    category_orders={'channel': ['Online', 'In store', 'Phone']},
+    labels={'order_value': 'Order value ($)', 'channel': 'Channel'},
+    template='simple_white', color_discrete_sequence=colors)
+fig.show()</textarea></div>
+<p class="figdesc">Yan yana üç histogram: Channel=Online, Channel=In store ve Channel=Phone. Online en çok siparişe sahip, çoğu küçük. In store daha az ama birkaç büyük sipariş içeriyor. Phone en az siparişe sahip, hepsi küçük.</p>
+<p>En çok sipariş 120’nin 69’uyla Online’da, en az 11 ile Phone’da. Panel başlıkları <code>Channel=Online</code> biçiminde; bu, plotly’nin sütunu ve değerini birlikte gösterme alışkanlığıdır. <code>facet_row</code> panelleri dikey olarak yığar, <code>facet_col_wrap=2</code> ise uzun bir sırayı birkaç satıra böler.</p>
+
+<h3 id="s16-5-box"><code>px.box()</code></h3>
+<p><code>px.box()</code> her kategori için bir kutu çizer (Bölüm 6.2). Bir kutunun üzerine gelmek yaklaşık beş sayı gösterir: en düşük değer, birinci çeyrek, medyan, üçüncü çeyrek ve en yüksek değer. Aykırı değerler uçları değiştirebilir.</p>
+<div class="cell"><textarea>fig = px.box(orders, x='product', y='order_value',
+             category_orders={'product': best_first},
+             labels={'product': '', 'order_value': 'Order value ($)'},
+             template='simple_white', color_discrete_sequence=colors)
+fig.show()</textarea></div>
+<p class="figdesc">Beş ürünün sipariş tutarı kutu grafikleri; sıra Monitor, Webcam, Headphones, Keyboard, Mouse. Monitor’ün kutusu diğerlerinin çok üstünde, yaklaşık 160–220 $ arasında. Diğer dört kutu alçak ve dar; en alçağı Mouse.</p>
+<p>Monitör kutusu diğerlerinin çok üstünde; yani bir monitör satışı farklı türden bir satış. Medyan monitör siparişi 191 $, medyan mouse siparişi ise 22,50 $. <code>points='all'</code>, her siparişi kutusunun yanına bir nokta olarak ekler; bu, bunun gibi küçük tablolar için kullanışlıdır.</p>
+</section>
+
+<!-- ============ 16.6 ============ -->
+<section>
+<h2 id="s16-6"><span class="num">16.6</span>Pasta Grafikleri</h2>
+<p>Bölüm 2, pasta grafiklerinin lehine ve aleyhine dürüst bir değerlendirme yapmıştı (Bölüm 2.4); Bölüm 5 de onları matplotlib ile çizmişti (Bölüm 5.5). Kural burada da aynı: pastayı yalnızca bir bütünü oluşturan birkaç dilim için ve mesaj bir parçanın bütün içindeki payı olduğunda kullanın. Satış kanalına göre gelir, üç dilimiyle buna uyuyor.</p>
+
+<h3 id="s16-6-pie"><code>px.pie()</code></h3>
+<p><code>px.pie()</code> etiketleri <code>names=</code>’den, büyüklükleri <code>values=</code>’dan alır:</p>
+<div class="cell"><textarea>channel_totals = orders.groupby('channel', as_index=False)[
+    'order_value'].sum()
+fig = px.pie(channel_totals, names='channel', values='order_value',
+             template='simple_white', color_discrete_sequence=colors)
+fig.update_traces(texttemplate='%{percent:.0%}')
+fig.show()</textarea></div>
+<p class="figdesc">Kanala göre gelirin pasta grafiği, göstergeli. En büyük dilim koyu camgöbeği Online (%58). In store kehribar, Phone açık camgöbeği ve ince bir dilim. Her dilimde tam sayıya yuvarlanmış yüzde: %58, %35 ve %7.</p>
+<p>Gelirin %58’i Online’dan, %35’i In store’dan, %7’si Phone’dan geliyor. Varsayılan olarak dilimler 6.76% gibi çok ondalıklı yüzdeler gösterir. <code>texttemplate='%{percent:.0%}'</code> bunları tam sayıya yuvarlar; hover yine de dolar tutarını ekler. Bölüm 5.5’teki halka (donut) grafik için <code>hole=0.5</code> verin. Pastaların x ekseni olmadığı için <code>template='simple_white'</code> burada pek bir şey değiştirmez.</p>
+<div class="cell"><textarea># Deneme: halka (donut) grafik
+fig = px.pie(channel_totals, names='channel', values='order_value', hole=0.5,
+             template='simple_white', color_discrete_sequence=colors)
+fig.update_traces(texttemplate='%{percent:.0%}')
+fig.show()</textarea></div>
+</section>
+
+<!-- ============ 16.7 ============ -->
+<section>
+<h2 id="s16-7"><span class="num">16.7</span>Son Rötuşlar</h2>
+<p><code>px</code>’ten doğrudan çıkan bir grafik bir taslaktır. <code>update_</code> ve <code>add_</code> yöntemleri onu bir yöneticiye göstereceğiniz grafiğe dönüştürür. Bu kısım, Bölüm 9’un tasarım kurallarını izleyerek sıralı çubuk grafik üzerinde çalışıyor: tek vurgu rengi, bulguyu söyleyen bir başlık ve gösterge yok.</p>
+
+<h3 id="s16-7-traces"><code>fig.update_traces()</code></h3>
+<p>Bir <em>iz</em> (trace), grafikteki bir işaret grubudur; örneğin bir çubuk kümesi ya da bir çizgi. <code>fig.update_traces()</code> hepsini değiştirir. Burada Monitor çubuğunu camgöbeğine, diğer dördünü griye boyuyor:</p>
+<div class="cell"><textarea>fig = px.bar(product_totals, x='product', y='order_value',
+             category_orders={'product': best_first},
+             labels={'product': '', 'order_value': 'Revenue ($)'},
+             template='simple_white')
+fig.update_traces(marker_color=[  # one color per row of product_totals
+    '#0b3a47' if p == 'Monitor' else '#c4c9ce'
+    for p in product_totals['product']])
+fig.show()</textarea></div>
+<p class="figdesc">Sıralı çubuk grafik; Monitor çubuğu koyu camgöbeği, diğer dört çubuk açık gri.</p>
+<p><code>marker_color</code>, tablonun her satırı için bir renk alır — ekrandaki sırayla değil, <strong>tablodaki</strong> sırayla. Liste üreteci (list comprehension) <code>Monitor</code> satırına camgöbeği, geri kalanlara gri verir. <code>update_traces()</code> için diğer yaygın ayarlar noktalar için <code>marker_size</code>, çizgiler için <code>line_width</code>’tir.</p>
+
+<h3 id="s16-7-layout"><code>fig.update_layout()</code></h3>
+<p>Pratik bir kural: işaretlerin kendisi (renk, boyut, çizgi) <code>update_traces()</code>’e gider. Onların çevresindeki her şey (başlık, boyut, kenar boşlukları, gösterge) <code>update_layout()</code>’a gider. Tek bir eksenin ayarları <code>update_xaxes()</code> ya da <code>update_yaxes()</code>’e gider.</p>
+<p>Yerleşim (layout), işaretlerin çevresindeki her şeydir: başlık, eksen başlıkları, boyut ve kenar boşlukları. <code>fig.update_layout()</code> bunları anahtar sözcüklü argümanlarla ayarlar; bir alt çizgi ya da iç içe bir sözlük bir ayarın içine uzanır, örneğin her sayının önündeki <code>$</code> için <code>yaxis_tickprefix</code>:</p>
+<div class="cell"><textarea>fig.update_layout(
+    title='Monitors bring in the most revenue',
+    yaxis_tickprefix='$', yaxis_tickformat=',',
+    width=600, height=400)
+fig.show()</textarea></div>
+<p class="figdesc">Monitor çubuğu koyu camgöbeği, diğerleri gri olan sıralı çubuk grafik; başlık “Monitors bring in the most revenue”. Y ekseni sayıları dolar işaretiyle başlıyor ve binlik ayraç içeriyor.</p>
+<p>Başlık, Bölüm 9.4’ün önerdiği gibi bulguyu söylüyor. <code>width</code> ve <code>height</code> boyutu piksel olarak ayarlar. Bunlar olmadan plotly, defterde sahip olduğu alanı doldurur; genellikle 700×450. Kitabın diğer resimleri, metin basılı sayfada okunabilir kalsın diye 600×390 çizilmiştir.</p>
+
+<h3 id="s16-7-annot"><code>fig.add_annotation()</code></h3>
+<p><code>fig.add_annotation()</code>, grafiğe veri koordinatlarındaki bir konumda, isteğe bağlı bir okla not yazar. Bölüm 7.3’te kullandığınız <code>ax.annotate()</code>’in plotly karşılığıdır. Bir çubuk grafikte <code>x</code>, çubuğun kategorisidir:</p>
+<div class="cell"><textarea>revenue = product_totals.set_index('product')['order_value']
+share = revenue['Monitor'] / revenue.sum()
+count = (orders['product'] == 'Monitor').sum()
+fig.add_annotation(x='Monitor', y=revenue['Monitor'], ax=120, ay=-25,
+                   text=f'{count} orders, {share:.0%} of revenue',
+                   showarrow=True, arrowhead=2)
+fig.show()</textarea></div>
+<p class="figdesc">Monitor çubuğunun yanında “13 orders, 35% of revenue” yazan ve oku çubuğun tepesini gösteren bir not içeren çubuk grafik.</p>
+<p>f-dizgesi iki sayıyı da veriden alır; bu yüzden grafikten kopamazlar: 13 Monitor siparişi ve 7.237 $ toplamın 2.536 $’ı. <code>ax</code> ve <code>ay</code>, metnin okun ucundan ne kadar uzakta duracağını piksel olarak belirler. Grafikteki notlar Bölüm 9.3’teki doğrudan etiketlerin işini görür ve baskıda da görünür.</p>
+</section>
+
+<!-- ============ 16.8 ============ -->
+<section>
+<h2 id="s16-8"><span class="num">16.8</span>Kaydetme ve Paylaşma</h2>
+<p>Bir grafik yaptınız. Şimdi defterden çıkması gerekiyor: etkileşimli bir dosya ya da bir resim olarak.</p>
+
+<h3 id="s16-8-html"><code>fig.write_html()</code></h3>
+<p><code>fig.write_html()</code>, figürü bir web sayfası olarak kaydeder. Herkes dosyayı tarayıcısında çift tıklayarak açabilir ve grafik tamamen etkileşimlidir; Python gerekmez. Bir grafiği e-postayla göndermek için bunu kullanın. Kendi bilgisayarınızda dosyayı açmak için Dosya Gezgini’nde çift tıklayın ya da Jupyter’in dosya listesinde tıklayın. Bu sayfada ise hücreyi çalıştırınca dosya için bir <strong>indirme düğmesi</strong> belirir:</p>
+<div class="cell"><textarea>fig = px.line(daily, x='date', y='revenue',
+              labels={'date': '', 'revenue': 'Revenue per day ($)'},
+              template='simple_white', color_discrete_sequence=colors)
+fig.update_xaxes(rangeslider_visible=True)
+fig.write_html('daily_revenue.html')</textarea></div>
+<p><code>daily_revenue.html</code> dosyası defterinizin yanında belirir. Varsayılan olarak tüm plotly kütüphanesini içerir; bu yüzden yaklaşık 5 MB’tır ve internet olmadan çalışır. <code>include_plotlyjs='cdn'</code> verirseniz birkaç kilobayta düşer, ama okuyucunun bilgisayarının dosyayı açmak için internet bağlantısı olması gerekir.</p>
+
+<h3 id="s16-8-camera">Kamera düğmesi</h3>
+<p>Bir resim için grafiğin kendi araç çubuğunu kullanın. Tarayıcıdaki Jupyter’de de, bu sayfada da çalışır:</p>
+<ol>
+<li>Grafiği çizen hücreyi çalıştırın, sonra fareyi grafiğin üzerine getirin.</li>
+<li>Grafiğin sağ üst köşesinde bir sıra küçük simge belirir.</li>
+<li>İlk simgeye, kameraya tıklayın. İpucu metni “Download plot as a PNG” der. (Kitaptaki sürümde ikinci simge bir bağlantıdır, “Share chart…”; burada gerekmez.)</li>
+<li>Tarayıcınız resmi İndirilenler klasörüne kaydeder. Başlığı olan bir grafik başlığıyla adlandırılır; başlıksız olan <code>plot-image.png</code> olarak kaydedilir. Başlıksız resimleri hemen yeniden adlandırın, çünkü bir sonraki de aynı adı alır.</li>
+</ol>
+<p>Resim, grafiğin ekrandaki boyutundadır; daha büyük bir resim gerekiyorsa önce <code>update_layout()</code>’ta <code>width</code> ve <code>height</code> ayarlayın. Düğme düzenleyicinizde bir şey kaydetmiyorsa HTML dosyasını tarayıcınızda açıp kameraya orada tıklayın.</p>
+<div class="callout note"><span class="t">📝 Not</span>Resimleri kodla <code>fig.write_image()</code> ile de kaydedebilirsiniz, ama bunun için başka bir paket, <code>kaleido</code>, ve kurulu bir Chrome tarayıcısı gerekir (bu sayfada çalışmaz). Bir kitap ya da rapor için kamera düğmesi daha basittir. Çok sayıda resme ihtiyacınız varsa bir geliştiriciden yardım isteyin.</div>
+</section>
+
+<!-- ============ Özet ============ -->
+<section>
+<h2 id="ozet">Bölüm Özeti</h2>
+<ul class="summary">
+<li>Etkileşimli bir grafik fareye tepki verir (hover, yakınlaştırma, grupları gizleme). Ekranda en iyisidir; baskı ve slaytlar için durağan grafik daha iyidir.</li>
+<li><code>plotly.express</code> (<code>px</code>) tek çağrıda grafik yapar: DataFrame’i, sonra sütun adlarını metin olarak verin. Sonuç, genellikle <code>fig</code> diye adlandırılan bir <code>Figure</code> nesnesidir; <code>fig.show()</code> onu çizer.</li>
+<li><code>px.scatter()</code>, <code>px.line()</code>, <code>px.area()</code>, <code>px.bar()</code>, <code>px.histogram()</code>, <code>px.box()</code> ve <code>px.pie()</code>, Kısım 2–4’ün grafik türlerini karşılar.</li>
+<li><code>template='simple_white'</code> sade bir görünüm verir; <code>color_discrete_sequence</code> grupların renklerini ayarlar. <code>labels</code> sütunları her yerde yeniden adlandırır; <code>hover_name</code> ve <code>hover_data</code> hover kutusunu biçimlendirir.</li>
+<li><code>category_orders</code> çubukların, panellerin ve gösterge öğelerinin sırasını sabitler. <code>facet_col</code> bir grafiği bir sütuna göre panellere böler.</li>
+<li><code>fig.update_traces()</code> işaretleri değiştirir; <code>fig.update_layout()</code> başlığı, boyutu ve eksen biçimini değiştirir; <code>fig.update_xaxes(rangeslider_visible=True)</code> bir yakınlaştırma şeridi ekler.</li>
+<li><code>fig.add_hline()</code> ve <code>fig.add_annotation()</code> grafikte değerleri işaretler. <code>simple_white</code> ile <code>line_width=</code> ve <code>opacity=1</code> verin; yoksa çizgi görünmez ya da soluk olur.</li>
+<li><code>fig.write_html()</code> etkileşimli bir dosya kaydeder; araç çubuğundaki kamera düğmesi bir PNG indirir.</li>
+</ul>
+<p>Bölüm 17, temel türlerden fazlasını gerektiren grafiklerle plotly’ye devam ediyor: haritalar, ağaç haritaları (treemap), huniler, zaman çizelgeleri ve şelale grafikleri.</p>
+
+<h3 id="oyun">Kendi kodunuzu deneyin</h3>
+<p>Aşağıdaki hücre boş bir oyun alanı. Yukarıdaki tüm değişkenler (<code>stores</code>, <code>daily</code>, <code>orders</code>, <code>colors</code>…) burada kullanılabilir (önceki hücreler otomatik çalıştırılır).</p>
+<div class="cell"><textarea># Örnek: ziyaretçi ile dönüşüm oranı ilişkisi, nokta boyutu gelire göre
+fig = px.scatter(stores, x='visitors', y='conversion', size='daily_revenue',
+                 color='region', hover_name='store',
+                 template='simple_white', color_discrete_sequence=colors)
+fig.update_layout(yaxis_tickformat='.1%')
+fig.show()</textarea></div>
+</section>
+
+<!-- ============ Quiz ============ -->
+<section>
+<h2 id="quiz">Sınav</h2>
+<p>Bir seçeneğe tıklayın; doğru cevap ve açıklama hemen görünür. Puan: <span id="score">0 / 10</span> &nbsp;<button class="btn ghost" id="quizReset">Sıfırla</button></p>
+<div id="quizBox"></div>
+</section>
+<div class="chnav"><a href="bolum15_izgaralar_matrisler.html">← Bölüm 15</a><div class="all">Bölümler: <a href="bolum01_ortami_kurmak.html" class="" title="Görselleştirme Ortamını Kurmak">1</a><a href="bolum02_cizmeden_once_dusunmek.html" class="" title="Çizmeden Önce Düşünmek">2</a><a href="bolum03_matplotlib_temelleri.html" class="" title="matplotlib Temelleri">3</a><a href="bolum04_cizgiler_noktalar.html" class="" title="Çizgiler ve Noktalar">4</a><a href="bolum05_cubuklar_pastalar_tablolar.html" class="" title="Çubuklar, Pastalar ve Tablolar">5</a><a href="bolum06_dagilimlar_izgaralar.html" class="" title="Dağılımlar ve Değer Izgaraları">6</a><a href="bolum07_ozellestirme.html" class="" title="Bir Grafiğin Her Parçasını Özelleştirmek">7</a><a href="bolum08_yerlesimler.html" class="" title="Yerleşimler: Bir Figürde Birçok Grafik">8</a><a href="bolum09_iletisim_kuran_tasarim.html" class="" title="İletişim Kuran Tasarım">9</a><a href="bolum10_yalan_soyleyen_grafikler.html" class="" title="Yalan Söyleyen Grafikler">10</a><a href="bolum11_seaborn_temelleri.html" class="" title="seaborn Temelleri">11</a><a href="bolum12_iliskiler_regresyon.html" class="" title="İlişkiler ve Regresyon">12</a><a href="bolum13_kategoriler.html" class="" title="Kategoriler">13</a><a href="bolum14_dagilimlar.html" class="" title="Dağılımlar">14</a><a href="bolum15_izgaralar_matrisler.html" class="" title="Izgaralar ve Matrisler">15</a><a href="bolum16_plotly_express.html" class="cur" title="plotly express ile Etkileşimli Grafikler">16</a><a href="bolum17_haritalar_is_grafikleri.html" class="" title="Haritalar ve İş Grafikleri">17</a></div><a href="bolum17_haritalar_is_grafikleri.html">Bölüm 17 →</a></div>
+</main>
+</div>
+<footer>Bölüm 16 · plotly express ile Etkileşimli Grafikler — Pyodide ile etkileşimli Türkçe sürüm</footer>
+
+<script>
+const DATA = {"channel_monthly.csv": "month,Online,In store,Phone\nJan,15100,8900,2600\nFeb,14600,8100,2500\nMar,17800,9300,2700\nApr,18900,9600,2400\nMay,20700,10100,2300\nJun,20400,9700,2100\nJul,22300,9800,2200\nAug,20100,9400,2000\nSep,23500,10200,2200\nOct,25800,10500,2100\nNov,33900,12800,2300\nDec,37900,14300,2400\n", "daily_sales.csv": "date,revenue,orders,target\n2025-01-06,1740,29,1900\n2025-01-07,1560,24,1900\n2025-01-08,1870,32,1900\n2025-01-09,1850,31,1900\n2025-01-10,1700,30,1900\n2025-01-11,2000,35,1900\n2025-01-12,2050,39,1900\n2025-01-13,1700,29,1900\n2025-01-14,1750,28,1900\n2025-01-15,1680,29,1900\n2025-01-16,1880,33,1900\n2025-01-17,2120,39,1900\n2025-01-18,2230,40,1900\n2025-01-19,2240,39,1900\n2025-01-20,1850,35,1900\n2025-01-21,1670,26,1900\n2025-01-22,1900,31,1900\n2025-01-23,1670,27,1900\n2025-01-24,2180,37,1900\n2025-01-25,2260,36,1900\n2025-01-26,2090,37,1900\n2025-01-27,1730,29,1900\n2025-01-28,2000,32,1900\n2025-01-29,1870,30,1900\n2025-01-30,1780,31,1900\n2025-01-31,2050,37,1900\n2025-02-01,2380,45,2050\n2025-02-02,2210,44,2050\n2025-02-03,1930,34,2050\n2025-02-04,1930,31,2050\n2025-02-05,2230,34,2050\n2025-02-06,1830,32,2050\n2025-02-07,2070,34,2050\n2025-02-08,2230,38,2050\n2025-02-09,2290,38,2050\n2025-02-10,2070,35,2050\n2025-02-11,1900,35,2050\n2025-02-12,1850,32,2050\n2025-02-13,1810,31,2050\n2025-02-14,2280,37,2050\n2025-02-15,2490,40,2050\n2025-02-16,2320,39,2050\n2025-02-17,1860,32,2050\n2025-02-18,1990,38,2050\n2025-02-19,2030,35,2050\n2025-02-20,2000,36,2050\n2025-02-21,2350,40,2050\n2025-02-22,2460,40,2050\n2025-02-23,2380,39,2050\n2025-02-24,2000,33,2050\n2025-02-25,2040,39,2050\n2025-02-26,2140,35,2050\n2025-02-27,1810,33,2050\n2025-02-28,2220,36,2050\n2025-03-01,2410,43,2250\n2025-03-02,2240,39,2250\n2025-03-03,2000,34,2250\n2025-03-04,2250,39,2250\n2025-03-05,1980,33,2250\n2025-03-06,2190,39,2250\n2025-03-07,2070,35,2250\n2025-03-08,2470,40,2250\n2025-03-09,2390,39,2250\n2025-03-10,2160,38,2250\n2025-03-11,2180,41,2250\n2025-03-12,2250,39,2250\n2025-03-13,2050,35,2250\n2025-03-14,2290,40,2250\n2025-03-15,2680,49,2250\n2025-03-16,2390,42,2250\n2025-03-17,1940,33,2250\n2025-03-18,1970,36,2250\n2025-03-19,2050,36,2250\n2025-03-20,2210,41,2250\n2025-03-21,2410,42,2250\n2025-03-22,2700,44,2250\n2025-03-23,2400,39,2250\n2025-03-24,2180,41,2250\n2025-03-25,2260,42,2250\n2025-03-26,2180,37,2250\n2025-03-27,2240,38,2250\n2025-03-28,2340,43,2250\n2025-03-29,2590,42,2250\n2025-03-30,2440,40,2250\n2025-03-31,2040,36,2250\n2025-04-01,2280,39,2450\n2025-04-02,2200,38,2450\n2025-04-03,2220,38,2450\n2025-04-04,2550,45,2450\n2025-04-05,2750,50,2450\n2025-04-06,2630,46,2450\n2025-04-07,2230,40,2450\n2025-04-08,2190,34,2450\n2025-04-09,2300,40,2450\n2025-04-10,2030,33,2450\n2025-04-11,2320,38,2450\n2025-04-12,2540,42,2450\n2025-04-13,2440,41,2450\n2025-04-14,2340,42,2450\n2025-04-15,2170,35,2450\n2025-04-16,2300,40,2450\n2025-04-17,2490,42,2450\n2025-04-18,2510,43,2450\n2025-04-19,2870,51,2450\n2025-04-20,2490,44,2450\n2025-04-21,2300,42,2450\n2025-04-22,2200,38,2450\n2025-04-23,2340,39,2450\n2025-04-24,2470,42,2450\n2025-04-25,2360,41,2450\n2025-04-26,2870,50,2450\n2025-04-27,2700,44,2450\n", "orders.csv": "order_id,product,channel,order_value\n1001,Mouse,Phone,30\n1002,Keyboard,Online,52\n1003,Headphones,Online,52\n1004,Mouse,Online,20\n1005,Webcam,Online,63\n1006,Keyboard,In store,30\n1007,Keyboard,In store,61\n1008,Monitor,In store,251\n1009,Webcam,In store,44\n1010,Webcam,Online,59\n1011,Headphones,In store,55\n1012,Webcam,In store,63\n1013,Webcam,Phone,58\n1014,Monitor,In store,132\n1015,Webcam,In store,49\n1016,Mouse,Phone,26\n1017,Monitor,In store,163\n1018,Headphones,Online,61\n1019,Keyboard,Online,58\n1020,Webcam,Phone,66\n1021,Headphones,Online,55\n1022,Webcam,Online,48\n1023,Keyboard,Online,60\n1024,Webcam,Online,44\n1025,Mouse,Online,20\n1026,Keyboard,Online,41\n1027,Mouse,In store,23\n1028,Mouse,Online,24\n1029,Headphones,In store,84\n1030,Headphones,In store,42\n1031,Mouse,Online,20\n1032,Monitor,Online,191\n1033,Keyboard,Online,46\n1034,Keyboard,In store,35\n1035,Headphones,In store,68\n1036,Headphones,Phone,36\n1037,Mouse,Online,17\n1038,Keyboard,Online,50\n1039,Monitor,Online,204\n1040,Keyboard,In store,59\n1041,Mouse,Online,16\n1042,Headphones,Online,41\n1043,Webcam,In store,54\n1044,Webcam,Online,55\n1045,Mouse,In store,20\n1046,Monitor,Online,227\n1047,Keyboard,Online,40\n1048,Mouse,In store,24\n1049,Webcam,Phone,88\n1050,Webcam,Online,55\n1051,Mouse,Online,22\n1052,Headphones,In store,63\n1053,Headphones,Online,71\n1054,Mouse,In store,37\n1055,Keyboard,In store,73\n1056,Keyboard,Online,29\n1057,Mouse,Online,27\n1058,Headphones,Online,37\n1059,Mouse,In store,24\n1060,Webcam,Online,41\n1061,Webcam,Online,66\n1062,Headphones,In store,77\n1063,Keyboard,In store,35\n1064,Headphones,In store,73\n1065,Mouse,Phone,27\n1066,Webcam,Online,42\n1067,Keyboard,In store,37\n1068,Mouse,Online,15\n1069,Webcam,In store,46\n1070,Keyboard,Online,46\n1071,Monitor,Online,159\n1072,Webcam,Online,58\n1073,Keyboard,Online,55\n1074,Monitor,Online,211\n1075,Keyboard,Phone,54\n1076,Headphones,Online,58\n1077,Keyboard,Online,59\n1078,Keyboard,In store,38\n1079,Mouse,Online,21\n1080,Headphones,In store,43\n1081,Webcam,In store,56\n1082,Monitor,Online,130\n1083,Mouse,Online,24\n1084,Mouse,Online,25\n1085,Webcam,In store,64\n1086,Mouse,Online,22\n1087,Mouse,Online,10\n1088,Mouse,Phone,22\n1089,Keyboard,Online,34\n1090,Keyboard,Online,20\n1091,Webcam,Online,73\n1092,Monitor,Online,275\n1093,Monitor,In store,186\n1094,Webcam,In store,49\n1095,Headphones,Online,33\n1096,Mouse,In store,21\n1097,Headphones,In store,58\n1098,Monitor,In store,185\n1099,Webcam,Online,45\n1100,Webcam,In store,58\n1101,Keyboard,Online,57\n1102,Webcam,Phone,53\n1103,Headphones,Online,62\n1104,Headphones,Online,71\n1105,Mouse,Online,20\n1106,Mouse,Online,24\n1107,Mouse,Online,28\n1108,Keyboard,In store,33\n1109,Webcam,Online,34\n1110,Mouse,In store,28\n1111,Headphones,Online,64\n1112,Keyboard,Online,56\n1113,Webcam,Phone,29\n1114,Mouse,In store,9\n1115,Monitor,Online,222\n1116,Headphones,Online,71\n1117,Headphones,Online,41\n1118,Mouse,Online,31\n1119,Keyboard,Online,51\n1120,Keyboard,Online,39\n", "stores.csv": "store,region,visitors,daily_revenue,conversion\nSeattle,Pacific,310,2100,0.021\nOakland,Pacific,180,1650,0.027\nSan Francisco,Pacific,420,3300,0.024\nPortland,Pacific,230,2250,0.032\nSacramento,Pacific,200,1900,0.03\nLos Angeles,Pacific,480,4600,0.034\nSan Jose,Pacific,350,2400,0.02\nSan Diego,Pacific,170,1500,0.028\nBoise,Mountain,150,980,0.019\nDenver,Mountain,260,2050,0.023\nSalt Lake City,Mountain,140,1100,0.026\nAlbuquerque,Mountain,120,900,0.022\n"};
+</script>
+<script>
+// ---------------- Quiz -----------------
+const QUIZ = [
+ {q:"Durağan (statik) bir grafik ne zaman etkileşimli olandan daha iyi bir seçimdir?",
+  o:["Veride 100’den fazla satır olduğunda","Okuyucu tam değerleri görmek istediğinde","Grafikte birden fazla renk olduğunda","Grafik kâğıda ya da bir slayta gideceğinde"],a:3,
+  e:"Kâğıtta fare hiçbir şey yapmaz; slaytta ise hover kutusu dikkati dağıtır (16.1)."},
+ {q:"<code>px.scatter()</code> ne döndürür?",
+  o:["Grafiği tutan bir plotly <code>Figure</code> nesnesi","Defterin yanına kaydedilmiş bir PNG resim dosyası","seaborn fonksiyonlarındaki gibi bir matplotlib <code>Axes</code>","Çizilen DataFrame’in kendisi"],a:0,
+  e:"<code>type(fig)</code> → <code>plotly.graph_objs._figure.Figure</code>. Çizim <code>fig.show()</code> ile olur."},
+ {q:"<code>daily_revenue</code> eksen başlığının hover kutusu dahil her yerde “Revenue per day ($)” olarak görünmesini istiyorsunuz. Ne verirsiniz?",
+  o:["<code>title='Revenue per day ($)'</code>","<code>hover_data={'daily_revenue': 'Revenue per day ($)'}</code>","<code>labels={'daily_revenue': 'Revenue per day ($)'}</code>","<code>category_orders={'daily_revenue': 'Revenue per day ($)'}</code>"],a:2,
+  e:"<code>labels</code> eksen başlığını, gösterge başlığını ve hover kutusunu tek seferde değiştirir."},
+ {q:"<code>hover_data={'region': False, 'conversion': ':.1%'}</code> ne yapar?",
+  o:["conversion sütununu gizler, region’ı biçimlendirir","<code>region</code>’ı gizler, <code>conversion</code>’ı yüzde olarak gösterir","Grafiği önce region’a, sonra conversion’a göre sıralar","İki sütunu da grafikten ve hover kutusundan kaldırır"],a:1,
+  e:"<code>False</code> gizler; <code>':.1%'</code> bir biçim dizgesidir: 0.034 → %3,4."},
+ {q:"Bir çubuk grafik ürünleri alfabetik sırayla gösteriyor. En yüksek çubuktan en düşüğe nasıl gösterirsiniz?",
+  o:["<code>category_orders={'product': names_in_order}</code> verin","<code>labels={'product': names_in_order}</code> verin","<code>px.bar(..., sort=True)</code>","Her ürün bir panel alsın diye <code>facet_col='product'</code> ekleyin"],a:0,
+  e:"<code>category_orders</code> bir sütundaki değerlerin sırasını sabitler (16.4)."},
+ {q:"<code>px.scatter(..., color='region')</code> içinde <code>color_discrete_sequence=colors</code> ne yapar?",
+  o:["Bölgelere <code>colors</code> listesindeki renkleri sırayla verir","Noktaları listeden yumuşak bir gradyanla renklendirir","Grafiğin arka planını, kılavuzunu ve yazı tiplerini ayarlar","Bölgeleri renk listesinin sırasına göre sıralar"],a:0,
+  e:"“Discrete” ayrı gruplar demektir; her gruba listedeki sıradaki renk verilir."},
+ {q:"<code>template='simple_white'</code> olan bir grafikte <code>fig.add_hline(y=2175)</code> yazdınız ve çizgi görünmüyor. Çözüm nedir?",
+  o:["Grafik boyunca çizen <code>fig.add_vline(x=2175)</code> kullanın","<code>line_width=</code>, <code>line_color=</code> ve <code>opacity=1</code> verin","<code>fig.show()</code>’dan sonra <code>fig.add_hline()</code>’ı yeniden çağırın","Çizginin etiketi olsun diye <code>annotation_text='Target'</code> ekleyin"],a:1,
+  e:"simple_white bu çizgilerin kalınlığını sıfıra, opaklığını %30’a ayarlar (16.3 Dikkat kutusu)."},
+ {q:"Hangi satır, okuyucuların sürükleyerek gösterilen tarihleri seçebilmesi için çizgi grafiğin altına ince bir genel bakış şeridi ekler?",
+  o:["<code>fig.update_layout(slider=True)</code>","<code>fig.update_traces(rangeslider_visible=True)</code>","<code>fig.update_xaxes(rangeslider_visible=True)</code>","<code>fig.add_annotation(rangeslider=True)</code>"],a:2,
+  e:"Aralık kaydırıcısı x ekseninin bir ayarıdır; bu yüzden <code>update_xaxes()</code>."},
+ {q:"Python’u olmayan bir meslektaşınıza etkileşimli bir grafiği e-postayla göndermeniz gerekiyor. Ne kullanırsınız?",
+  o:["<code>fig.write_html('chart.html')</code>","<code>fig.show()</code>","<code>fig.update_layout(html=True)</code>","Kamera düğmesi"],a:0,
+  e:"HTML dosyası tarayıcıda açılır ve tamamen etkileşimlidir; Python gerekmez."},
+ {q:"Grafiğin araç çubuğundaki kamera simgesine tıklıyorsunuz. Ne olur?",
+  o:["Grafik panoya metin olarak kopyalanır","Figür proje klasörünüze HTML dosyası olarak kaydedilir","Kodu içeren yeni bir defter hücresi belirir","Tarayıcınız grafiği PNG olarak indirir"],a:3,
+  e:"“Download plot as a PNG” — dosya İndirilenler klasörüne gider."}
+];
+function buildQuiz(){
+  const box=document.getElementById('quizBox'); box.innerHTML='';
+  const L='ABCD';
+  QUIZ.forEach((it,i)=>{
+    const d=document.createElement('div'); d.className='q'; d.id='q'+(i+1);
+    d.innerHTML=`<div class="qt">${i+1}. ${it.q}</div>`+
+      it.o.map((o,j)=>`<label><input type="radio" name="q${i}" value="${j}"><strong>${L[j]}.</strong> ${o}</label>`).join('')+
+      `<div class="fb"></div>`;
+    d.querySelectorAll('input').forEach(inp=>inp.addEventListener('change',()=>{
+      if(d.dataset.done) return; d.dataset.done=1;
+      const j=+inp.value, labs=d.querySelectorAll('label');
+      labs[it.a].classList.add('ok'); if(j!==it.a) labs[j].classList.add('no');
+      d.querySelectorAll('input').forEach(x=>x.disabled=true);
+      const fb=d.querySelector('.fb'); fb.classList.add('show');
+      fb.innerHTML=(j===it.a?'✅ <strong>Doğru.</strong> ':'❌ <strong>Doğru cevap '+L[it.a]+'.</strong> ')+it.e;
+      if(j===it.a) d.dataset.ok=1; updateScore();
+    }));
+    box.appendChild(d);
+  });
+  updateScore();
+}
+function updateScore(){
+  const ok=document.querySelectorAll('.q[data-ok]').length, done=document.querySelectorAll('.q[data-done]').length;
+  document.getElementById('score').textContent=`${ok} / ${QUIZ.length}`+(done?` (cevaplanan: ${done})`:'');
+}
+document.getElementById('quizReset').onclick=buildQuiz;
+buildQuiz();
+
+// ---------------- Data list -----------------
+function csvToTable(txt,max=200){
+  const rows=txt.trim().split(/\r?\n/).map(r=>r.split(','));
+  const h=rows.shift();
+  return '<table><thead><tr>'+h.map(x=>`<th>${x}</th>`).join('')+'</tr></thead><tbody>'+
+    rows.slice(0,max).map(r=>'<tr>'+r.map(x=>`<td>${x}</td>`).join('')+'</tr>').join('')+'</tbody></table>';
+}
+(function(){
+  const host=document.getElementById('dataList');
+  Object.entries(DATA).forEach(([name,txt])=>{
+    const n=txt.trim().split(/\r?\n/).length-1;
+    const url=URL.createObjectURL(new Blob([txt],{type:'text/csv'}));
+    const d=document.createElement('details'); d.className='data';
+    d.innerHTML=`<summary>${name} <span style="font-weight:400;color:#5f6b72">— ${n} satır</span> · <a href="${url}" download="${name}">indir</a></summary><div class="tbl">${csvToTable(txt)}</div>`;
+    host.appendChild(d);
+  });
+})();
+
+// ---------------- Code cells -----------------
+const cells=[];
+document.querySelectorAll('.cell').forEach((el,i)=>{
+  const ta=el.querySelector('textarea'); const src=ta.value;
+  const bar=document.createElement('div'); bar.className='bar';
+  bar.innerHTML=`<span class="lbl">In [<span class="cnt"> </span>]:</span><span class="sp"></span>
+    <button class="btn ghost reset" title="Orijinal koda dön">↺ Orijinal</button>
+    <button class="btn run" disabled>▶ Çalıştır</button>`;
+  el.insertBefore(bar,ta);
+  const cm=CodeMirror.fromTextArea(ta,{mode:'python',lineNumbers:false,indentUnit:4,viewportMargin:Infinity,
+     extraKeys:{'Shift-Enter':()=>runCell(i),'Ctrl-Enter':()=>runCell(i),Tab:c=>c.replaceSelection('    ')}});
+  const out=document.createElement('div'); out.className='out'; el.appendChild(out);
+  const c={el,cm,out,src,ran:false,idx:i,btn:bar.querySelector('.run'),cnt:bar.querySelector('.cnt')};
+  bar.querySelector('.run').onclick=()=>runCell(i);
+  bar.querySelector('.reset').onclick=()=>cm.setValue(src);
+  el.id='hucre-'+(i+1);
+  cells.push(c);
+});
+
+// ---------------- Pyodide -----------------
+let py=null, execCount=0, busy=false;
+const st=document.getElementById('status'), stT=document.getElementById('statusText');
+window.__currentOut=null;
+window.renderPlot=function(json){
+  const spec=JSON.parse(json); const div=document.createElement('div'); div.className='plot';
+  const inner=document.createElement('div'); div.appendChild(inner);
+  window.__currentOut.appendChild(div);
+  Plotly.newPlot(inner,spec.data,spec.layout||{},{responsive:true,displaylogo:false,locale:'tr'});
+};
+const PY_SETUP=`
+import sys, io, ast, os, contextlib, js
+import pandas as pd
+import plotly.io as pio
+from plotly.basedatatypes import BaseFigure
+def _show(self, *a, **k):
+    js.renderPlot(self.to_json())
+BaseFigure.show = _show
+pd.set_option('display.width', 120)
+def __run_cell(src, ns):
+    buf = io.StringIO()
+    before = set(f for f in os.listdir('.') if not f.endswith('.csv'))
+    res = {'stdout':'', 'html':None, 'text':None, 'files':[]}
+    with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(buf):
+        tree = ast.parse(src)
+        last = None
+        if tree.body and isinstance(tree.body[-1], ast.Expr):
+            last = ast.Expression(tree.body.pop().value)
+        exec(compile(tree, '<hücre>', 'exec'), ns)
+        val = eval(compile(last, '<hücre>', 'eval'), ns) if last is not None else None
+    res['stdout'] = buf.getvalue()
+    if val is not None:
+        if isinstance(val, BaseFigure):
+            val.show()
+        elif isinstance(val, (pd.DataFrame, pd.Series)):
+            df = val.to_frame() if isinstance(val, pd.Series) else val
+            res['html'] = df.to_html(max_rows=30, border=0)
+        else:
+            res['text'] = repr(val)
+    after = set(f for f in os.listdir('.') if not f.endswith('.csv'))
+    res['files'] = sorted((after - before) | (set(_written(src)) & after))
+    return res
+def _written(src):
+    import re
+    return re.findall(r"write_(?:html|json)\\(\\s*['\\"]([^'\\"]+)['\\"]", src)
+def __new_ns():
+    return {'__name__':'__main__'}
+`;
+async function initPy(){
+  try{
+    stT.textContent='Pyodide yükleniyor…';
+    py=await loadPyodide();
+    stT.textContent='pandas yükleniyor…';
+    await py.loadPackage(['pandas','micropip']);
+    stT.textContent='plotly yükleniyor…';
+    const mp=py.pyimport('micropip');
+    await mp.install('plotly==5.24.1');
+    for(const [n,t] of Object.entries(DATA)) py.FS.writeFile(n,t);
+    await py.runPythonAsync(PY_SETUP);
+    window.__ns=py.runPython('__new_ns()');
+    st.className='ready'; stT.textContent='Python hazır';
+    cells.forEach(c=>c.btn.disabled=false);
+  }catch(e){ st.className='err'; stT.textContent='Yükleme hatası'; console.error(e);
+    alert('Pyodide yüklenemedi. İnternet bağlantınızı kontrol edin.\n'+e); }
+}
+async function execOne(c){
+  c.out.innerHTML=''; c.out.classList.add('show'); window.__currentOut=c.out;
+  c.el.style.opacity=1;
+  try{
+    const fn=py.globals.get('__run_cell');
+    const r=fn(c.cm.getValue(), window.__ns).toJs({dict_converter:Object.fromEntries});
+    fn.destroy();
+    if(r.stdout){const p=document.createElement('pre');p.className='txt';p.textContent=r.stdout;c.out.prepend(p);}
+    if(r.html){const d=document.createElement('div');d.style.overflowX='auto';d.innerHTML=r.html;c.out.appendChild(d);}
+    if(r.text){const p=document.createElement('pre');p.className='txt';p.textContent=r.text;c.out.appendChild(p);}
+    for(const f of (r.files||[])){
+      const bytes=py.FS.readFile(f); const url=URL.createObjectURL(new Blob([bytes],{type:f.endsWith('.html')?'text/html':'application/octet-stream'}));
+      const d=document.createElement('div');d.className='dl';
+      d.innerHTML=`<a href="${url}" download="${f}">⬇ ${f} dosyasını indir (${(bytes.length/1048576).toFixed(1)} MB)</a> &nbsp;<a href="${url}" target="_blank" style="background:#0b3a47">Yeni sekmede aç</a>`;
+      c.out.appendChild(d);
+    }
+    if(!c.out.children.length){const p=document.createElement('pre');p.className='txt';p.style.color='#8a9296';p.textContent='✓ Çalıştı (çıktı yok)';c.out.appendChild(p);}
+    c.ran=true; c.cnt.textContent=++execCount; return true;
+  }catch(e){
+    let msg=String(e.message||e); const k=msg.lastIndexOf('File "<hücre>"');
+    if(k>0) msg=msg.slice(k);
+    const p=document.createElement('pre');p.className='txt err';p.textContent=msg;c.out.appendChild(p);
+    c.cnt.textContent='!'; return false;
+  }
+}
+async function runCell(i){
+  if(!py||busy) return; busy=true;
+  const target=cells[i];
+  target.btn.disabled=true; target.btn.textContent='⏳';
+  await new Promise(r=>setTimeout(r,20));
+  for(let k=0;k<i;k++){ if(!cells[k].ran){ cells[k].btn.textContent='⏳'; await new Promise(r=>setTimeout(r,10)); await execOne(cells[k]); cells[k].btn.textContent='▶ Çalıştır'; } }
+  await execOne(target);
+  target.btn.disabled=false; target.btn.textContent='▶ Çalıştır'; busy=false;
+}
+document.getElementById('runAll').onclick=async()=>{ if(!py)return; for(let i=0;i<cells.length;i++){ cells[i].ran=false; } await runCell(cells.length-1); };
+document.getElementById('resetNs').onclick=()=>{ if(!py)return; window.__ns=py.runPython('__new_ns()'); execCount=0;
+  cells.forEach(c=>{c.ran=false;c.cnt.textContent=' ';c.out.innerHTML='';c.out.classList.remove('show');}); };
+initPy();
+
+// ---------------- TOC -----------------
+const toc=document.getElementById('tocLinks');
+const heads=[...document.querySelectorAll('main h2[id], main h3[id]')];
+heads.forEach(h=>{const a=document.createElement('a');a.href='#'+h.id;a.innerHTML=h.innerHTML.replace(/<span class="num">(.*?)<\/span>/,'$1 ');if(h.tagName==='H3')a.className='sub';toc.appendChild(a);});
+const tocLinks=[...toc.querySelectorAll('a')];
+const io2=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){tocLinks.forEach(a=>a.classList.toggle('active',a.getAttribute('href')==='#'+e.target.id));}})},{rootMargin:'-80px 0px -70% 0px'});
+heads.forEach(h=>io2.observe(h));
+
+// ---------------- Search -----------------
+const norm=s=>s.toLocaleLowerCase('tr').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/ı/g,'i');
+const index=[];
+(function buildIndex(){
+  let sec='Giriş';
+  document.querySelectorAll('main h1, main h2, main h3, main p, main li, main .callout, main .cell, main .q, main pre.data').forEach(el=>{
+    if(el.closest('.callout')&&el.tagName!=='DIV') return;
+    if(el.closest('#datasets')) return;
+    if(el.matches('.q')){ index.push({el,sec:'Sınav',kind:'soru',text:el.querySelector('.qt').textContent+' '+[...el.querySelectorAll('label')].map(l=>l.textContent).join(' ')}); return; }
+    if(el.closest('.q')) return;
+    if(el.matches('h2,h3')){ sec=el.textContent; }
+    let kind='metin', text=el.textContent;
+    if(el.matches('.cell')){ kind='kod'; const c=cells.find(c=>c.el===el); text=c?c.cm.getValue():text; }
+    else if(el.matches('h1,h2,h3')) kind='başlık';
+    else if(el.matches('.callout')) kind='kutu';
+    else if(el.matches('.figdesc')) kind='grafik';
+    else if(el.matches('pre.data')) kind='veri';
+    index.push({el,sec,kind,text:text.replace(/\s+/g,' ').trim()});
+  });
+  index.forEach(x=>x.n=norm(x.text));
+})();
+const si=document.getElementById('search'), res=document.getElementById('results');
+let hits=[], act=-1;
+function esc(s){return s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+function snippet(text,terms){
+  const n=norm(text); let pos=-1;
+  for(const t of terms){const p=n.indexOf(t);if(p>=0){pos=p;break;}}
+  let s=Math.max(0,pos-60), e=Math.min(text.length,(pos<0?0:pos)+140);
+  let out=(s>0?'…':'')+text.slice(s,e)+(e<text.length?'…':'');
+  // highlight (norm keeps length for Turkish chars after NFD strip mostly; do case-insensitive regex)
+  let h=esc(out);
+  terms.forEach(t=>{ if(!t) return;
+    const re=new RegExp(t.split('').map(ch=>{const m={'i':'[iıİI]','s':'[sşŞS]','c':'[cçÇC]','g':'[gğĞG]','o':'[oöÖO]','u':'[uüÜU]'}; return m[ch]||ch.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}).join(''),'gi');
+    h=h.replace(re,m=>`<mark>${m}</mark>`); });
+  return h;
+}
+function doSearch(){
+  const q=si.value.trim();
+  if(q.length<2){res.classList.remove('open');res.innerHTML='';return;}
+  const terms=norm(q).split(/\s+/).filter(Boolean);
+  hits=index.map(x=>{let sc=0;for(const t of terms){const c=x.n.split(t).length-1;if(!c)return null;sc+=c;} if(x.kind==='başlık')sc+=5; if(x.kind==='kod')sc+=1; return {x,sc};}).filter(Boolean).sort((a,b)=>b.sc-a.sc).slice(0,40);
+  act=-1;
+  res.innerHTML=hits.length?`<div class="count">${hits.length} sonuç · <kbd>↑</kbd><kbd>↓</kbd> ile gez, <kbd>Enter</kbd> ile git</div>`+hits.map((h,i)=>`<div class="r" data-i="${i}"><div class="sec">${esc(h.x.sec)}<span class="kind">${h.x.kind}</span></div><div class="snip">${snippet(h.x.text,terms)}</div></div>`).join('')
+    :'<div class="empty">Sonuç bulunamadı.</div>';
+  res.classList.add('open');
+  res.querySelectorAll('.r').forEach(r=>r.onclick=()=>go(+r.dataset.i));
+}
+function go(i){
+  const el=hits[i].x.el; res.classList.remove('open');
+  const det=el.closest('details'); if(det) det.open=true;
+  el.scrollIntoView({behavior:'smooth',block:'center'});
+  el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
+}
+si.addEventListener('input',doSearch);
+si.addEventListener('focus',()=>{if(si.value.trim().length>=2)doSearch();});
+si.addEventListener('keydown',e=>{
+  const rs=[...res.querySelectorAll('.r')];
+  if(e.key==='ArrowDown'){act=Math.min(rs.length-1,act+1);}
+  else if(e.key==='ArrowUp'){act=Math.max(0,act-1);}
+  else if(e.key==='Enter'){ if(hits.length) go(act<0?0:act); return; }
+  else if(e.key==='Escape'){res.classList.remove('open');si.blur();return;}
+  else return;
+  e.preventDefault(); rs.forEach((r,k)=>r.classList.toggle('act',k===act)); if(rs[act]) rs[act].scrollIntoView({block:'nearest'});
+});
+document.addEventListener('keydown',e=>{ if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();si.focus();si.select();}
+  else if(e.key==='/'&&document.activeElement.tagName!=='INPUT'&&!document.activeElement.closest('.CodeMirror')){e.preventDefault();si.focus();}});
+document.addEventListener('click',e=>{if(!e.target.closest('.search-wrap'))res.classList.remove('open');});
+</script>
+</body>
+</html>

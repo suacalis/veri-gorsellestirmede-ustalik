@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bölüm 5: Çubuklar, Pastalar ve Tablolar</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+<script src="https://cdn.jsdelivr.net/pyodide/v0.27.7/full/pyodide.js"></script>
+<style>
+:root{
+  --teal:#0b3a47; --amber:#b26a00; --lteal:#6fb3c2; --sand:#f0c987;
+  --bg:#f7f6f2; --paper:#ffffff; --ink:#1f2a30; --muted:#5f6b72; --line:#e2e0d8;
+  --code-bg:#fbfaf6;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:80px}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.65 "Segoe UI",system-ui,-apple-system,Roboto,sans-serif}
+header.top{position:sticky;top:0;z-index:50;background:var(--teal);color:#fff;display:flex;align-items:center;gap:16px;padding:10px 20px;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+header.top .brand{font-weight:600;white-space:nowrap}
+header.top .brand small{opacity:.7;font-weight:400;margin-left:6px}
+.search-wrap{position:relative;flex:1;max-width:560px;margin-left:auto}
+#search{width:100%;padding:9px 14px 9px 36px;border-radius:8px;border:none;font-size:15px;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235f6b72' stroke-width='2.5'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E") no-repeat 11px center}
+#search:focus{outline:3px solid var(--sand)}
+#results{position:absolute;top:44px;left:0;right:0;background:#fff;color:var(--ink);border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,.2);max-height:70vh;overflow:auto;display:none}
+#results.open{display:block}
+#results .r{padding:10px 14px;border-bottom:1px solid var(--line);cursor:pointer}
+#results .r:hover,#results .r.act{background:#eef5f6}
+#results .r .sec{font-size:12px;color:var(--amber);font-weight:600;text-transform:uppercase;letter-spacing:.03em}
+#results .r .kind{font-size:11px;background:var(--line);border-radius:4px;padding:0 5px;margin-left:6px;color:var(--muted);text-transform:none;letter-spacing:0}
+#results .r .snip{font-size:14px}
+#results .empty,#results .count{padding:10px 14px;color:var(--muted);font-size:13px}
+mark{background:#ffe08a;color:inherit;border-radius:2px;padding:0 1px}
+#status{font-size:13px;white-space:nowrap;display:flex;align-items:center;gap:8px}
+#status .dot{width:10px;height:10px;border-radius:50%;background:#f0c987;box-shadow:0 0 0 0 rgba(240,201,135,.7);animation:pulse 1.4s infinite}
+#status.ready .dot{background:#7bd88f;animation:none}
+#status.err .dot{background:#ff6b6b;animation:none}
+@keyframes pulse{70%{box-shadow:0 0 0 8px rgba(240,201,135,0)}100%{box-shadow:0 0 0 0 rgba(240,201,135,0)}}
+.layout{display:grid;grid-template-columns:260px minmax(0,1fr);gap:28px;max-width:1240px;margin:0 auto;padding:24px 20px 80px}
+nav.toc{position:sticky;top:76px;align-self:start;max-height:calc(100vh - 96px);overflow:auto;font-size:14px}
+nav.toc h4{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+nav.toc a{display:block;color:var(--ink);text-decoration:none;padding:4px 10px;border-left:3px solid transparent;border-radius:0 4px 4px 0}
+nav.toc a.sub{padding-left:24px;font-size:13px;color:var(--muted)}
+nav.toc a:hover{background:#ece9df}
+nav.toc a.active{border-left-color:var(--amber);background:#fff;font-weight:600;color:var(--teal)}
+nav.toc .tools{margin-top:16px;display:flex;flex-direction:column;gap:6px}
+main{background:var(--paper);border-radius:12px;padding:36px 48px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+h1{font-size:2rem;color:var(--teal);margin:0 0 4px;line-height:1.25}
+.subtitle{color:var(--muted);margin:0 0 24px}
+h2{font-size:1.45rem;color:var(--teal);border-bottom:2px solid var(--sand);padding-bottom:6px;margin:48px 0 16px}
+h2 .num{color:var(--amber);margin-right:8px}
+h3{font-size:1.12rem;margin:30px 0 10px;color:var(--ink)}
+code{font-family:"JetBrains Mono",Consolas,Menlo,monospace;font-size:.88em;background:#f1efe8;padding:1px 5px;border-radius:4px;color:#7a3e00}
+.lead{font-size:1.08rem;border-left:4px solid var(--amber);padding:4px 0 4px 16px;color:#33424a}
+.goals{background:#eef5f6;border-radius:10px;padding:16px 22px}
+.goals ul{margin:6px 0 0;padding-left:20px}
+.callout{border-radius:10px;padding:12px 18px;margin:18px 0;border-left:5px solid}
+.callout .t{font-weight:700;display:block;margin-bottom:2px}
+.callout.warn{background:#fff4e5;border-color:var(--amber)}
+.callout.warn .t{color:var(--amber)}
+.callout.tip{background:#eaf6f1;border-color:#2f8f6b}
+.callout.tip .t{color:#2f8f6b}
+.callout.note{background:#eef2f7;border-color:#4b6a8a}
+.callout.note .t{color:#4b6a8a}
+pre.data{background:var(--code-bg);border:1px dashed var(--line);border-radius:8px;padding:10px 14px;font-size:13px;overflow:auto}
+/* code cells */
+.cell{border:1px solid var(--line);border-radius:10px;margin:18px 0;overflow:hidden;background:var(--code-bg)}
+.cell .bar{display:flex;align-items:center;gap:8px;padding:6px 10px;background:#f1efe8;border-bottom:1px solid var(--line);font-size:12px;color:var(--muted)}
+.cell .bar .lbl{font-family:Consolas,monospace}
+.cell .bar .sp{flex:1}
+button{font:inherit;cursor:pointer;border-radius:6px;border:1px solid transparent}
+.btn{background:var(--teal);color:#fff;padding:4px 12px;font-size:13px}
+.btn:hover{filter:brightness(1.2)}
+.btn:disabled{opacity:.5;cursor:wait}
+.btn.ghost{background:transparent;color:var(--teal);border-color:#c9d3d6}
+.btn.ghost:hover{background:#fff}
+.btn.amber{background:var(--amber)}
+.CodeMirror{height:auto;font-size:14px;background:var(--code-bg);font-family:"JetBrains Mono",Consolas,Menlo,monospace}
+.CodeMirror-scroll{min-height:30px}
+.cm-s-default .cm-keyword{color:#8a3ffc}.cm-s-default .cm-string{color:#0b7a4b}.cm-s-default .cm-number{color:#b26a00}.cm-s-default .cm-comment{color:#8a9296;font-style:italic}.cm-s-default .cm-builtin{color:#0b5f7a}
+.out{border-top:1px solid var(--line);background:#fff;padding:0;display:none}
+.out.show{display:block}
+.out .txt{margin:0;padding:10px 14px;font:13px/1.5 Consolas,Menlo,monospace;white-space:pre-wrap;color:#333}
+.out .txt.err{color:#b00020;background:#fff5f5}
+.out .plot{padding:6px;overflow-x:auto}
+.out table{border-collapse:collapse;margin:10px 14px;font-size:13px}
+.out th,.out td{border:1px solid var(--line);padding:4px 10px;text-align:right}
+.out th{background:#f1efe8}
+.out .dl{margin:10px 14px}
+.out .dl a{display:inline-block;background:var(--amber);color:#fff;text-decoration:none;padding:5px 12px;border-radius:6px;font-size:13px}
+.figdesc{font-size:14px;color:var(--muted);background:#f6f5f0;border-radius:8px;padding:8px 14px;margin:-8px 0 14px;border:1px solid var(--line)}
+.figdesc::before{content:"🖼 Beklenen grafik: ";font-weight:600;color:var(--teal)}
+.flash{animation:flash 2.2s ease}
+@keyframes flash{0%,40%{background:#fff1bf;box-shadow:0 0 0 6px #fff1bf}100%{background:transparent;box-shadow:none}}
+details.data{border:1px solid var(--line);border-radius:8px;margin:8px 0;background:#fff}
+details.data summary{cursor:pointer;padding:8px 14px;font-weight:600;color:var(--teal)}
+details.data .tbl{max-height:260px;overflow:auto;padding:0 14px 10px}
+details.data table{border-collapse:collapse;font-size:13px}
+details.data td,details.data th{border:1px solid var(--line);padding:3px 8px}
+details.data th{background:#f1efe8;position:sticky;top:0}
+/* quiz */
+.q{border:1px solid var(--line);border-radius:10px;padding:14px 18px;margin:14px 0}
+.q .qt{font-weight:600;margin-bottom:8px}
+.q label{display:block;padding:6px 10px;border-radius:6px;cursor:pointer;border:1px solid transparent}
+.q label:hover{background:#f4f2ea}
+.q label.ok{background:#e3f4ea;border-color:#2f8f6b}
+.q label.no{background:#fde8e8;border-color:#d05353}
+.q input{margin-right:8px}
+.q .fb{font-size:14px;margin-top:6px;display:none}
+.q .fb.show{display:block}
+#score{font-weight:700;color:var(--teal)}
+.out img{max-width:100%;height:auto;display:block;margin:6px auto}
+table.choose{border-collapse:collapse;width:100%;font-size:14px;margin:10px 0}table.choose th,table.choose td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}table.choose th{background:#eef5f6;color:var(--teal)}
+.chnav{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:14px;margin:0 0 18px}.chnav a{color:var(--teal);text-decoration:none;border:1px solid var(--line);border-radius:6px;padding:4px 10px}.chnav a:hover{background:#eef5f6}.chnav .all{display:flex;gap:4px;flex-wrap:wrap}.chnav .all a.cur{background:var(--teal);color:#fff}
+.summary li{margin-bottom:6px}
+footer{text-align:center;color:var(--muted);font-size:13px;padding:30px}
+kbd{border:1px solid #bbb;border-bottom-width:2px;border-radius:4px;padding:0 5px;font-size:12px;background:#fff;color:#333}
+@media (max-width:900px){.layout{grid-template-columns:1fr}nav.toc{display:none}main{padding:22px 18px}header.top .brand small{display:none}#status span{display:none}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">Bölüm 5 <small>Çubuklar, Pastalar ve Tablolar</small></div>
+  <div class="search-wrap">
+    <input id="search" type="search" placeholder="Bölümde ara… (ör. barh, bar_label, pie)   Ctrl+K" autocomplete="off">
+    <div id="results"></div>
+  </div>
+  <div id="status"><div class="dot"></div><span id="statusText">Python yükleniyor…</span></div>
+</header>
+
+<div class="layout">
+<nav class="toc" id="toc">
+  <h4>İçindekiler</h4>
+  <div id="tocLinks"></div>
+  <div class="tools">
+    <button class="btn" id="runAll">▶ Tüm hücreleri çalıştır</button>
+    <button class="btn ghost" id="resetNs">↺ Python ortamını sıfırla</button>
+  </div>
+</nav>
+
+<main id="content">
+<div class="chnav"><a href="bolum04_cizgiler_noktalar.html">← Bölüm 4</a><div class="all">Bölümler: <a href="bolum01_ortami_kurmak.html" class="" title="Görselleştirme Ortamını Kurmak">1</a><a href="bolum02_cizmeden_once_dusunmek.html" class="" title="Çizmeden Önce Düşünmek">2</a><a href="bolum03_matplotlib_temelleri.html" class="" title="matplotlib Temelleri">3</a><a href="bolum04_cizgiler_noktalar.html" class="" title="Çizgiler ve Noktalar">4</a><a href="bolum05_cubuklar_pastalar_tablolar.html" class="cur" title="Çubuklar, Pastalar ve Tablolar">5</a><a href="bolum06_dagilimlar_izgaralar.html" class="" title="Dağılımlar ve Değer Izgaraları">6</a><a href="bolum07_ozellestirme.html" class="" title="Bir Grafiğin Her Parçasını Özelleştirmek">7</a><a href="bolum08_yerlesimler.html" class="" title="Yerleşimler: Bir Figürde Birçok Grafik">8</a><a href="bolum09_iletisim_kuran_tasarim.html" class="" title="İletişim Kuran Tasarım">9</a><a href="bolum10_yalan_soyleyen_grafikler.html" class="" title="Yalan Söyleyen Grafikler">10</a><a href="bolum11_seaborn_temelleri.html" class="" title="seaborn Temelleri">11</a><a href="bolum12_iliskiler_regresyon.html" class="" title="İlişkiler ve Regresyon">12</a><a href="bolum13_kategoriler.html" class="" title="Kategoriler">13</a><a href="bolum14_dagilimlar.html" class="" title="Dağılımlar">14</a><a href="bolum15_izgaralar_matrisler.html" class="" title="Izgaralar ve Matrisler">15</a><a href="bolum16_plotly_express.html" class="" title="plotly express ile Etkileşimli Grafikler">16</a><a href="bolum17_haritalar_is_grafikleri.html" class="" title="Haritalar ve İş Grafikleri">17</a></div><a href="bolum06_dagilimlar_izgaralar.html">Bölüm 6 →</a></div>
+<h1>Bölüm 5: Çubuklar, Pastalar ve Tablolar</h1>
+<p class="subtitle">Kod hücreleri tarayıcınızda <strong>Pyodide</strong> ile çalışır; Python kurmanıza gerek yok. Kodu değiştirip yeniden çalıştırabilirsiniz (<kbd>Shift</kbd>+<kbd>Enter</kbd>). Grafikler matplotlib ile resim olarak çizilir.</p>
+
+<p class="lead">Çeyrek değerlendirmesi gelecek hafta ve sorular hep aynı. En çok parayı hangi ürünler getiriyor? Her bölge çeyrek çeyrek nasıl gitti? Satışlarımız nereden geliyor: web sitesinden mi, mağazalardan mı, telefon hattından mı?</p>
+
+<p>Bu soruların hiçbiri zamanla ya da iki sayının birlikte nasıl hareket ettiğiyle ilgili değil. Her biri kategorileri karşılaştırıyor ya da bir toplamı parçalara bölüyor. Birinci iş için gündelik araç çubuk grafiklerdir, ikincisi için (dikkatle kullanılan) pasta grafikleri. Bazen en açık yanıt bir tablodur; bu yüzden bu bölüm, okuyucuyu önemli sayılara yönlendirmek için renk kullanan tablolarla bitiyor.</p>
+
+<div class="goals">
+<strong>Bu bölümün sonunda şunları yapabileceksiniz:</strong>
+<ul>
+<li><code>ax.bar()</code> ve <code>ax.barh()</code> ile, sıra bir anlam taşısın diye sıralanmış dikey ve yatay çubuk grafikler çizmek</li>
+<li>Bir çubuğu vurgulamak ve <code>ax.bar_label()</code> ile değerleri çubukların üzerine yazmak</li>
+<li>Grupları matplotlib’de ve <code>df.plot()</code> ile gruplu ve yığılmış çubuklarla karşılaştırmak</li>
+<li><code>df.plot.area()</code> ile bir toplamın zaman içinde nasıl oluştuğunu göstermek</li>
+<li><code>ax.pie()</code> ile pasta ve halka grafikler çizmek ve ne zaman işe yaradıklarını bilmek</li>
+<li><code>df.style.background_gradient()</code> ve <code>df.style.bar()</code> ile bir tabloyu renklendirmek</li>
+</ul>
+</div>
+
+<details class="data" id="datasets">
+<summary>📁 Bu bölümün veri dosyaları (sayfaya gömülü — Python’da doğrudan <code>pd.read_csv()</code> ile okunur)</summary>
+<div id="dataList" style="padding:0 14px 10px"></div>
+</details>
+
+<section>
+<h2 id="s5-1"><span class="num">5.1</span>Çubuk Grafikler</h2>
+<p>Bir çubuk grafik bir sayıyı kategoriler arasında karşılaştırır: ürün başına gelir, departman başına personel, mağaza başına şikâyet. Her çubuğun uzunluğu değerdir; bu da çubukları gözün karşılaştırması en kolay grafik yapar.</p>
+<p>İçe aktarmalarla ve kitabın stiliyle başlayın (Bölüm 3 stil satırını açıklıyor):</p>
+<div class="cell"><textarea>import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+
+plt.style.use('book.mplstyle')</textarea></div>
+<p>İlk dosya <code>product_sales.csv</code>, mağazanın yedi ürününün geçen yılki satılan adetlerini ve dolar cinsinden gelirini tutar:</p>
+<div class="cell"><textarea>products = pd.read_csv('product_sales.csv')
+products</textarea></div>
+
+<h3 id="s5-1-bar"><code>ax.bar()</code></h3>
+<p><code>bar()</code> kategori başına bir dikey çubuk çizer. Önce kategori adlarını, sonra yükseklikleri verin:</p>
+<div class="cell"><textarea>fig, ax = plt.subplots()
+ax.bar(products['product'], products['revenue'])
+ax.set_title('Revenue by product')
+ax.set_ylabel('Revenue ($)')
+plt.show()</textarea></div>
+<p class="figdesc">Dosya sırasında yedi dikey çubuk. Alttaki birkaç ürün adı birbirine giriyor.</p>
+<p>İki sorun hemen ortaya çıkıyor. Ürün adları yan yana duramayacak kadar uzun; bu yüzden sıkışıp üst üste biniyorlar. Ve çubuklar dosyanın sırasıyla geliyor; okuyucu en büyüğü ve en küçüğü aramak zorunda kalıyor. İkisi de kolayca düzeltilir.</p>
+<div class="callout warn"><span class="t">⚠ Dikkat</span>Bir çubuğun uzunluğu onun değeridir; bu yüzden bir çubuk grafiğin değer ekseni sıfırdan başlamalıdır. matplotlib bunu sizin için yapar; <code>set_ylim()</code> ile bozmayın. 30.000’den başlayan bir çubuk, iki kat geliri olan bir ürünü kat kat büyük gösterir. Bölüm 10.1 bir örnek gösteriyor.</div>
+
+<h3 id="s5-1-sort">Çizmeden önce <code>df.sort_values()</code></h3>
+<p>matplotlib çubukları aldığı sırayla çizer. Önce DataFrame’i sıralayın; grafik bir sıralamaya dönüşür:</p>
+<div class="cell"><textarea>by_revenue = products.sort_values('revenue', ascending=False)
+
+fig, ax = plt.subplots()
+ax.bar(by_revenue['product'], by_revenue['revenue'])
+ax.set_title('Revenue by product')
+ax.set_ylabel('Revenue ($)')
+plt.show()</textarea></div>
+<p class="figdesc">En yüksek Webcam’den en düşük Laptop Stand’e sıralanmış aynı çubuklar. Adlar hâlâ üst üste biniyor.</p>
+<p>Artık göz en çok satandan en zayıfa doğru yokuş aşağı iniyor. Neredeyse her çubuk grafikte değere göre sıralayın. İstisnalar aylar, bedenler (S, M, L) ya da yaş grupları gibi kendine ait doğal bir sırası olan kategorilerdir.</p>
+
+<h3 id="s5-1-barh"><code>ax.barh()</code></h3>
+<p><code>barh()</code> yatay çubuklar çizer. Adlar, uzun metne yer olan sola gider; böylece hiçbir şey üst üste binmez:</p>
+<div class="cell"><textarea>fig, ax = plt.subplots()
+ax.barh(by_revenue['product'], by_revenue['revenue'])
+ax.set_title('Revenue by product')
+ax.set_xlabel('Revenue ($)')
+plt.show()</textarea></div>
+<p class="figdesc">Adları okunur yatay çubuklar; ama en büyük olan Webcam en altta.</p>
+<p>Adlar okunuyor, ama sıralama ters. matplotlib ilk kategoriyi en alta çizer, çünkü y ekseni diğer her eksen gibi sıfırdan yukarı doğru sayar.</p>
+
+<h3 id="s5-1-invert"><code>ax.invert_yaxis()</code></h3>
+<p><code>invert_yaxis()</code> y eksenini çevirir; böylece ilk kategori en üstte olur:</p>
+<div class="cell"><textarea>fig, ax = plt.subplots()
+ax.barh(by_revenue['product'], by_revenue['revenue'])
+ax.invert_yaxis()
+ax.set_title('Revenue by product')
+ax.set_xlabel('Revenue ($)')
+plt.show()</textarea></div>
+<p class="figdesc">Webcam en üstte, Laptop Stand en altta olan yatay çubuklar.</p>
+<p>Bir yöneticiye gösterilecek sürüm budur: okunabilen adlar ve okumanın başladığı en üstte kazanan. Adlar bir iki sözcükten uzunsa ya da yaklaşık sekizden fazla kategoriniz varsa yatay çubuk kullanın.</p>
+<div class="callout tip"><span class="t">💡 İpucu</span><code>sort_values('revenue')</code> ile artan sırada sıralamak, en büyük çubuğu <code>invert_yaxis()</code> olmadan bir <code>barh()</code> grafiğinin en üstüne koyar. İkisi de çalışır; azalan sıralayıp çevirmek DataFrame’i grafikle aynı sırada tutar, bu da kontrol etmeyi kolaylaştırır.</div>
+
+<h3 id="s5-1-highlight">Bir çubuğu vurgulamak</h3>
+<p><code>color=</code> çubuk rengini ayarlar. Tüm çubuklar için bir renk ya da çubuk başına bir renk içeren bir liste verin. Bir liste, mesajınızın ilgili olduğu çubuğu seçip geri kalanları gri tutmanızı sağlar.</p>
+<p>Diyelim ki grafiğin amacı, en az adet satan monitörün yine de dördüncü en yüksek geliri getirdiğini göstermek. numpy’den <code>np.where(koşul, a, b)</code> renk listesini kurar: koşulun doğru olduğu yerde <code>a</code>’yı, diğer her yerde <code>b</code>’yi verir; yani ürün <code>Monitor</code> olduğunda camgöbeği, geri kalanı için açık gri. <code>colors</code> sonunda çubuklarla aynı sırada, çubuk başına bir tane olmak üzere yedi hex kodu olur:</p>
+<div class="cell"><textarea>colors = np.where(by_revenue['product'] == 'Monitor',
+                  '#0b3a47', '#c4c9ce')
+
+fig, ax = plt.subplots()
+ax.barh(by_revenue['product'], by_revenue['revenue'], color=colors)
+ax.invert_yaxis()
+ax.set_title('Monitors: the fewest units, fourth in revenue')
+ax.set_xlabel('Revenue ($)')
+plt.show()</textarea></div>
+<p class="figdesc">Aynı yatay çubuklar; koyu camgöbeği olan Monitor dışında hepsi açık gri.</p>
+<p>Renkler hex kodu olarak yazılır: bir <code>#</code> ve kırmızı, yeşil ve mavi miktarı için altı karakter. <code>'#0b3a47'</code> kitabın koyu camgöbeğidir. matplotlib <code>'gray'</code> ve <code>'steelblue'</code> gibi adları da bilir; Bölüm 7.4 renkleri düzgünce ele alıyor.</p>
+<p>Okuyucunun gözü doğrudan tek koyu çubuğa gider ve başlık neden önemli olduğunu söyler. Bu “gri artı bir renk” deseni bu kitaptaki en kullanışlı numaralardan biridir ve Bölüm 9.2 ona geri dönüyor.</p>
+</section>
+
+<section>
+<h2 id="s5-2"><span class="num">5.2</span>Çubuklarda Etiketler</h2>
+<p>Bir çubuk grafik hangi ürünün daha büyük olduğunu gösterir. Okuyucunun gerçek sayıya da ihtiyacı olduğunda, onu eksene kadar bir çizgi izlemeye zorlamak yerine çubuğun üstüne yazın.</p>
+
+<h3 id="s5-2-label"><code>ax.bar_label()</code></h3>
+<p><code>bar_label()</code> her çubuğun değerini ucuna yazar. Çubukların kendisine ihtiyaç duyar; bu yüzden önce <code>barh()</code>’ın döndürdüğünü bir değişkende saklayın:</p>
+<div class="cell"><textarea>fig, ax = plt.subplots()
+bars = ax.barh(by_revenue['product'], by_revenue['revenue'])
+ax.bar_label(bars)
+ax.invert_yaxis()
+ax.set_title('Revenue by product')
+plt.show()</textarea></div>
+<p class="figdesc">Her çubuğun ucunda 54900 gibi düz değerin yazılı olduğu yatay çubuklar.</p>
+<p><code>bars</code> yedi çubuğun hepsini tek bir grup olarak tutar; <code>bar_label()</code>’ın istediği de tam budur. Sayılar orada, ama <code>54900</code>’ü okumak <code>$54,900</code>’den daha zordur. <code>fmt=</code> onları biçimlendirir:</p>
+<div class="cell"><textarea>fig, ax = plt.subplots()
+bars = ax.barh(by_revenue['product'], by_revenue['revenue'])
+ax.bar_label(bars, fmt='${:,.0f}', padding=3)
+ax.invert_yaxis()
+ax.set_xlim(0, 65000)
+ax.set_title('Revenue by product')
+plt.show()</textarea></div>
+<p class="figdesc">$54,900, $50,040 vb. olarak etiketlenmiş, her çubuktan sonra küçük bir boşluk olan yatay çubuklar.</p>
+<p>Süslü parantezlerin içindeki kısım, öndeki <code>f</code> olmadan bir f-dizgesinin süslü parantezlerinin içi gibi çalışır (Bölüm 1.4 biçim kodlarını listeliyor). Süslü parantezlerin içinde <code>,</code> binlik ayraç ekler ve <code>.0f</code> ondalık basamak yok demektir; süslü parantezlerin dışındaki <code>$</code> olduğu gibi basılır. <code>padding=3</code> çubuk ile etiketi arasında 3 puntoluk boşluk bırakır ve <code>set_xlim()</code> en uzun etiket kesilmesin diye yer açar.</p>
+<p>Her çubukta bir etiket olunca x eksenindeki sayılar aynı bilgiyi tekrarlar. Bölüm 9.1 daha temiz bir grafik için onları nasıl kaldıracağınızı gösteriyor.</p>
+</section>
+
+<section>
+<h2 id="s5-3"><span class="num">5.3</span>Gruplu ve Yığılmış Çubuklar</h2>
+<p>Kategori başına bir çubuk tek bir soruyu yanıtlar. Çoğu zaman bölge ve çeyrek gibi aynı anda iki boyutunuz vardır ve ikisini de karşılaştırmak istersiniz. Bunu yapmanın iki yolu var: her grubun çubuklarını yan yana koymak ya da onları tek bir çubukta yığmak.</p>
+<p><code>region_quarter.csv</code> dosyası dört satış bölgesinin bin dolar cinsinden gelirini, çeyrek başına bir sütunla tutar:</p>
+<pre class="data">region,Q1,Q2,Q3,Q4
+Northeast,41,44,47,63
+South,36,39,40,52
+Midwest,28,27,30,38
+West,52,57,61,79</pre>
+<p>Bölge adları satır etiketleri olsun diye <code>index_col='region'</code> ile yükleyin:</p>
+<div class="cell"><textarea>regions = pd.read_csv('region_quarter.csv', index_col='region')
+regions</textarea></div>
+
+<h3 id="s5-3-grouped"><code>ax.bar()</code> ile gruplu çubuklar</h3>
+<p>matplotlib’in gruplu çubuklar için tek bir fonksiyonu yoktur; bu yüzden çubukları kendiniz yerleştirirsiniz. Her bölge x ekseninde 0’dan 3’e bir konum alır. Her çeyreğin çubuğu sonra o konumun biraz soluna ya da sağına kaydırılır; böylece bir bölgenin dört çubuğu yan yana durur.</p>
+<p><code>np.arange(4)</code> <code>[0, 1, 2, 3]</code> konumlarını verir. Her çubuk 0,2 genişliğindedir; bu yüzden -0,3, -0,1, 0,1 ve 0,3 kaydırmak dört çubuklu grubu konumun üzerinde ortalar:</p>
+<div class="cell"><textarea>x = np.arange(len(regions))
+width = 0.2
+
+fig, ax = plt.subplots()
+ax.bar(x - 0.3, regions['Q1'], width, label='Q1')
+ax.bar(x - 0.1, regions['Q2'], width, label='Q2')
+ax.bar(x + 0.1, regions['Q3'], width, label='Q3')
+ax.bar(x + 0.3, regions['Q4'], width, label='Q4')
+ax.set_xticks(x, regions.index)
+ax.set_title('Revenue by region and quarter')
+ax.set_ylabel('Revenue ($ thousands)')
+ax.legend()
+plt.show()</textarea></div>
+<p class="figdesc">Bölge başına bir grup olmak üzere dört çubuktan oluşan dört grup. Her grubun içinde çubuklar Q1’den Q4’e büyüyor.</p>
+<p><code>bar()</code>’ın üçüncü argümanı çubuk genişliğidir. Çubuklar sayı konumlarına yerleştirildiği için x ekseni 0, 1, 2 ve 3 gösterirdi; <code>set_xticks()</code> bunun yerine o konumlara bölge adlarını koyar.</p>
+<p>Gruplu çubuklar iki karşılaştırmayı kolaylaştırır: bir bölge içindeki çeyrekler (her bölgenin en iyi çeyreği Q4’tü) ve bölgeler arasında aynı çeyrek (West her seferinde önde). Grupları küçük tutun. Grup başına dört çubuk, grafik bir barkoda dönmeden önceki sınırdır.</p>
+
+<h3 id="s5-3-stacked"><code>bottom=</code> ile yığılmış çubuklar</h3>
+<p>Yığılmış bir çubuk her çeyreği bir öncekinin üstüne koyar; böylece tam çubuk yılın toplamıdır. <code>bottom=</code>, <code>bar()</code>’a her çubuğun nereden başlayacağını söyler. Her bölgeyi sıfırdan başlatın, sonra her çeyreği çizdikten sonra başlangıç noktasını onun değeri kadar yükseltin:</p>
+<div class="cell"><textarea>fig, ax = plt.subplots()
+bottom = np.zeros(len(regions))
+for quarter in ['Q1', 'Q2', 'Q3', 'Q4']:
+    ax.bar(regions.index, regions[quarter], bottom=bottom,
+           label=quarter)
+    bottom = bottom + regions[quarter]
+ax.set_title('Revenue by region, stacked by quarter')
+ax.set_ylabel('Revenue ($ thousands)')
+ax.legend()
+plt.show()</textarea></div>
+<p class="figdesc">Bölge başına bir tane olmak üzere dört yığılmış çubuk. Her çubuk dört parçadan oluşuyor; Q1 altta, Q4 üstte.</p>
+<p><code>np.zeros(4)</code> dört sıfırdır, her çubuğun başlangıç tabanı. <code>for</code> döngüsü (Bölüm 1.4) her seferinde bir çeyrek çizer, sonra o çeyreğin değerlerini <code>bottom</code>’a ekler; böylece sonraki çeyrek bunun bittiği yerde başlar.</p>
+<p>Yığılmış çubuklar bir şeyde iyidir: toplamları karşılaştırmak. West açıkça yılın en büyük bölgesi. Parçaları karşılaştırmak daha zordur, çünkü yalnızca en alttaki düz bir çizgiden başlar. South’un Q3’ü Midwest’inkinden büyük mü? Söyleyemezsiniz. Parçalar toplamlardan daha önemli olduğunda gruplu çubuklar kullanın.</p>
+
+<h3 id="s5-3-dfbar"><code>df.plot(kind='bar')</code></h3>
+<p>İkisi de epey kod tuttu. Veri zaten <code>regions</code> gibi, grup başına bir satır ve çubuk başına bir sütun biçimindeyse işi pandas yapar:</p>
+<div class="cell"><textarea>ax = regions.plot(kind='bar', rot=0)
+ax.set_title('Revenue by region and quarter')
+ax.set_xlabel('')
+ax.set_ylabel('Revenue ($ thousands)')
+plt.show()</textarea></div>
+<p class="figdesc">pandas’ın çizdiği, altta bölge adları olan aynı gruplu çubuk grafik.</p>
+<p>pandas satır başına bir grup ve sütun başına bir çubuk çizer; indeksi etiket, sütun adlarını gösterge olarak kullanır. <code>rot=0</code> bölge adlarını düz tutar; pandas onları varsayılan olarak yan çevirir.</p>
+
+<h3 id="s5-3-dfbarh"><code>df.plot.barh(stacked=True)</code></h3>
+<p><code>stacked=True</code> grupları yığılmış çubuklara çevirir, <code>plot.barh()</code> de onları yatay yapar:</p>
+<div class="cell"><textarea>ax = regions.plot.barh(stacked=True)
+ax.invert_yaxis()
+ax.set_title('Revenue by region, stacked by quarter')
+ax.set_xlabel('Revenue ($ thousands)')
+ax.set_ylabel('')
+plt.show()</textarea></div>
+<p class="figdesc">Northeast en üstte olan, her biri soldan sağa Q1–Q4’e bölünmüş dört yatay yığılmış çubuk.</p>
+<p>Bu, önceki yığılmış grafiğin iki satırlık hâlidir. Bölgeleri toplamlarına göre sıralamak için önce sıralayın. <code>regions.sum(axis=1)</code> her satır boyunca toplar ve her bölgenin toplamını verir. <code>.sort_values(ascending=False).index</code> bölgeleri büyükten küçüğe listeler ve <code>regions.loc[...]</code> satırları o sıraya koyar: <code>regions.loc[regions.sum(axis=1).sort_values(ascending=False).index]</code>. Deneyin:</p>
+<div class="cell"><textarea># Deneme: bölgeleri yıllık toplamlarına göre sırala, sonra yığ
+ranked = regions.loc[regions.sum(axis=1).sort_values(ascending=False).index]
+ax = ranked.plot.barh(stacked=True)
+ax.invert_yaxis()
+ax.set_title('West leads the year')
+ax.set_xlabel('Revenue ($ thousands)')
+ax.set_ylabel('')
+plt.show()</textarea></div>
+</section>
+
+<section>
+<h2 id="s5-4"><span class="num">5.4</span>Alan Grafikleri</h2>
+<p>Bir alan grafiği, yığılmış çubuk grafiğin zaman için kuzenidir: her seri bir banttır ve bantlar üst kenar toplam olacak şekilde yığılır. “Toplam nasıl değişti ve hangi parçalardan geldi?” sorusunu yanıtlar.</p>
+<p><code>channel_monthly.csv</code> dosyası her satış kanalının dolar cinsinden aylık gelirini tutar:</p>
+<pre class="data">month,Online,In store,Phone
+Jan,15100,8900,2600
+Feb,14600,8100,2500
+...
+Dec,37900,14300,2400</pre>
+<div class="cell"><textarea>channels = pd.read_csv('channel_monthly.csv', index_col='month')
+channels.head(3)</textarea></div>
+
+<h3 id="s5-4-area"><code>df.plot.area()</code></h3>
+<p><code>plot.area()</code> sütun başına bir bant yığar; x ekseni boyunca indeks:</p>
+<div class="cell"><textarea>ax = channels.plot.area()
+ax.set_title('Monthly revenue by channel')
+ax.set_xlabel('')
+ax.set_ylabel('Revenue ($)')
+plt.show()</textarea></div>
+<p class="figdesc">On iki ay boyunca üç yığılmış bant. Alttaki Online bandı en geniş olanı ve Kasım ile Aralık’ta keskin biçimde büyüyor.</p>
+<p>Toplam yıl sonuna doğru tırmanıyor ve grafik büyümenin nereden geldiğini gösteriyor: alttaki Online bandı çok genişliyor, In store biraz büyüyor ve Phone ince kalıyor. Bölüm 3.6’daki gibi pandas ayların yalnızca her ikincisini etiketliyor; bu yüzden bantlar Aralık’a kadar gitse de son etiket <code>Nov</code>.</p>
+<p>Yığılmış çubuklardaki uyarı burada da geçerli. Yalnızca alttaki bant düz bir çizgi üzerinde durur; bu yüzden üstündeki bantların boyutunu yargılamak zordur. En önemli seriyi en alta koyun; <code>plot.area()</code> ile bu ilk sütundur. <code>stacked=False</code> bantları bunun yerine üst üste binen biçimde çizer; bu yalnızca iki ya da üç seriyle çalışır.</p>
+</section>
+
+<section>
+<h2 id="s5-5"><span class="num">5.5</span>Pasta ve Halka Grafikler</h2>
+<p>Pasta grafiklerinin grafik uzmanları arasında kötü bir şöhreti vardır ve Bölüm 2.4 nedenini ele aldı: insanlar açıları ve alanları uzunluklardan çok daha az doğru karşılaştırır. Yine de iyi yaptıkları bir iş var. İki ila dört parça olduğunda ve mesaj “bu parça bütünün çoğu” olduğunda bir pasta bunu anında söyler ve veri ekipleri dışındaki okuyucular onları sever.</p>
+<p><code>channel_sales.csv</code> dosyası her kanalın yıllık gelirini, yani <code>channel_monthly.csv</code>’nin on iki ayının toplamını tutar:</p>
+<div class="cell"><textarea>channel_totals = pd.read_csv('channel_sales.csv')
+channel_totals</textarea></div>
+
+<h3 id="s5-5-pie"><code>ax.pie()</code></h3>
+<p><code>pie()</code> değerleri alır ve her dilimin toplamdaki payını hesaplar. <code>labels=</code> dilimleri adlandırır, <code>autopct=</code> yüzdeyi her birinin içine yazar:</p>
+<div class="cell"><textarea>fig, ax = plt.subplots()
+ax.pie(channel_totals['revenue'], labels=channel_totals['channel'],
+       autopct='%1.0f%%')
+ax.set_title('Revenue by channel')
+plt.show()</textarea></div>
+<p class="figdesc">Üç dilimli bir pasta: en büyük Online, In store ve Phone. Koyu Online dilimindeki yüzde zor okunuyor.</p>
+<p><code>autopct=</code> eski tarzda bir biçim dizgesi kullanır. <code>'%1.0f%%'</code> “ondalıksız sayı, sonra bir yüzde işareti” demektir (çift <code>%%</code> tek bir % basar). <code>'%1.1f%%'</code> bir ondalık basamak verirdi.</p>
+<p>Dilimler sağ taraftan başlayıp saat yönünün tersine gidiyor ve siyah yüzde koyu dilimde kayboluyor. Üç ayar daha ikisini de düzeltir:</p>
+<div class="cell"><textarea>fig, ax = plt.subplots()
+wedges, labels, pcts = ax.pie(
+    channel_totals['revenue'], labels=channel_totals['channel'],
+    autopct='%1.0f%%', startangle=90, counterclock=False)
+pcts[0].set_color('white')
+ax.set_title('Revenue by channel')
+plt.show()</textarea></div>
+<p class="figdesc">Pasta şimdi en üstten başlıyor ve saat yönünde gidiyor. Online dilimi %64’ü beyaz gösteriyor.</p>
+<ul>
+<li><code>startangle=90</code> ilk dilimi saat 12’deki akrep gibi en üstten başlatır.</li>
+<li><code>counterclock=False</code> dilimleri insanların saati okuduğu yön olan saat yönünde döndürür.</li>
+<li><code>pie()</code>, üç grafik parçası listesine açılan bir şey döndürür: dilimler, ad etiketleri ve (<code>autopct=</code> kullandığınızda) yüzde etiketleri. Burada yalnızca üçüncüsüne ihtiyacınız var; <code>wedges</code> ve <code>labels</code> adları yalnızca diğer ikisini yakalar. <code>pcts[0]</code> ilk yüzdedir, Online’ınki; <code>set_color('white')</code> onu koyu camgöbeği üzerinde okunur yapar.</li>
+</ul>
+<p>Grafik artık tek bir şeyi açıkça söylüyor: paranın yarısından fazlası çevrimiçi satışlardan geliyor.</p>
+<div class="callout warn"><span class="t">⚠ Dikkat</span>Bir pastayı yalnızca dilimler anlamlı bir bütüne toplandığında ve dörtten fazla olmadığında kullanın. Daha çok kategori için ya da okuyucunun benzer boyuttaki dilimleri karşılaştırması gerektiğinde sıralı bir çubuk grafik kullanın.</div>
+
+<h3 id="s5-5-donut">Halka grafikler</h3>
+<p>Bir halka (donut), ortası kesilmiş bir pastadır. <code>wedgeprops=</code> her dilime ayar geçirir ve <code>width=</code> her dilimi o kalınlıkta bir halka yapar (tam yarıçap 1’dir):</p>
+<div class="cell"><textarea>total = channel_totals['revenue'].sum()
+
+fig, ax = plt.subplots()
+wedges, labels, pcts = ax.pie(
+    channel_totals['revenue'], labels=channel_totals['channel'],
+    autopct='%1.0f%%', pctdistance=0.8, startangle=90,
+    counterclock=False, wedgeprops={'width': 0.4})
+pcts[0].set_color('white')
+ax.text(0, 0, f'${total:,}\ntotal', ha='center', va='center',
+        fontsize=12)
+ax.set_title('Revenue by channel')
+plt.show()</textarea></div>
+<p class="figdesc">Halkanın çevresinde üç kanal ve ortasında “$421,500 total” yazan bir halka grafik.</p>
+<p><code>pctdistance=0.8</code> yüzdeleri halkanın ortasına taşır (varsayılan 0,6 onları halkanın iç kenarına, yarısı delikte olacak şekilde koyardı). <code>ax.text()</code> bir noktaya metin yazar; <code>(0, 0)</code> pastanın merkezidir ve <code>ha=</code> ile <code>va=</code> metni onun üzerinde yatay ve dikey ortalar. Metindeki <code>\n</code> yeni bir satır başlatır. Bölüm 7.3 <code>text()</code>’i daha ayrıntılı ele alıyor.</p>
+<p>Delik, toplam için doğal bir yer sağlar; bir halkayı pastaya tercih etmenin ana nedeni budur.</p>
+</section>
+
+<section>
+<h2 id="s5-6"><span class="num">5.6</span>Renkli Tablolar</h2>
+<p>Bazen okuyucunun kesin sayılara ihtiyacı vardır ve her grafik onları gizlerdi. O zaman doğru yanıt bir tablodur ve renk yine de bir grafiğin işini yapabilir: yüksek ve düşük değerlerin nerede olduğunu bir bakışta göstermek.</p>
+<p>pandas DataFrame’lerinin bunun için bir <code>style</code> özelliği vardır. Jupyter’in renklerle gösterdiği tablonun stillendirilmiş bir sürümünü döndürür. Verinin kendisi değişmez.</p>
+
+<h3 id="s5-6-gradient"><code>df.style.background_gradient()</code></h3>
+<p><code>background_gradient()</code> her hücreyi değerine göre gölgeler: düşük için açık, yüksek için koyu. <code>cmap=</code> renkleri seçer (açıktan koyuya bir renk aralığı olan bir renk haritası; Bölüm 7.4 daha fazlasını listeliyor):</p>
+<div class="cell"><textarea>regions.style.background_gradient(cmap='GnBu')</textarea></div>
+<p class="figdesc">Gölgeli hücrelerle bölge-çeyrek tablosu. Her sütunda West satırı en koyu, Midwest satırı en açık.</p>
+<p>Yakından bakarsanız gölgelemenin her sütun için ayrı hesaplandığını fark edeceksiniz: her çeyreğin kendi en koyu ve en açık hücresi var. Varsayılan budur ve “her çeyrekte hangi bölge öndeydi?” sorusunu yanıtlar. Her hücreyi diğer her hücreyle karşılaştırmak için <code>axis=None</code> verin:</p>
+<div class="cell"><textarea>regions.style.background_gradient(cmap='GnBu', axis=None)</textarea></div>
+<p class="figdesc">Tüm hücreler boyunca gölgelenmiş aynı tablo. West satırı ve Q4 sütunu en koyu; Midwest’in Q1 ve Q2’si en açık.</p>
+<p>Artık bütün tablo tek bir ölçek ve iki örüntü göze çarpıyor: en koyu hücreler Q4 sütunu boyunca aşağı ve West satırı boyunca uzanıyor. pandas okunur kalsın diye koyu hücrelerde metni de beyaza çeviriyor.</p>
+
+<h3 id="s5-6-bar"><code>df.style.bar()</code></h3>
+<p><code>bar()</code> her hücrenin içine küçük bir çubuk çizer: bir çubuk grafik ve bir tablo bir arada. <code>subset=</code> sütunları, <code>color=</code> çubuk rengini seçer:</p>
+<div class="cell"><textarea>(by_revenue.style
+    .bar(subset=['revenue'], color='#6fb3c2')
+    .format({'revenue': '${:,}'})
+    .hide(axis='index'))</textarea></div>
+<p class="figdesc">Gelire göre sıralanmış ürün tablosu; her gelir hücresinin içinde açık camgöbeği bir çubuk var ve gelir $54,900 vb. olarak gösteriliyor.</p>
+<p>Stil yöntemleri birbiri ardına zincirlenebilir ve her şeyin etrafındaki parantezler her birini kendi satırına koymanıza izin verir. <code>format()</code>, <code>bar_label()</code>’ın kullandığıyla aynı türden sütun adları ve biçim dizgelerinden oluşan bir sözlük alır. <code>hide(axis='index')</code>, okuyucu için hiçbir anlam taşımayan satır numaralarını kaldırır.</p>
+<p>Stillendirilmiş bir tablo, web sayfalarının dili olan HTML’dir; bu yüzden Jupyter’de görünür ama bir resim değildir. Paylaşmak için ekran görüntüsü alın ya da <code>to_html()</code> ile bir web sayfası olarak kaydedin: <code>by_revenue.style.bar(subset=['revenue']).to_html('products.html')</code> herhangi bir tarayıcıda açabileceğiniz bir dosya yazar. Bu sayfada deneyin; dosya için indirme düğmesi çıkar:</p>
+<div class="cell"><textarea># Deneme: stillendirilmiş tabloyu bir HTML dosyası olarak kaydet
+by_revenue.style.bar(subset=['revenue'], color='#6fb3c2').to_html('products.html')</textarea></div>
+</section>
+
+<section>
+<h2 id="ozet">Bölüm Özeti</h2>
+<ul class="summary">
+<li>Kategorileri karşılaştırmak için çubuk kullanın. Kategorilerin doğal bir sırası yoksa çizmeden önce <code>sort_values()</code> ile sıralayın ve değer eksenini sıfırdan başlatın.</li>
+<li><code>ax.invert_yaxis()</code> ile <code>ax.barh()</code> okunabilen adlar ve en üstte en büyük çubuk verir. Adlar uzunsa ya da çok sayıda kategori varsa onu tercih edin.</li>
+<li><code>color=</code>’da, örneğin <code>np.where()</code>’den gelen bir renk listesi, bir çubuğu gri çubuklara karşı vurgular.</li>
+<li><code>ax.bar_label(bars, fmt='${:,.0f}')</code> çubuklara biçimlendirilmiş değerler yazar; kullanmak için <code>bar()</code> ya da <code>barh()</code>’ın döndürdüğünü saklayın.</li>
+<li>Gruplu çubuklar parçaları, yığılmış çubuklar toplamları karşılaştırır. <code>df.plot(kind='bar')</code> ve <code>df.plot.barh(stacked=True)</code> ikisini de grup başına bir satırı olan bir DataFrame’den çizer.</li>
+<li><code>df.plot.area()</code> bantları zaman içinde yığar; üst kenar toplamdır ve yalnızca alttaki bandı ölçmek kolaydır.</li>
+<li><code>ax.pie()</code> anlamlı bir bütünün iki ila dört parçasına uyar. <code>startangle=90</code> ve <code>counterclock=False</code> kullanın; <code>wedgeprops={'width': 0.4}</code> bir halka yapar.</li>
+<li><code>df.style.background_gradient()</code> ve <code>df.style.bar()</code> bir tabloya renk ekler. <code>axis=None</code> vermediğiniz sürece gradyan sütun başınadır.</li>
+</ul>
+<p>Çubuklar ve pastalar kategorileri karşılaştırır. Bölüm 6 farklı bir soruya dönüyor: “her grupta ne kadar?” değil, “değerler nasıl yayılmış?” — histogramlar, kutu grafikleri ve ısı haritalarıyla.</p>
+
+<h3 id="oyun">Kendi kodunuzu deneyin</h3>
+<p>Aşağıdaki hücre bir oyun alanı. Yukarıdaki tüm değişkenler (<code>products</code>, <code>by_revenue</code>, <code>regions</code>, <code>channels</code>…) burada kullanılabilir (önceki hücreler otomatik çalıştırılır).</p>
+<div class="cell"><textarea># Örnek: adet başına gelir, en yüksek vurgulanmış ve etiketli
+products['per_unit'] = products['revenue'] / products['units']
+ranked = products.sort_values('per_unit', ascending=False)
+colors = np.where(ranked['per_unit'] == ranked['per_unit'].max(), '#0b3a47', '#c4c9ce')
+fig, ax = plt.subplots()
+bars = ax.barh(ranked['product'], ranked['per_unit'], color=colors)
+ax.bar_label(bars, fmt='${:,.0f}', padding=3)
+ax.invert_yaxis()
+ax.set_xlim(0, 420)
+ax.set_title('Monitors earn the most per unit')
+plt.show()</textarea></div>
+</section>
+
+<section>
+<h2 id="quiz">Sınav</h2>
+<p>Bir seçeneğe tıklayın; doğru cevap ve açıklama hemen görünür. Puan: <span id="score">0 / 10</span> &nbsp;<button class="btn ghost" id="quizReset">Sıfırla</button></p>
+<div id="quizBox"></div>
+</section>
+
+<div class="chnav"><a href="bolum04_cizgiler_noktalar.html">← Bölüm 4</a><div class="all">Bölümler: <a href="bolum01_ortami_kurmak.html" class="" title="Görselleştirme Ortamını Kurmak">1</a><a href="bolum02_cizmeden_once_dusunmek.html" class="" title="Çizmeden Önce Düşünmek">2</a><a href="bolum03_matplotlib_temelleri.html" class="" title="matplotlib Temelleri">3</a><a href="bolum04_cizgiler_noktalar.html" class="" title="Çizgiler ve Noktalar">4</a><a href="bolum05_cubuklar_pastalar_tablolar.html" class="cur" title="Çubuklar, Pastalar ve Tablolar">5</a><a href="bolum06_dagilimlar_izgaralar.html" class="" title="Dağılımlar ve Değer Izgaraları">6</a><a href="bolum07_ozellestirme.html" class="" title="Bir Grafiğin Her Parçasını Özelleştirmek">7</a><a href="bolum08_yerlesimler.html" class="" title="Yerleşimler: Bir Figürde Birçok Grafik">8</a><a href="bolum09_iletisim_kuran_tasarim.html" class="" title="İletişim Kuran Tasarım">9</a><a href="bolum10_yalan_soyleyen_grafikler.html" class="" title="Yalan Söyleyen Grafikler">10</a><a href="bolum11_seaborn_temelleri.html" class="" title="seaborn Temelleri">11</a><a href="bolum12_iliskiler_regresyon.html" class="" title="İlişkiler ve Regresyon">12</a><a href="bolum13_kategoriler.html" class="" title="Kategoriler">13</a><a href="bolum14_dagilimlar.html" class="" title="Dağılımlar">14</a><a href="bolum15_izgaralar_matrisler.html" class="" title="Izgaralar ve Matrisler">15</a><a href="bolum16_plotly_express.html" class="" title="plotly express ile Etkileşimli Grafikler">16</a><a href="bolum17_haritalar_is_grafikleri.html" class="" title="Haritalar ve İş Grafikleri">17</a></div><a href="bolum06_dagilimlar_izgaralar.html">Bölüm 6 →</a></div>
+</main>
+</div>
+<footer>Bölüm 5 · Çubuklar, Pastalar ve Tablolar — Pyodide ile etkileşimli Türkçe sürüm</footer>
+
+<script>
+
+const DATA = {"channel_monthly.csv": "month,Online,In store,Phone\nJan,15100,8900,2600\nFeb,14600,8100,2500\nMar,17800,9300,2700\nApr,18900,9600,2400\nMay,20700,10100,2300\nJun,20400,9700,2100\nJul,22300,9800,2200\nAug,20100,9400,2000\nSep,23500,10200,2200\nOct,25800,10500,2100\nNov,33900,12800,2300\nDec,37900,14300,2400\n", "channel_sales.csv": "channel,revenue\nOnline,271000\nIn store,122700\nPhone,27800\n", "product_sales.csv": "product,units,revenue\nWebcam,212,54900\nKeyboard,388,50040\nMonitor,96,33500\nHeadphones,251,37650\nUSB Cable,1240,24680\nMouse,530,15370\nLaptop Stand,174,8530\n", "region_quarter.csv": "region,Q1,Q2,Q3,Q4\nNortheast,41,44,47,63\nSouth,36,39,40,52\nMidwest,28,27,30,38\nWest,52,57,61,79\n", "book.mplstyle": "# Chart style for \"Master Data Visualization\".\n# Load it with plt.style.use('book.mplstyle') so your charts match the book.\n# Chapter 7 explains every line; delete one and see what changes.\n\n# Four colors that stay different when printed in black and white:\n# dark teal, amber, light teal, sand. Lines also change style\n# (solid, dashed, dotted, dash-dot) so they can be told apart in gray.\naxes.prop_cycle: cycler('color', ['0b3a47', 'b26a00', '6fb3c2', 'f0c987']) + cycler('linestyle', ['-', '--', ':', '-.'])\n\n# Size in inches (fits a printed book page) and text sizes in points\nfigure.figsize: 5.5, 3.4\nfont.size: 9.5\naxes.titlesize: 11\naxes.titlelocation: left\naxes.labelsize: 9.5\nlegend.fontsize: 9\n\n# Thicker lines; if you turn the grid on (ax.grid()), it is light and sits behind the data\nlines.linewidth: 2\naxes.axisbelow: True\ngrid.color: d9dde1\n"};
+</script>
+<script>
+// ---------------- Quiz -----------------
+const QUIZ = [
+ {q:"“Wireless Noise-Canceling Headphones” gibi adları olan 15 ürünün geliri elinizde. Hangi grafiği okumak en kolaydır?",
+  o:["Dosya sırasında dikey bir çubuk grafik","15 dilimli bir pasta grafik","Gelire göre sıralanmış yatay bir çubuk grafik","15 ürünün hepsinin tek çubukta olduğu yığılmış bir çubuk grafik"],a:2,
+  e:"Uzun adlar ve çok kategori → sıralı yatay çubuklar (5.1)."},
+ {q:"Sıralı veriyi <code>ax.barh()</code> ile çiziyorsunuz ve en büyük çubuk en altta kalıyor. Hangi satır onu en üste koyar?",
+  o:["<code>ax.set_ylim(0)</code>","<code>ax.invert_yaxis()</code>","<code>ax.invert_xaxis()</code>","<code>ax.barh(..., reverse=True)</code>"],a:1,
+  e:"y ekseni sıfırdan yukarı sayar; çevirmek ilk kategoriyi en üste koyar."},
+ {q:"<code>channels</code>’ın ay başına bir satırı ve satış kanalı başına bir sütunu var. <code>channels.plot.area()</code> ne çizer?",
+  o:["Kanal başına bir tane olmak üzere, toplam üstte olan yığılmış bantlar","Her biri sıfırdan çizilip altı doldurulmuş, kanal başına bir çizgi","Yan yana, her kanal için ayrı bir alan grafiği","Yalnızca tüm kanalların toplamını gösteren tek bir dolu bant"],a:0,
+  e:"Üst kenar toplamdır (5.4)."},
+ {q:"<code>bars = ax.bar(['A', 'B'], [1500, 320])</code> ve <code>ax.bar_label(bars, fmt='{:,.0f} units')</code> ne üretir?",
+  o:["<code>1,500 units</code> ve <code>320 units</code> yazan etiketler","<code>1500.0 units</code> ve <code>320.0 units</code> yazan etiketler","<code>A units</code> ve <code>B units</code> yazan etiketler","<code>fmt=</code> yalnızca <code>'%'</code> dizgesi kabul ettiği için bir hata"],a:0,
+  e:"<code>,</code> binlik ayraç, <code>.0f</code> ondalıksız."},
+ {q:"Her bölgenin Q3 gelirini Q2 geliriyle karşılaştırmak istiyorsunuz. Hangi grafik bunu en kolay yapar?",
+  o:["Yığılmış bir çubuk grafik","Gruplu bir çubuk grafik","Bölge başına bir pasta","Yığılmış bir alan grafiği"],a:1,
+  e:"Gruplu çubuklar parçaları, yığılmışlar toplamları karşılaştırır."},
+ {q:"Döngüyle çizilen yığılmış bir çubuk grafikte <code>bottom=</code> ne yapar?",
+  o:["En alttaki parçanın rengini ayarlar","Göstergeyi grafiğin altına koyar","Her yeni çubuğun nereden başlayacağını ayarlar","Çubukları küçükten büyüğe sıralar"],a:2,
+  e:"Her çeyrek bir öncekinin bittiği yerde başlar (5.3)."},
+ {q:"<code>regions</code>’ın bölge başına bir satırı ve çeyrek başına bir sütunu var. <code>regions.plot(kind='bar')</code> ne çizer?",
+  o:["İçinde bölgelerin yığıldığı, çeyrek başına bir çubuk","Yıllık toplamı gösteren bölge başına bir çubuk","Çeyrek başına bir tane olmak üzere dört ayrı grafik","Çeyrek başına bir çubukla bölge başına bir grup"],a:3,
+  e:"pandas satır başına bir grup, sütun başına bir çubuk çizer."},
+ {q:"Monitor çubuğunun koyu camgöbeği, diğer her çubuğun açık gri olmasını istiyorsunuz. <code>ax.barh()</code>’a ne verirsiniz?",
+  o:["<code>color='#0b3a47'</code> ve geri kalanı için <code>edgecolor='#c4c9ce'</code>","<code>highlight='Monitor'</code>","Grup başına bir renk olarak <code>color=['#0b3a47', '#c4c9ce']</code>","Çubuk başına bir renk içeren bir liste olarak <code>color=colors</code>"],a:3,
+  e:"Ör. <code>np.where()</code> ile kurulmuş, çubuk sırasında bir renk listesi."},
+ {q:"Hangi <code>ax.pie()</code> ayarı bir pastayı halkaya çevirir?",
+  o:["<code>startangle=90</code>","<code>pctdistance=0.8</code>","<code>wedgeprops={'width': 0.4}</code>","<code>counterclock=False</code>"],a:2,
+  e:"Her dilim 0,4 kalınlığında bir halka olur."},
+ {q:"<code>df.style.background_gradient()</code> çağırıyorsunuz ve tablodaki en büyük sayı en koyu hücre değil. Neden?",
+  o:["Gradyan yalnızca tablonun ilk sütununu gölgeler","Varsayılan olarak her sütun kendi ölçeğinde gölgelenir","Önce <code>cmap='Greys'</code> ile renk haritası ayarlanmalıdır","DataFrame stillendirilmeden önce sıralanmalıdır"],a:1,
+  e:"Tüm tabloyu tek ölçekte gölgelemek için <code>axis=None</code> verin (5.6)."}
+];
+
+function buildQuiz(){
+  const box=document.getElementById('quizBox'); box.innerHTML='';
+  const L='ABCD';
+  QUIZ.forEach((it,i)=>{
+    const d=document.createElement('div'); d.className='q'; d.id='q'+(i+1);
+    d.innerHTML=`<div class="qt">${i+1}. ${it.q}</div>`+
+      it.o.map((o,j)=>`<label><input type="radio" name="q${i}" value="${j}"><strong>${L[j]}.</strong> ${o}</label>`).join('')+
+      `<div class="fb"></div>`;
+    d.querySelectorAll('input').forEach(inp=>inp.addEventListener('change',()=>{
+      if(d.dataset.done) return; d.dataset.done=1;
+      const j=+inp.value, labs=d.querySelectorAll('label');
+      labs[it.a].classList.add('ok'); if(j!==it.a) labs[j].classList.add('no');
+      d.querySelectorAll('input').forEach(x=>x.disabled=true);
+      const fb=d.querySelector('.fb'); fb.classList.add('show');
+      fb.innerHTML=(j===it.a?'✅ <strong>Doğru.</strong> ':'❌ <strong>Doğru cevap '+L[it.a]+'.</strong> ')+it.e;
+      if(j===it.a) d.dataset.ok=1; updateScore();
+    }));
+    box.appendChild(d);
+  });
+  updateScore();
+}
+function updateScore(){
+  const ok=document.querySelectorAll('.q[data-ok]').length, done=document.querySelectorAll('.q[data-done]').length;
+  document.getElementById('score').textContent=`${ok} / ${QUIZ.length}`+(done?` (cevaplanan: ${done})`:'');
+}
+document.getElementById('quizReset').onclick=buildQuiz;
+buildQuiz();
+
+// ---------------- Data list -----------------
+function csvToTable(txt,max=200){
+  const rows=txt.trim().split(/\r?\n/).map(r=>r.split(','));
+  const h=rows.shift();
+  return '<table><thead><tr>'+h.map(x=>`<th>${x}</th>`).join('')+'</tr></thead><tbody>'+
+    rows.slice(0,max).map(r=>'<tr>'+r.map(x=>`<td>${x}</td>`).join('')+'</tr>').join('')+'</tbody></table>';
+}
+(function(){
+  const host=document.getElementById('dataList');
+  Object.entries(DATA).forEach(([name,txt])=>{
+    const n=txt.trim().split(/\r?\n/).length-1;
+    const url=URL.createObjectURL(new Blob([txt],{type:'text/csv'}));
+    const d=document.createElement('details'); d.className='data';
+    const isCsv=name.endsWith('.csv');
+    d.innerHTML=`<summary>${name} <span style="font-weight:400;color:#5f6b72">— ${isCsv?n+' satır':'stil dosyası'}</span> · <a href="${url}" download="${name}">indir</a></summary><div class="tbl">${isCsv?csvToTable(txt):'<pre style="font-size:12px;white-space:pre-wrap">'+txt.replace(/</g,'&lt;')+'</pre>'}</div>`;
+    host.appendChild(d);
+  });
+})();
+
+// ---------------- Code cells -----------------
+const cells=[];
+document.querySelectorAll('.cell').forEach((el,i)=>{
+  const ta=el.querySelector('textarea'); const src=ta.value;
+  const bar=document.createElement('div'); bar.className='bar';
+  bar.innerHTML=`<span class="lbl">In [<span class="cnt"> </span>]:</span><span class="sp"></span>
+    <button class="btn ghost reset" title="Orijinal koda dön">↺ Orijinal</button>
+    <button class="btn run" disabled>▶ Çalıştır</button>`;
+  el.insertBefore(bar,ta);
+  const cm=CodeMirror.fromTextArea(ta,{mode:'python',lineNumbers:false,indentUnit:4,viewportMargin:Infinity,
+     extraKeys:{'Shift-Enter':()=>runCell(i),'Ctrl-Enter':()=>runCell(i),Tab:c=>c.replaceSelection('    ')}});
+  const out=document.createElement('div'); out.className='out'; el.appendChild(out);
+  const c={el,cm,out,src,ran:false,idx:i,btn:bar.querySelector('.run'),cnt:bar.querySelector('.cnt')};
+  bar.querySelector('.run').onclick=()=>runCell(i);
+  bar.querySelector('.reset').onclick=()=>cm.setValue(src);
+  el.id='hucre-'+(i+1);
+  cells.push(c);
+});
+
+// ---------------- Pyodide -----------------
+let py=null, execCount=0, busy=false;
+const st=document.getElementById('status'), stT=document.getElementById('statusText');
+window.__currentOut=null;
+window.renderPlot=function(json){
+  const spec=JSON.parse(json); const div=document.createElement('div'); div.className='plot';
+  const inner=document.createElement('div'); div.appendChild(inner);
+  window.__currentOut.appendChild(div);
+  Plotly.newPlot(inner,spec.data,spec.layout||{},{responsive:true,displaylogo:false,locale:'tr'});
+};
+const PY_SETUP=`
+import os
+os.environ['MPLBACKEND'] = 'Agg'
+import matplotlib
+matplotlib.use('Agg')
+import sys, io, ast, contextlib, base64
+import pandas as pd
+import matplotlib.pyplot as plt
+_CAPTURED = []
+def _grab_figs():
+    for n in plt.get_fignums():
+        f = plt.figure(n); b = io.BytesIO()
+        f.savefig(b, format='png', dpi=120, bbox_inches='tight')
+        _CAPTURED.append(base64.b64encode(b.getvalue()).decode())
+    plt.close('all')
+plt.show = lambda *a, **k: _grab_figs()
+# matplotlib 3.8 (Pyodide) için kitap kodunun 3.10+ parametrelerine uyum katmanı
+from matplotlib.axes import Axes as _Axes
+_orig_boxplot = _Axes.boxplot
+def _boxplot(self, *a, tick_labels=None, orientation=None, **k):
+    if tick_labels is not None: k['labels'] = tick_labels
+    if orientation is not None: k['vert'] = (orientation == 'vertical')
+    return _orig_boxplot(self, *a, **k)
+_Axes.boxplot = _boxplot
+import warnings
+warnings.simplefilter('ignore', FutureWarning)
+pd.set_option('display.width', 120)
+SKIP = ('.csv', '.mplstyle')
+def _written(src):
+    import re
+    return re.findall(r"savefig\\(\\s*['\\"]([^'\\"]+)['\\"]", src)
+def __run_cell(src, ns):
+    buf = io.StringIO()
+    before = set(f for f in os.listdir('.') if not f.endswith(SKIP))
+    _CAPTURED.clear()
+    res = {'stdout':'', 'html':None, 'text':None, 'files':[], 'imgs':[]}
+    val = None
+    try:
+        with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(buf):
+            tree = ast.parse(src)
+            last = None
+            if tree.body and isinstance(tree.body[-1], ast.Expr):
+                last = ast.Expression(tree.body.pop().value)
+            exec(compile(tree, '<hücre>', 'exec'), ns)
+            val = eval(compile(last, '<hücre>', 'eval'), ns) if last is not None else None
+    finally:
+        _grab_figs()
+        res['imgs'] = list(_CAPTURED)
+        _CAPTURED.clear()
+    res['stdout'] = buf.getvalue()
+    if val is not None:
+        if isinstance(val, (pd.DataFrame, pd.Series)):
+            df = val.to_frame() if isinstance(val, pd.Series) else val
+            res['html'] = df.to_html(max_rows=30, border=0)
+        elif hasattr(val, '_repr_html_') and type(val).__name__ == 'Styler':
+            res['html'] = val._repr_html_()
+        else:
+            res['text'] = repr(val)
+    after = set(f for f in os.listdir('.') if not f.endswith(SKIP))
+    res['files'] = sorted((after - before) | (set(_written(src)) & after))
+    return res
+def __new_ns():
+    plt.close('all'); matplotlib.rcdefaults()
+    return {'__name__':'__main__'}
+`;
+async function initPy(){
+  try{
+    stT.textContent='Pyodide yükleniyor…';
+    py=await loadPyodide();
+    stT.textContent='pandas, matplotlib yükleniyor…';
+    await py.loadPackage(['pandas','matplotlib','scipy','jinja2','micropip']);
+    stT.textContent='seaborn yükleniyor…';
+    const mp=py.pyimport('micropip');
+    await mp.install(['seaborn'].concat(window.EXTRA_PKGS||[]));
+    for(const [n,t] of Object.entries(DATA)) py.FS.writeFile(n,t);
+    await py.runPythonAsync(PY_SETUP);
+    window.__ns=py.runPython('__new_ns()');
+    st.className='ready'; stT.textContent='Python hazır';
+    cells.forEach(c=>c.btn.disabled=false);
+  }catch(e){ st.className='err'; stT.textContent='Yükleme hatası'; console.error(e);
+    alert('Pyodide yüklenemedi. İnternet bağlantınızı kontrol edin.\n'+e); }
+}
+async function execOne(c){
+  c.out.innerHTML=''; c.out.classList.add('show'); window.__currentOut=c.out;
+  c.el.style.opacity=1;
+  try{
+    const fn=py.globals.get('__run_cell');
+    const r=fn(c.cm.getValue(), window.__ns).toJs({dict_converter:Object.fromEntries});
+    fn.destroy();
+    if(r.stdout){const p=document.createElement('pre');p.className='txt';p.textContent=r.stdout;c.out.prepend(p);}
+    if(r.html){const d=document.createElement('div');d.style.overflowX='auto';d.innerHTML=r.html;c.out.appendChild(d);}
+    if(r.text){const p=document.createElement('pre');p.className='txt';p.textContent=r.text;c.out.appendChild(p);}
+    for(const im of (r.imgs||[])){const d=document.createElement('div');d.className='plot';const g=document.createElement('img');g.src='data:image/png;base64,'+im;g.alt='Grafik';d.appendChild(g);c.out.appendChild(d);}
+    for(const f of (r.files||[])){
+      const bytes=py.FS.readFile(f); const url=URL.createObjectURL(new Blob([bytes],{type:f.endsWith('.html')?'text/html':'application/octet-stream'}));
+      const d=document.createElement('div');d.className='dl';
+      d.innerHTML=`<a href="${url}" download="${f}">⬇ ${f} dosyasını indir (${(bytes.length/1048576).toFixed(1)} MB)</a> &nbsp;<a href="${url}" target="_blank" style="background:#0b3a47">Yeni sekmede aç</a>`;
+      c.out.appendChild(d);
+    }
+    if(!c.out.children.length){const p=document.createElement('pre');p.className='txt';p.style.color='#8a9296';p.textContent='✓ Çalıştı (çıktı yok)';c.out.appendChild(p);}
+    c.ran=true; c.cnt.textContent=++execCount; return true;
+  }catch(e){
+    let msg=String(e.message||e); const k=msg.lastIndexOf('File "<hücre>"');
+    if(k>0) msg=msg.slice(k);
+    const p=document.createElement('pre');p.className='txt err';p.textContent=msg;c.out.appendChild(p);
+    c.cnt.textContent='!'; return false;
+  }
+}
+async function runCell(i){
+  if(!py||busy) return; busy=true;
+  const target=cells[i];
+  target.btn.disabled=true; target.btn.textContent='⏳';
+  await new Promise(r=>setTimeout(r,20));
+  for(let k=0;k<i;k++){ if(!cells[k].ran){ cells[k].btn.textContent='⏳'; await new Promise(r=>setTimeout(r,10)); await execOne(cells[k]); cells[k].btn.textContent='▶ Çalıştır'; } }
+  await execOne(target);
+  target.btn.disabled=false; target.btn.textContent='▶ Çalıştır'; busy=false;
+}
+document.getElementById('runAll').onclick=async()=>{ if(!py)return; for(let i=0;i<cells.length;i++){ cells[i].ran=false; } await runCell(cells.length-1); };
+document.getElementById('resetNs').onclick=()=>{ if(!py)return; window.__ns=py.runPython('__new_ns()'); execCount=0;
+  cells.forEach(c=>{c.ran=false;c.cnt.textContent=' ';c.out.innerHTML='';c.out.classList.remove('show');}); };
+initPy();
+
+// ---------------- TOC -----------------
+const toc=document.getElementById('tocLinks');
+const heads=[...document.querySelectorAll('main h2[id], main h3[id]')];
+heads.forEach(h=>{const a=document.createElement('a');a.href='#'+h.id;a.innerHTML=h.innerHTML.replace(/<span class="num">(.*?)<\/span>/,'$1 ');if(h.tagName==='H3')a.className='sub';toc.appendChild(a);});
+const tocLinks=[...toc.querySelectorAll('a')];
+const io2=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){tocLinks.forEach(a=>a.classList.toggle('active',a.getAttribute('href')==='#'+e.target.id));}})},{rootMargin:'-80px 0px -70% 0px'});
+heads.forEach(h=>io2.observe(h));
+
+// ---------------- Search -----------------
+const norm=s=>s.toLocaleLowerCase('tr').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/ı/g,'i');
+const index=[];
+(function buildIndex(){
+  let sec='Giriş';
+  document.querySelectorAll('main h1, main h2, main h3, main p, main li, main .callout, main .cell, main .q, main pre.data').forEach(el=>{
+    if(el.closest('.callout')&&el.tagName!=='DIV') return;
+    if(el.closest('#datasets')) return;
+    if(el.matches('.q')){ index.push({el,sec:'Sınav',kind:'soru',text:el.querySelector('.qt').textContent+' '+[...el.querySelectorAll('label')].map(l=>l.textContent).join(' ')}); return; }
+    if(el.closest('.q')) return;
+    if(el.matches('h2,h3')){ sec=el.textContent; }
+    let kind='metin', text=el.textContent;
+    if(el.matches('.cell')){ kind='kod'; const c=cells.find(c=>c.el===el); text=c?c.cm.getValue():text; }
+    else if(el.matches('h1,h2,h3')) kind='başlık';
+    else if(el.matches('.callout')) kind='kutu';
+    else if(el.matches('.figdesc')) kind='grafik';
+    else if(el.matches('pre.data')) kind='veri';
+    index.push({el,sec,kind,text:text.replace(/\s+/g,' ').trim()});
+  });
+  index.forEach(x=>x.n=norm(x.text));
+})();
+const si=document.getElementById('search'), res=document.getElementById('results');
+let hits=[], act=-1;
+function esc(s){return s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+function snippet(text,terms){
+  const n=norm(text); let pos=-1;
+  for(const t of terms){const p=n.indexOf(t);if(p>=0){pos=p;break;}}
+  let s=Math.max(0,pos-60), e=Math.min(text.length,(pos<0?0:pos)+140);
+  let out=(s>0?'…':'')+text.slice(s,e)+(e<text.length?'…':'');
+  // highlight (norm keeps length for Turkish chars after NFD strip mostly; do case-insensitive regex)
+  let h=esc(out);
+  terms.forEach(t=>{ if(!t) return;
+    const re=new RegExp(t.split('').map(ch=>{const m={'i':'[iıİI]','s':'[sşŞS]','c':'[cçÇC]','g':'[gğĞG]','o':'[oöÖO]','u':'[uüÜU]'}; return m[ch]||ch.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}).join(''),'gi');
+    h=h.replace(re,m=>`<mark>${m}</mark>`); });
+  return h;
+}
+function doSearch(){
+  const q=si.value.trim();
+  if(q.length<2){res.classList.remove('open');res.innerHTML='';return;}
+  const terms=norm(q).split(/\s+/).filter(Boolean);
+  hits=index.map(x=>{let sc=0;for(const t of terms){const c=x.n.split(t).length-1;if(!c)return null;sc+=c;} if(x.kind==='başlık')sc+=5; if(x.kind==='kod')sc+=1; return {x,sc};}).filter(Boolean).sort((a,b)=>b.sc-a.sc).slice(0,40);
+  act=-1;
+  res.innerHTML=hits.length?`<div class="count">${hits.length} sonuç · <kbd>↑</kbd><kbd>↓</kbd> ile gez, <kbd>Enter</kbd> ile git</div>`+hits.map((h,i)=>`<div class="r" data-i="${i}"><div class="sec">${esc(h.x.sec)}<span class="kind">${h.x.kind}</span></div><div class="snip">${snippet(h.x.text,terms)}</div></div>`).join('')
+    :'<div class="empty">Sonuç bulunamadı.</div>';
+  res.classList.add('open');
+  res.querySelectorAll('.r').forEach(r=>r.onclick=()=>go(+r.dataset.i));
+}
+function go(i){
+  const el=hits[i].x.el; res.classList.remove('open');
+  const det=el.closest('details'); if(det) det.open=true;
+  el.scrollIntoView({behavior:'smooth',block:'center'});
+  el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
+}
+si.addEventListener('input',doSearch);
+si.addEventListener('focus',()=>{if(si.value.trim().length>=2)doSearch();});
+si.addEventListener('keydown',e=>{
+  const rs=[...res.querySelectorAll('.r')];
+  if(e.key==='ArrowDown'){act=Math.min(rs.length-1,act+1);}
+  else if(e.key==='ArrowUp'){act=Math.max(0,act-1);}
+  else if(e.key==='Enter'){ if(hits.length) go(act<0?0:act); return; }
+  else if(e.key==='Escape'){res.classList.remove('open');si.blur();return;}
+  else return;
+  e.preventDefault(); rs.forEach((r,k)=>r.classList.toggle('act',k===act)); if(rs[act]) rs[act].scrollIntoView({block:'nearest'});
+});
+document.addEventListener('keydown',e=>{ if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();si.focus();si.select();}
+  else if(e.key==='/'&&document.activeElement.tagName!=='INPUT'&&!document.activeElement.closest('.CodeMirror')){e.preventDefault();si.focus();}});
+document.addEventListener('click',e=>{if(!e.target.closest('.search-wrap'))res.classList.remove('open');});
+</script>
+</body>
+</html>

@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ek C: Komut Başvurusu</title>
+<style>
+:root{
+  --teal:#0b3a47; --amber:#b26a00; --lteal:#6fb3c2; --sand:#f0c987;
+  --bg:#f7f6f2; --paper:#ffffff; --ink:#1f2a30; --muted:#5f6b72; --line:#e2e0d8;
+  --code-bg:#fbfaf6;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:80px}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.65 "Segoe UI",system-ui,-apple-system,Roboto,sans-serif}
+header.top{position:sticky;top:0;z-index:50;background:var(--teal);color:#fff;display:flex;align-items:center;gap:16px;padding:10px 20px;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+header.top .brand{font-weight:600;white-space:nowrap}
+header.top .brand small{opacity:.7;font-weight:400;margin-left:6px}
+.search-wrap{position:relative;flex:1;max-width:560px;margin-left:auto}
+#search{width:100%;padding:9px 14px 9px 36px;border-radius:8px;border:none;font-size:15px;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235f6b72' stroke-width='2.5'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E") no-repeat 11px center}
+#search:focus{outline:3px solid var(--sand)}
+#results{position:absolute;top:44px;left:0;right:0;background:#fff;color:var(--ink);border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,.2);max-height:70vh;overflow:auto;display:none}
+#results.open{display:block}
+#results .r{padding:10px 14px;border-bottom:1px solid var(--line);cursor:pointer}
+#results .r:hover,#results .r.act{background:#eef5f6}
+#results .r .sec{font-size:12px;color:var(--amber);font-weight:600;text-transform:uppercase;letter-spacing:.03em}
+#results .r .kind{font-size:11px;background:var(--line);border-radius:4px;padding:0 5px;margin-left:6px;color:var(--muted);text-transform:none;letter-spacing:0}
+#results .r .snip{font-size:14px}
+#results .empty,#results .count{padding:10px 14px;color:var(--muted);font-size:13px}
+mark{background:#ffe08a;color:inherit;border-radius:2px;padding:0 1px}
+#status{font-size:13px;white-space:nowrap;display:flex;align-items:center;gap:8px}
+#status .dot{width:10px;height:10px;border-radius:50%;background:#f0c987;box-shadow:0 0 0 0 rgba(240,201,135,.7);animation:pulse 1.4s infinite}
+#status.ready .dot{background:#7bd88f;animation:none}
+#status.err .dot{background:#ff6b6b;animation:none}
+@keyframes pulse{70%{box-shadow:0 0 0 8px rgba(240,201,135,0)}100%{box-shadow:0 0 0 0 rgba(240,201,135,0)}}
+.layout{display:grid;grid-template-columns:260px minmax(0,1fr);gap:28px;max-width:1240px;margin:0 auto;padding:24px 20px 80px}
+nav.toc{position:sticky;top:76px;align-self:start;max-height:calc(100vh - 96px);overflow:auto;font-size:14px}
+nav.toc h4{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+nav.toc a{display:block;color:var(--ink);text-decoration:none;padding:4px 10px;border-left:3px solid transparent;border-radius:0 4px 4px 0}
+nav.toc a.sub{padding-left:24px;font-size:13px;color:var(--muted)}
+nav.toc a:hover{background:#ece9df}
+nav.toc a.active{border-left-color:var(--amber);background:#fff;font-weight:600;color:var(--teal)}
+nav.toc .tools{margin-top:16px;display:flex;flex-direction:column;gap:6px}
+main{background:var(--paper);border-radius:12px;padding:36px 48px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+h1{font-size:2rem;color:var(--teal);margin:0 0 4px;line-height:1.25}
+.subtitle{color:var(--muted);margin:0 0 24px}
+h2{font-size:1.45rem;color:var(--teal);border-bottom:2px solid var(--sand);padding-bottom:6px;margin:48px 0 16px}
+h2 .num{color:var(--amber);margin-right:8px}
+h3{font-size:1.12rem;margin:30px 0 10px;color:var(--ink)}
+code{font-family:"JetBrains Mono",Consolas,Menlo,monospace;font-size:.88em;background:#f1efe8;padding:1px 5px;border-radius:4px;color:#7a3e00}
+.lead{font-size:1.08rem;border-left:4px solid var(--amber);padding:4px 0 4px 16px;color:#33424a}
+.goals{background:#eef5f6;border-radius:10px;padding:16px 22px}
+.goals ul{margin:6px 0 0;padding-left:20px}
+.callout{border-radius:10px;padding:12px 18px;margin:18px 0;border-left:5px solid}
+.callout .t{font-weight:700;display:block;margin-bottom:2px}
+.callout.warn{background:#fff4e5;border-color:var(--amber)}
+.callout.warn .t{color:var(--amber)}
+.callout.tip{background:#eaf6f1;border-color:#2f8f6b}
+.callout.tip .t{color:#2f8f6b}
+.callout.note{background:#eef2f7;border-color:#4b6a8a}
+.callout.note .t{color:#4b6a8a}
+pre.data{background:var(--code-bg);border:1px dashed var(--line);border-radius:8px;padding:10px 14px;font-size:13px;overflow:auto}
+/* code cells */
+.cell{border:1px solid var(--line);border-radius:10px;margin:18px 0;overflow:hidden;background:var(--code-bg)}
+.cell .bar{display:flex;align-items:center;gap:8px;padding:6px 10px;background:#f1efe8;border-bottom:1px solid var(--line);font-size:12px;color:var(--muted)}
+.cell .bar .lbl{font-family:Consolas,monospace}
+.cell .bar .sp{flex:1}
+button{font:inherit;cursor:pointer;border-radius:6px;border:1px solid transparent}
+.btn{background:var(--teal);color:#fff;padding:4px 12px;font-size:13px}
+.btn:hover{filter:brightness(1.2)}
+.btn:disabled{opacity:.5;cursor:wait}
+.btn.ghost{background:transparent;color:var(--teal);border-color:#c9d3d6}
+.btn.ghost:hover{background:#fff}
+.btn.amber{background:var(--amber)}
+.CodeMirror{height:auto;font-size:14px;background:var(--code-bg);font-family:"JetBrains Mono",Consolas,Menlo,monospace}
+.CodeMirror-scroll{min-height:30px}
+.cm-s-default .cm-keyword{color:#8a3ffc}.cm-s-default .cm-string{color:#0b7a4b}.cm-s-default .cm-number{color:#b26a00}.cm-s-default .cm-comment{color:#8a9296;font-style:italic}.cm-s-default .cm-builtin{color:#0b5f7a}
+.out{border-top:1px solid var(--line);background:#fff;padding:0;display:none}
+.out.show{display:block}
+.out .txt{margin:0;padding:10px 14px;font:13px/1.5 Consolas,Menlo,monospace;white-space:pre-wrap;color:#333}
+.out .txt.err{color:#b00020;background:#fff5f5}
+.out .plot{padding:6px;overflow-x:auto}
+.out table{border-collapse:collapse;margin:10px 14px;font-size:13px}
+.out th,.out td{border:1px solid var(--line);padding:4px 10px;text-align:right}
+.out th{background:#f1efe8}
+.out .dl{margin:10px 14px}
+.out .dl a{display:inline-block;background:var(--amber);color:#fff;text-decoration:none;padding:5px 12px;border-radius:6px;font-size:13px}
+.figdesc{font-size:14px;color:var(--muted);background:#f6f5f0;border-radius:8px;padding:8px 14px;margin:-8px 0 14px;border:1px solid var(--line)}
+.figdesc::before{content:"🖼 Beklenen grafik: ";font-weight:600;color:var(--teal)}
+.flash{animation:flash 2.2s ease}
+@keyframes flash{0%,40%{background:#fff1bf;box-shadow:0 0 0 6px #fff1bf}100%{background:transparent;box-shadow:none}}
+details.data{border:1px solid var(--line);border-radius:8px;margin:8px 0;background:#fff}
+details.data summary{cursor:pointer;padding:8px 14px;font-weight:600;color:var(--teal)}
+details.data .tbl{max-height:260px;overflow:auto;padding:0 14px 10px}
+details.data table{border-collapse:collapse;font-size:13px}
+details.data td,details.data th{border:1px solid var(--line);padding:3px 8px}
+details.data th{background:#f1efe8;position:sticky;top:0}
+/* quiz */
+.q{border:1px solid var(--line);border-radius:10px;padding:14px 18px;margin:14px 0}
+.q .qt{font-weight:600;margin-bottom:8px}
+.q label{display:block;padding:6px 10px;border-radius:6px;cursor:pointer;border:1px solid transparent}
+.q label:hover{background:#f4f2ea}
+.q label.ok{background:#e3f4ea;border-color:#2f8f6b}
+.q label.no{background:#fde8e8;border-color:#d05353}
+.q input{margin-right:8px}
+.q .fb{font-size:14px;margin-top:6px;display:none}
+.q .fb.show{display:block}
+#score{font-weight:700;color:var(--teal)}
+.out img{max-width:100%;height:auto;display:block;margin:6px auto}
+table.choose{border-collapse:collapse;width:100%;font-size:14px;margin:10px 0}table.choose th,table.choose td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}table.choose th{background:#eef5f6;color:var(--teal)}
+.chnav{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:14px;margin:0 0 18px}.chnav a{color:var(--teal);text-decoration:none;border:1px solid var(--line);border-radius:6px;padding:4px 10px}.chnav a:hover{background:#eef5f6}.chnav .all{display:flex;gap:4px;flex-wrap:wrap}.chnav .all a.cur{background:var(--teal);color:#fff}.chnav .all .sep{align-self:center;color:var(--muted);padding:0 3px}.chnav .all a.home{font-weight:600}
+.summary li{margin-bottom:6px}
+footer{text-align:center;color:var(--muted);font-size:13px;padding:30px}
+kbd{border:1px solid #bbb;border-bottom-width:2px;border-radius:4px;padding:0 5px;font-size:12px;background:#fff;color:#333}
+@media (max-width:900px){.layout{grid-template-columns:1fr}nav.toc{display:none}main{padding:22px 18px}header.top .brand small{display:none}#status span{display:none}}
+</style>
+<style>
+.ans{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:12px 16px;margin:10px 0}
+.ans .qq{font-weight:600}
+.ans .ok{color:#1b6b3a;margin:6px 0 2px}
+.ans .ok b{display:inline-block;background:#1b6b3a;color:#fff;border-radius:5px;padding:0 7px;margin-right:6px}
+.ans .ex{color:var(--ink)}
+.ans .back{font-size:13px}
+main a{color:var(--teal)}main a:hover{color:var(--amber)}table.choose code{white-space:nowrap}
+.cheat{background:linear-gradient(135deg,#0b3a47,#155566);color:#fff;border-radius:12px;padding:18px 22px;margin:22px 0}
+.cheat a{color:var(--sand)}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">Ek C <small>Komut Başvurusu</small></div>
+  <div class="search-wrap">
+    <input id="search" type="search" placeholder="Bu sayfada ara… (ör. savefig, hue, px.bar)   Ctrl+K" autocomplete="off">
+    <div id="results"></div>
+  </div>
+</header>
+<div class="layout">
+<nav class="toc" id="toc">
+  <h4>İçindekiler</h4>
+  <div id="tocLinks"></div>
+</nav>
+<main id="content">
+<div class="chnav"><a href="ek_b_grafik_secici.html">← Ek B</a><div class="all"><a href="index.html" class="home" title="Ana sayfa">⌂ Ana sayfa</a><span class="sep">|</span>Bölümler: <a href="bolum01_ortami_kurmak.html" class="" title="Bölüm 1: Görselleştirme Ortamını Kurmak">1</a><a href="bolum02_cizmeden_once_dusunmek.html" class="" title="Bölüm 2: Çizmeden Önce Düşünmek">2</a><a href="bolum03_matplotlib_temelleri.html" class="" title="Bölüm 3: matplotlib Temelleri">3</a><a href="bolum04_cizgiler_noktalar.html" class="" title="Bölüm 4: Çizgiler ve Noktalar">4</a><a href="bolum05_cubuklar_pastalar_tablolar.html" class="" title="Bölüm 5: Çubuklar, Pastalar ve Tablolar">5</a><a href="bolum06_dagilimlar_izgaralar.html" class="" title="Bölüm 6: Dağılımlar ve Değer Izgaraları">6</a><a href="bolum07_ozellestirme.html" class="" title="Bölüm 7: Bir Grafiğin Her Parçasını Özelleştirmek">7</a><a href="bolum08_yerlesimler.html" class="" title="Bölüm 8: Yerleşimler: Bir Figürde Birçok Grafik">8</a><a href="bolum09_iletisim_kuran_tasarim.html" class="" title="Bölüm 9: İletişim Kuran Tasarım">9</a><a href="bolum10_yalan_soyleyen_grafikler.html" class="" title="Bölüm 10: Yalan Söyleyen Grafikler">10</a><a href="bolum11_seaborn_temelleri.html" class="" title="Bölüm 11: seaborn Temelleri">11</a><a href="bolum12_iliskiler_regresyon.html" class="" title="Bölüm 12: İlişkiler ve Regresyon">12</a><a href="bolum13_kategoriler.html" class="" title="Bölüm 13: Kategoriler">13</a><a href="bolum14_dagilimlar.html" class="" title="Bölüm 14: Dağılımlar">14</a><a href="bolum15_izgaralar_matrisler.html" class="" title="Bölüm 15: Izgaralar ve Matrisler">15</a><a href="bolum16_plotly_express.html" class="" title="Bölüm 16: plotly express ile Etkileşimli Grafikler">16</a><a href="bolum17_haritalar_is_grafikleri.html" class="" title="Bölüm 17: Haritalar ve İş Grafikleri">17</a><a href="bolum18_gorsel_satis_raporu.html" class="" title="Bölüm 18: Görsel Bir Satış Raporu">18</a><span class="sep">|</span>Ekler:<a href="ek_a_sinav_cevaplari.html" class="" title="Ek A: Sınav Cevapları">A</a><a href="ek_b_grafik_secici.html" class="" title="Ek B: Grafik Seçici">B</a><a href="ek_c_komut_basvurusu.html" class="cur" title="Ek C: Komut Başvurusu">C</a><a href="ek_d_kontrol_listesi.html" class="" title="Ek D: Grafiği Düzelt Kontrol Listesi">D</a><a href="ek_e_ileri_okuma.html" class="" title="Ek E: İleri Okuma">E</a></div><a href="ek_d_kontrol_listesi.html">Ek D →</a></div>
+<h1>Ek C: Komut Başvurusu</h1>
+<p class="lead">Kitabın öğrettiği komutlar, işe göre gruplanmış ve her birini açıklayan bölümle birlikte (bölüm numaraları tıklanabilir).</p>
+<p>Olağan içe aktarmalar gerekir: <code>import matplotlib.pyplot as plt</code>, <code>import seaborn as sns</code>, <code>import plotly.express as px</code>, <code>import pandas as pd</code> ve <code>import numpy as np</code>. Biçimlendiriciler <code>from matplotlib.ticker import StrMethodFormatter, PercentFormatter</code>, tarih araçları <code>import matplotlib.dates as mdates</code>, şelale grafiği de <code>import plotly.graph_objects as go</code> ister.</p>
+<section><h2 id="c-figur-ve-axes">Figür ve Axes</h2><table class="choose"><tr><th>Komut</th><th>Ne yapar</th><th>Bölüm</th></tr><tr><td><code>plt.style.use('book.mplstyle')</code></td><td>Sonraki her grafik için bir stil yükler</td><td><a href="bolum01_ortami_kurmak.html#s1-3">1.3</a>, <a href="bolum07_ozellestirme.html#s7-5">7.5</a></td></tr><tr><td><code>fig, ax = plt.subplots()</code></td><td>Tek axes’li bir figür yapar</td><td><a href="bolum03_matplotlib_temelleri.html#s3-2">3.2</a></td></tr><tr><td><code>figsize=(5.5, 2.2)</code></td><td>Figür boyutunu inç cinsinden ayarlar</td><td><a href="bolum03_matplotlib_temelleri.html#s3-2">3.2</a></td></tr><tr><td><code>plt.figure()</code></td><td>pyplot tarzında boş bir figür yapar</td><td><a href="bolum03_matplotlib_temelleri.html#s3-2">3.2</a></td></tr><tr><td><code>plt.plot()</code>, <code>plt.bar()</code>, <code>plt.title()</code>, <code>plt.ylim()</code></td><td>axes metotlarının pyplot sürümleri</td><td><a href="bolum01_ortami_kurmak.html#s1-3">1.3</a>, <a href="bolum02_cizmeden_once_dusunmek.html#s2-5">2.5</a>, <a href="bolum03_matplotlib_temelleri.html#s3-2">3.2</a></td></tr><tr><td><code>plt.show()</code></td><td>Grafiği gösterir ve hücreyi temiz bitirir</td><td><a href="bolum03_matplotlib_temelleri.html#s3-2">3.2</a></td></tr><tr><td><code>plt.close(fig)</code></td><td>Bir figürü göstermeden kapatır</td><td><a href="bolum03_matplotlib_temelleri.html#s3-5">3.5</a></td></tr></table></section>
+<section><h2 id="c-grafik-turleri-matplotlib">Grafik Türleri (matplotlib)</h2><table class="choose"><tr><th>Komut</th><th>Ne yapar</th><th>Bölüm</th></tr><tr><td><code>ax.plot(x, y)</code></td><td>Çizgi; <code>marker=</code>, <code>linestyle=</code>, <code>color=</code>, <code>linewidth=</code>, <code>label=</code></td><td><a href="bolum04_cizgiler_noktalar.html#s4-1">4.1</a></td></tr><tr><td><code>ax.scatter(x, y)</code></td><td>Noktalar; boyut için <code>s=</code>, renk için <code>c=</code> ve <code>cmap=</code></td><td><a href="bolum04_cizgiler_noktalar.html#s4-5">4.5</a></td></tr><tr><td><code>fig.colorbar(points, label=...)</code></td><td>Renklerden sayılara anahtar</td><td><a href="bolum04_cizgiler_noktalar.html#s4-5">4.5</a>, <a href="bolum06_dagilimlar_izgaralar.html#s6-3">6.3</a></td></tr><tr><td><code>ax.fill_between(x, y1, y2)</code></td><td>İki çizgi arasını gölgeler; <code>where=</code>, <code>alpha=</code>, <code>hatch=</code></td><td><a href="bolum04_cizgiler_noktalar.html#s4-4">4.4</a></td></tr><tr><td><code>ax.bar(x, heights)</code></td><td>Dikey çubuklar; <code>width</code>, yığınlar için <code>bottom=</code></td><td><a href="bolum05_cubuklar_pastalar_tablolar.html#s5-1">5.1</a>, <a href="bolum05_cubuklar_pastalar_tablolar.html#s5-3">5.3</a></td></tr><tr><td><code>ax.barh(y, widths)</code></td><td>Yatay çubuklar</td><td><a href="bolum05_cubuklar_pastalar_tablolar.html#s5-1">5.1</a></td></tr><tr><td><code>ax.invert_yaxis()</code></td><td>İlk kategoriyi en üste koyar</td><td><a href="bolum05_cubuklar_pastalar_tablolar.html#s5-1">5.1</a></td></tr><tr><td><code>ax.bar_label(bars, fmt='${:,.0f}')</code></td><td>Değerleri çubuklara yazar; <code>padding=</code></td><td><a href="bolum05_cubuklar_pastalar_tablolar.html#s5-2">5.2</a></td></tr><tr><td><code>ax.pie(values, labels=...)</code></td><td>Pasta; <code>autopct=</code>, <code>startangle=90</code>, <code>counterclock=False</code></td><td><a href="bolum05_cubuklar_pastalar_tablolar.html#s5-5">5.5</a></td></tr><tr><td><code>wedgeprops={'width': 0.4}</code></td><td>Pastayı halkaya (donut) çevirir</td><td><a href="bolum05_cubuklar_pastalar_tablolar.html#s5-5">5.5</a></td></tr><tr><td><code>ax.hist(values)</code></td><td>Histogram; <code>bins=</code>, <code>density=True</code>, <code>cumulative=True</code></td><td><a href="bolum06_dagilimlar_izgaralar.html#s6-1">6.1</a></td></tr><tr><td><code>ax.boxplot(groups)</code></td><td>Kutu grafikler; <code>tick_labels=</code>, <code>orientation=</code>, <code>showmeans=</code></td><td><a href="bolum06_dagilimlar_izgaralar.html#s6-2">6.2</a></td></tr><tr><td><code>ax.imshow(grid.values)</code></td><td>Bir ızgaranın ısı haritası; <code>cmap=</code>, <code>aspect='auto'</code></td><td><a href="bolum06_dagilimlar_izgaralar.html#s6-3">6.3</a></td></tr></table></section>
+<section><h2 id="c-basliklar-etiketler-ve-gostergeler">Başlıklar, Etiketler ve Göstergeler</h2><table class="choose"><tr><th>Komut</th><th>Ne yapar</th><th>Bölüm</th></tr><tr><td><code>ax.set_title()</code></td><td>Başlık; <code>loc=</code> onu taşır</td><td><a href="bolum03_matplotlib_temelleri.html#s3-3">3.3</a></td></tr><tr><td><code>ax.set_xlabel()</code>, <code>ax.set_ylabel()</code></td><td>Eksen etiketleri; birimi içlerine yazın</td><td><a href="bolum03_matplotlib_temelleri.html#s3-3">3.3</a></td></tr><tr><td><code>ax.set_xlim()</code>, <code>ax.set_ylim()</code></td><td>Eksen aralığı; <code>bottom=0</code> bir ucu sabitler</td><td><a href="bolum03_matplotlib_temelleri.html#s3-3">3.3</a></td></tr><tr><td><code>ax.set(title=..., ylabel=...)</code></td><td>Birkaç ayarı birden yapar</td><td><a href="bolum03_matplotlib_temelleri.html#s3-3">3.3</a></td></tr><tr><td><code>ax.legend()</code></td><td>Gösterge; <code>loc=</code>, <code>bbox_to_anchor=</code>, <code>handles=</code></td><td><a href="bolum03_matplotlib_temelleri.html#s3-4">3.4</a>, <a href="bolum08_yerlesimler.html#s8-4">8.4</a></td></tr><tr><td><code>ax.set_xticks(positions, labels)</code></td><td>İşaretleri ve metinlerini seçer</td><td><a href="bolum05_cubuklar_pastalar_tablolar.html#s5-3">5.3</a>, <a href="bolum06_dagilimlar_izgaralar.html#s6-3">6.3</a></td></tr><tr><td><code>ax.margins(x=0.15)</code></td><td>axes’in içine boşluk ekler</td><td><a href="bolum13_kategoriler.html#s13-1">13.1</a>, <a href="bolum18_gorsel_satis_raporu.html#s18-3">18.3</a></td></tr></table></section>
+<section><h2 id="c-i-saretler-bicimler-ve-cerceveler">İşaretler, Biçimler ve Çerçeveler</h2><table class="choose"><tr><th>Komut</th><th>Ne yapar</th><th>Bölüm</th></tr><tr><td><code>StrMethodFormatter('${x:,.0f}')</code></td><td>İşaretlerde dolar işareti ve binlik ayraç</td><td><a href="bolum07_ozellestirme.html#s7-1">7.1</a></td></tr><tr><td><code>PercentFormatter(xmax=1, decimals=1)</code></td><td>Kesirleri yüzde olarak gösterir</td><td><a href="bolum07_ozellestirme.html#s7-1">7.1</a></td></tr><tr><td><code>ax.yaxis.set_major_formatter()</code></td><td>Bir eksene biçimlendirici uygular</td><td><a href="bolum07_ozellestirme.html#s7-1">7.1</a></td></tr><tr><td><code>mdates.DateFormatter('%b %Y')</code></td><td>Tarih işaretlerini istediğiniz gibi yazar</td><td><a href="bolum04_cizgiler_noktalar.html#s4-2">4.2</a></td></tr><tr><td><code>mdates.MonthLocator()</code>, <code>mdates.WeekdayLocator()</code></td><td>Tarih işaretlerini yerleştirir; <code>set_major_locator()</code> ile kullanın</td><td><a href="bolum04_cizgiler_noktalar.html#s4-2">4.2</a></td></tr><tr><td><code>ax.tick_params(axis='x', labelrotation=45)</code></td><td>İşaretleri döndürür, boyutlandırır ya da gizler (<code>length=0</code>)</td><td><a href="bolum07_ozellestirme.html#s7-1">7.1</a></td></tr><tr><td><code>ax.set_xscale('log')</code></td><td>Logaritmik ölçek</td><td><a href="bolum07_ozellestirme.html#s7-2">7.2</a></td></tr><tr><td><code>ax.spines[['top', 'right']].set_visible(False)</code></td><td>Çerçeve çizgilerini kaldırır</td><td><a href="bolum07_ozellestirme.html#s7-2">7.2</a>, <a href="bolum09_iletisim_kuran_tasarim.html#s9-1">9.1</a></td></tr><tr><td><code>ax.xaxis.set_visible(False)</code></td><td>Bütün bir ekseni gizler</td><td><a href="bolum09_iletisim_kuran_tasarim.html#s9-1">9.1</a></td></tr><tr><td><code>ax.grid(axis='y')</code></td><td>Kılavuz çizgilerini açar</td><td><a href="bolum07_ozellestirme.html#s7-2">7.2</a></td></tr></table></section>
+<section><h2 id="c-grafige-yazmak">Grafiğe Yazmak</h2><table class="choose"><tr><th>Komut</th><th>Ne yapar</th><th>Bölüm</th></tr><tr><td><code>ax.text(x, y, 'words')</code></td><td>Bir noktaya metin; <code>ha=</code>, <code>va=</code>, <code>color=</code></td><td><a href="bolum07_ozellestirme.html#s7-3">7.3</a></td></tr><tr><td><code>ax.annotate(text, xy=, xytext=)</code></td><td>Oklu metin; <code>arrowprops=</code></td><td><a href="bolum07_ozellestirme.html#s7-3">7.3</a></td></tr><tr><td><code>ax.axhline(y)</code>, <code>ax.axvline(x)</code></td><td>Bir değerde grafiği boydan boya geçen çizgi</td><td><a href="bolum07_ozellestirme.html#s7-3">7.3</a></td></tr><tr><td><code>ax.axvspan(x1, x2)</code></td><td>Bir dönemi gölgeler; değer aralığı için <code>ax.axhspan()</code></td><td><a href="bolum07_ozellestirme.html#s7-3">7.3</a></td></tr></table></section>
+<section><h2 id="c-renkler-ve-stiller">Renkler ve Stiller</h2><table class="choose"><tr><th>Komut</th><th>Ne yapar</th><th>Bölüm</th></tr><tr><td><code>color='#0b3a47'</code></td><td>Onaltılık renk; adlar, <code>'0.6'</code> griler, <code>'C0'</code> da olur</td><td><a href="bolum07_ozellestirme.html#s7-4">7.4</a></td></tr><tr><td><code>cmap='viridis'</code></td><td>Renk haritası; çevirmek için sonuna <code>_r</code> ekleyin</td><td><a href="bolum07_ozellestirme.html#s7-4">7.4</a></td></tr><tr><td><code>plt.rcParams['font.size']</code></td><td>Tek bir ayarı okur ya da değiştirir</td><td><a href="bolum07_ozellestirme.html#s7-5">7.5</a></td></tr><tr><td><code>with plt.rc_context({...}):</code></td><td>Yalnızca bir blok için ayarlar</td><td><a href="bolum07_ozellestirme.html#s7-5">7.5</a></td></tr><tr><td><code>with plt.style.context('grayscale'):</code></td><td>Bir blok için yerleşik bir stil</td><td><a href="bolum07_ozellestirme.html#s7-5">7.5</a></td></tr></table></section>
+<section><h2 id="c-yerlesimler">Yerleşimler</h2><table class="choose"><tr><th>Komut</th><th>Ne yapar</th><th>Bölüm</th></tr><tr><td><code>plt.subplots(2, 2)</code></td><td>Grafik ızgarası; <code>axes[row, col]</code>, <code>axes.flat</code></td><td><a href="bolum08_yerlesimler.html#s8-1">8.1</a></td></tr><tr><td><code>sharex=True</code>, <code>sharey=True</code></td><td>Her grafik için aynı eksen aralığı</td><td><a href="bolum08_yerlesimler.html#s8-1">8.1</a></td></tr><tr><td><code>fig.suptitle()</code></td><td>Bütün figür için tek başlık</td><td><a href="bolum08_yerlesimler.html#s8-2">8.2</a></td></tr><tr><td><code>fig.tight_layout()</code></td><td>Çakışmaları bir kez düzeltir</td><td><a href="bolum08_yerlesimler.html#s8-2">8.2</a></td></tr><tr><td><code>layout='constrained'</code></td><td>Metni otomatik olarak açıkta tutar</td><td><a href="bolum08_yerlesimler.html#s8-2">8.2</a></td></tr><tr><td><code>plt.subplot_mosaic('AA;BC')</code></td><td>Eşit olmayan yerleşim, grafikler adla</td><td><a href="bolum08_yerlesimler.html#s8-3">8.3</a></td></tr><tr><td><code>ax.twinx()</code></td><td>Sağda ikinci bir y ekseni</td><td><a href="bolum08_yerlesimler.html#s8-4">8.4</a></td></tr></table></section>
+<section><h2 id="c-kaydetmek">Kaydetmek</h2><table class="choose"><tr><th>Komut</th><th>Ne yapar</th><th>Bölüm</th></tr><tr><td><code>fig.savefig('chart.png', dpi=200, bbox_inches='tight')</code></td><td>PNG, SVG ya da PDF kaydeder</td><td><a href="bolum03_matplotlib_temelleri.html#s3-5">3.5</a></td></tr><tr><td><code>ax.figure.savefig(...)</code></td><td>axes düzeyi bir seaborn grafiğini kaydeder</td><td><a href="bolum15_izgaralar_matrisler.html#s15-4">15.4</a>, <a href="bolum15_izgaralar_matrisler.html#s15-5">15.5</a></td></tr><tr><td><code>g.savefig('grid.png', dpi=200)</code></td><td>Bir seaborn ızgarasını kaydeder</td><td><a href="bolum15_izgaralar_matrisler.html#s15-5">15.5</a></td></tr><tr><td><code>fig.write_html('chart.html')</code></td><td>Etkileşimli bir plotly grafiğini kaydeder</td><td><a href="bolum16_plotly_express.html#s16-8">16.8</a></td></tr></table></section>
+<section><h2 id="c-pandas-grafikleri-ve-tablolari">pandas Grafikleri ve Tabloları</h2><table class="choose"><tr><th>Komut</th><th>Ne yapar</th><th>Bölüm</th></tr><tr><td><code>df.plot(x=..., y=...)</code></td><td>DataFrame’den çizgi grafik; <code>kind=</code>, <code>ax=</code></td><td><a href="bolum03_matplotlib_temelleri.html#s3-6">3.6</a></td></tr><tr><td><code>df.plot(kind='bar', rot=0)</code></td><td>Gruplu çubuklar, satır başına bir grup</td><td><a href="bolum05_cubuklar_pastalar_tablolar.html#s5-3">5.3</a></td></tr><tr><td><code>df.plot.barh(stacked=True)</code></td><td>Yığılmış yatay çubuklar</td><td><a href="bolum05_cubuklar_pastalar_tablolar.html#s5-3">5.3</a></td></tr><tr><td><code>df.plot.area()</code></td><td>Yığılmış alan grafiği</td><td><a href="bolum05_cubuklar_pastalar_tablolar.html#s5-4">5.4</a></td></tr><tr><td><code>s.plot.hist()</code>, <code>df.plot.box()</code></td><td>Histogram ve kutu grafikler</td><td><a href="bolum06_dagilimlar_izgaralar.html#s6-1">6.1</a>, <a href="bolum06_dagilimlar_izgaralar.html#s6-2">6.2</a></td></tr><tr><td><code>df.style.background_gradient()</code></td><td>Tablo hücrelerini renklendirir; tek ölçek için <code>axis=None</code></td><td><a href="bolum05_cubuklar_pastalar_tablolar.html#s5-6">5.6</a></td></tr><tr><td><code>df.style.bar(subset=[...])</code></td><td>Tablo hücrelerinin içinde çubuklar</td><td><a href="bolum05_cubuklar_pastalar_tablolar.html#s5-6">5.6</a></td></tr></table></section>
+<section><h2 id="c-seaborn-kurulumu">seaborn Kurulumu</h2><table class="choose"><tr><th>Komut</th><th>Ne yapar</th><th>Bölüm</th></tr><tr><td><code>sns.set_theme(style='ticks')</code></td><td>seaborn görünümü; <code>plt.style.use()</code>’dan önce çalıştırın</td><td><a href="bolum11_seaborn_temelleri.html#s11-2">11.2</a></td></tr><tr><td><code>sns.set_style()</code>, <code>sns.set_context()</code></td><td>Arka plan ve kılavuz; metin ölçeği</td><td><a href="bolum11_seaborn_temelleri.html#s11-2">11.2</a></td></tr><tr><td><code>sns.despine()</code></td><td>Üst ve sağ çizgileri kaldırır</td><td><a href="bolum11_seaborn_temelleri.html#s11-2">11.2</a></td></tr><tr><td><code>sns.color_palette()</code>, <code>sns.set_palette()</code></td><td>Renkleri gösterir ya da ayarlar</td><td><a href="bolum11_seaborn_temelleri.html#s11-3">11.3</a></td></tr><tr><td><code>hue=</code>, <code>style=</code>, <code>size=</code></td><td>Bir sütunu renk, şekil ya da boyutla gösterir</td><td><a href="bolum11_seaborn_temelleri.html#s11-4">11.4</a></td></tr><tr><td><code>palette=</code>, <code>hue_order=</code>, <code>order=</code></td><td>Tek bir grafik için renkler ve sıra; <code>palette=</code> sözlük de alır</td><td><a href="bolum11_seaborn_temelleri.html#s11-3">11.3</a>, <a href="bolum13_kategoriler.html#s13-1">13.1</a></td></tr></table></section>
+<section><h2 id="c-seaborn-i-liskiler-ve-kategoriler">seaborn İlişkiler ve Kategoriler</h2><table class="choose"><tr><th>Komut</th><th>Ne yapar</th><th>Bölüm</th></tr><tr><td><code>sns.scatterplot()</code></td><td>Saçılım grafiği; <code>alpha=</code>, <code>s=</code>, <code>sizes=</code></td><td><a href="bolum11_seaborn_temelleri.html#s11-1">11.1</a>, <a href="bolum12_iliskiler_regresyon.html#s12-1">12.1</a></td></tr><tr><td><code>sns.lineplot()</code></td><td>Bantlı ortalama çizgi; <code>errorbar=</code></td><td><a href="bolum12_iliskiler_regresyon.html#s12-2">12.2</a></td></tr><tr><td><code>sns.relplot()</code></td><td>Figür düzeyi saçılım ya da çizgi; <code>kind=</code></td><td><a href="bolum11_seaborn_temelleri.html#s11-6">11.6</a>, <a href="bolum12_iliskiler_regresyon.html#s12-3">12.3</a></td></tr><tr><td><code>sns.regplot()</code>, <code>sns.lmplot()</code></td><td>Eğilim çizgili saçılım</td><td><a href="bolum12_iliskiler_regresyon.html#s12-5">12.5</a></td></tr><tr><td><code>sns.barplot()</code></td><td>Ortalama çubukları; <code>estimator=</code>, <code>errorbar=</code></td><td><a href="bolum13_kategoriler.html#s13-1">13.1</a></td></tr><tr><td><code>ax.containers</code></td><td>seaborn’un çizdiği çubuk grupları, <code>bar_label()</code> için</td><td><a href="bolum13_kategoriler.html#s13-1">13.1</a></td></tr><tr><td><code>err_kws={'linestyle': '-'}</code></td><td>Kitabın stilinde düz hata çubukları</td><td><a href="bolum13_kategoriler.html#s13-1">13.1</a></td></tr><tr><td><code>sns.countplot()</code></td><td>Sayım çubukları</td><td><a href="bolum13_kategoriler.html#s13-2">13.2</a></td></tr><tr><td><code>sns.stripplot()</code></td><td>Her değer bir nokta</td><td><a href="bolum13_kategoriler.html#s13-3">13.3</a></td></tr><tr><td><code>sns.boxplot()</code>, <code>sns.violinplot()</code></td><td>Kutu ve keman grafikler; <code>cut=0</code>, <code>inner=</code></td><td><a href="bolum13_kategoriler.html#s13-4">13.4</a></td></tr><tr><td><code>sns.catplot()</code></td><td>Figür düzeyi kategoriler; <code>kind=</code></td><td><a href="bolum13_kategoriler.html#s13-5">13.5</a></td></tr></table></section>
+<section><h2 id="c-seaborn-dagilimlar-ve-matrisler">seaborn Dağılımlar ve Matrisler</h2><table class="choose"><tr><th>Komut</th><th>Ne yapar</th><th>Bölüm</th></tr><tr><td><code>sns.histplot()</code></td><td>Histogram; <code>binwidth=</code>, <code>stat=</code>, <code>discrete=</code>, <code>multiple=</code></td><td><a href="bolum14_dagilimlar.html#s14-1">14.1</a>–<a href="bolum14_dagilimlar.html#s14-3">14.3</a></td></tr><tr><td><code>sns.kdeplot()</code></td><td>Yoğunluk eğrisi; <code>bw_adjust=</code>, <code>cut=0</code></td><td><a href="bolum14_dagilimlar.html#s14-4">14.4</a></td></tr><tr><td><code>sns.displot()</code></td><td>Figür düzeyi histogram ya da yoğunluk</td><td><a href="bolum14_dagilimlar.html#s14-5">14.5</a></td></tr><tr><td><code>sns.jointplot()</code></td><td>Kenarlarda iki yayılımla saçılım</td><td><a href="bolum14_dagilimlar.html#s14-6">14.6</a></td></tr><tr><td><code>sns.pairplot()</code></td><td>Her sütun çifti; <code>vars=</code>, <code>corner=True</code></td><td><a href="bolum15_izgaralar_matrisler.html#s15-3">15.3</a></td></tr><tr><td><code>sns.heatmap()</code></td><td>Isı haritası; <code>annot=</code>, <code>fmt=</code>, <code>center=</code>, <code>vmin=</code>, <code>vmax=</code>, <code>mask=</code></td><td><a href="bolum15_izgaralar_matrisler.html#s15-4">15.4</a></td></tr></table></section>
+<section><h2 id="c-seaborn-izgaralari">seaborn Izgaraları</h2><table class="choose"><tr><th>Komut</th><th>Ne yapar</th><th>Bölüm</th></tr><tr><td><code>col=</code>, <code>row=</code>, <code>col_wrap=</code></td><td>Grup başına bir panel</td><td><a href="bolum15_izgaralar_matrisler.html#s15-1">15.1</a></td></tr><tr><td><code>height=</code>, <code>aspect=</code></td><td>Figür düzeyi bir grafiğin boyutu</td><td><a href="bolum11_seaborn_temelleri.html#s11-6">11.6</a></td></tr><tr><td><code>g.set_axis_labels()</code></td><td>Izgaranın iki eksen etiketi</td><td><a href="bolum12_iliskiler_regresyon.html#s12-3">12.3</a>, <a href="bolum15_izgaralar_matrisler.html#s15-2">15.2</a></td></tr><tr><td><code>g.set_titles('{col_name}')</code></td><td>Panel başlıkları</td><td><a href="bolum15_izgaralar_matrisler.html#s15-2">15.2</a></td></tr><tr><td><code>sns.move_legend()</code></td><td>Göstergeyi taşır</td><td><a href="bolum14_dagilimlar.html#s14-2">14.2</a>, <a href="bolum15_izgaralar_matrisler.html#s15-2">15.2</a></td></tr><tr><td><code>g.ax</code>, <code>g.axes</code>, <code>g.axes_dict</code>, <code>g.figure</code></td><td>Bir ızgaranın arkasındaki axes’ler ve figür</td><td><a href="bolum15_izgaralar_matrisler.html#s15-5">15.5</a></td></tr></table></section>
+<section><h2 id="c-plotly-express">plotly Express</h2><table class="choose"><tr><th>Komut</th><th>Ne yapar</th><th>Bölüm</th></tr><tr><td><code>px.scatter()</code></td><td>Saçılım grafiği</td><td><a href="bolum16_plotly_express.html#s16-1">16.1</a>, <a href="bolum16_plotly_express.html#s16-2">16.2</a></td></tr><tr><td><code>px.line()</code>, <code>px.area()</code></td><td>Çizgi ve yığılmış alan</td><td><a href="bolum16_plotly_express.html#s16-3">16.3</a></td></tr><tr><td><code>px.bar()</code></td><td>Çubuklar; yan yana için <code>barmode='group'</code></td><td><a href="bolum16_plotly_express.html#s16-4">16.4</a></td></tr><tr><td><code>px.histogram()</code>, <code>px.box()</code></td><td>Histogram (<code>nbins=</code>) ve kutu grafikler</td><td><a href="bolum16_plotly_express.html#s16-5">16.5</a></td></tr><tr><td><code>px.pie()</code></td><td>Pasta; <code>names=</code>, <code>values=</code>, <code>hole=</code></td><td><a href="bolum16_plotly_express.html#s16-6">16.6</a></td></tr><tr><td><code>px.choropleth()</code></td><td>ABD eyaletleri haritası</td><td><a href="bolum17_haritalar_is_grafikleri.html#s17-1">17.1</a></td></tr><tr><td><code>px.treemap()</code>, <code>px.funnel()</code>, <code>px.timeline()</code></td><td>Ağaç haritası, huni ve proje zaman çizelgesi</td><td><a href="bolum17_haritalar_is_grafikleri.html#s17-2">17.2</a>–<a href="bolum17_haritalar_is_grafikleri.html#s17-4">17.4</a></td></tr><tr><td><code>go.Figure(go.Waterfall(...))</code></td><td>Şelale grafiği</td><td><a href="bolum17_haritalar_is_grafikleri.html#s17-5">17.5</a></td></tr><tr><td><code>template='simple_white'</code></td><td>Temiz beyaz görünüm</td><td><a href="bolum16_plotly_express.html#s16-2">16.2</a></td></tr><tr><td><code>color_discrete_sequence=</code></td><td>Grupların renkleri</td><td><a href="bolum16_plotly_express.html#s16-2">16.2</a></td></tr><tr><td><code>labels={...}</code>, <code>hover_name=</code>, <code>hover_data=</code></td><td>Okunur adlar ve hover metni</td><td><a href="bolum16_plotly_express.html#s16-2">16.2</a></td></tr><tr><td><code>category_orders={...}</code></td><td>Çubukların, göstergenin ve panellerin sırası</td><td><a href="bolum16_plotly_express.html#s16-4">16.4</a></td></tr><tr><td><code>facet_col=</code></td><td>Grup başına bir panel</td><td><a href="bolum16_plotly_express.html#s16-5">16.5</a></td></tr></table></section>
+<section><h2 id="c-plotly-figur-guncellemeleri">plotly Figür Güncellemeleri</h2><table class="choose"><tr><th>Komut</th><th>Ne yapar</th><th>Bölüm</th></tr><tr><td><code>fig.show()</code></td><td>Figürü çizer</td><td><a href="bolum16_plotly_express.html#s16-1">16.1</a></td></tr><tr><td><code>fig.update_traces()</code></td><td>İşaretleri değiştirir; <code>marker_color=</code>, <code>texttemplate=</code></td><td><a href="bolum16_plotly_express.html#s16-2">16.2</a>, <a href="bolum16_plotly_express.html#s16-6">16.6</a>, <a href="bolum16_plotly_express.html#s16-7">16.7</a></td></tr><tr><td><code>fig.update_layout()</code></td><td>Başlık, boyut, işaret biçimleri</td><td><a href="bolum16_plotly_express.html#s16-7">16.7</a></td></tr><tr><td><code>fig.update_xaxes(rangeslider_visible=True)</code></td><td>Aralık kaydırıcısı ekler</td><td><a href="bolum16_plotly_express.html#s16-3">16.3</a></td></tr><tr><td><code>fig.add_hline(y=...)</code></td><td>Yatay çizgi; <code>line_width=</code>, <code>line_color=</code> ve <code>opacity=1</code> verin</td><td><a href="bolum16_plotly_express.html#s16-3">16.3</a></td></tr><tr><td><code>fig.add_annotation()</code></td><td>Oklu bir not</td><td><a href="bolum16_plotly_express.html#s16-7">16.7</a></td></tr><tr><td><code>fig.add_shape(type='line', ...)</code></td><td>Bir tarihte ya da değerde çizgi</td><td><a href="bolum17_haritalar_is_grafikleri.html#s17-4">17.4</a></td></tr></table></section>
+<section><h2 id="c-pandas-ve-numpy-yardimcilari">pandas ve NumPy Yardımcıları</h2><table class="choose"><tr><th>Komut</th><th>Ne yapar</th><th>Bölüm</th></tr><tr><td><code>pd.read_csv('file.csv', parse_dates=[...])</code></td><td>Gerçek tarihlerle bir tablo yükler</td><td><a href="bolum01_ortami_kurmak.html#s1-4">1.4</a>, <a href="bolum04_cizgiler_noktalar.html#s4-1">4.1</a></td></tr><tr><td><code>df.sort_values('col', ascending=False)</code></td><td>Sıralar, sıralı çubuklar için</td><td><a href="bolum01_ortami_kurmak.html#s1-4">1.4</a>, <a href="bolum05_cubuklar_pastalar_tablolar.html#s5-1">5.1</a></td></tr><tr><td><code>df.groupby('col')['value'].sum()</code></td><td>Grup başına toplamlar; <code>as_index=False</code> bir sütun tutar</td><td><a href="bolum01_ortami_kurmak.html#s1-4">1.4</a></td></tr><tr><td><code>df[df['col'].isin([...])]</code></td><td>Değeri bir listede olan satırlar</td><td><a href="bolum01_ortami_kurmak.html#s1-4">1.4</a></td></tr><tr><td><code>df.loc[condition, cols]</code>, <code>df.iloc[rows, cols]</code></td><td>Etiketle ya da konumla satır ve sütunlar</td><td><a href="bolum01_ortami_kurmak.html#s1-4">1.4</a></td></tr><tr><td><code>df.set_index('col')</code>, <code>df.reset_index()</code></td><td>Sütundan satır etiketlerine ve geri</td><td><a href="bolum01_ortami_kurmak.html#s1-4">1.4</a></td></tr><tr><td><code>df.drop(columns=[...])</code></td><td>Sütunları kaldırır</td><td><a href="bolum01_ortami_kurmak.html#s1-4">1.4</a></td></tr><tr><td><code>df.isna().sum()</code></td><td>Sütun başına eksik değerler</td><td><a href="bolum18_gorsel_satis_raporu.html#s18-6">18.6</a></td></tr><tr><td><code>s.value_counts()</code></td><td>Değer başına sayımlar</td><td><a href="bolum01_ortami_kurmak.html#s1-4">1.4</a></td></tr><tr><td><code>s.resample('W').sum()</code></td><td>Hafta başına toplamlar; aylar için <code>'ME'</code></td><td><a href="bolum04_cizgiler_noktalar.html#s4-3">4.3</a></td></tr><tr><td><code>s.rolling(7).mean()</code></td><td>7 günlük hareketli ortalama</td><td><a href="bolum04_cizgiler_noktalar.html#s4-3">4.3</a></td></tr><tr><td><code>df.pivot_table(index=, columns=, ...)</code></td><td>Isı haritası için ızgara; birleştirmeden <code>pivot()</code></td><td><a href="bolum01_ortami_kurmak.html#s1-4">1.4</a>, <a href="bolum06_dagilimlar_izgaralar.html#s6-3">6.3</a></td></tr><tr><td><code>pd.Categorical(values, categories=[...], ordered=True)</code></td><td>Adları sizin sıranızda tutar</td><td><a href="bolum12_iliskiler_regresyon.html#s12-2">12.2</a></td></tr><tr><td><code>pd.Timestamp('2025-04-05')</code></td><td>Tarih eksenine yerleştirmek için tek bir tarih</td><td><a href="bolum10_yalan_soyleyen_grafikler.html#s10-3">10.3</a></td></tr><tr><td><code>df.melt(id_vars=...)</code></td><td>Geniş tablodan uzuna, seaborn için</td><td><a href="bolum11_seaborn_temelleri.html#s11-5">11.5</a></td></tr><tr><td><code>df.corr(numeric_only=True)</code></td><td>Sütunlar arası korelasyonlar</td><td><a href="bolum12_iliskiler_regresyon.html#s12-4">12.4</a></td></tr><tr><td><code>np.where(condition, a, b)</code></td><td>Çubuk başına bir renk</td><td><a href="bolum05_cubuklar_pastalar_tablolar.html#s5-1">5.1</a></td></tr><tr><td><code>np.arange(4)</code></td><td>Gruplu çubuklar için 0, 1, 2, 3 konumları</td><td><a href="bolum05_cubuklar_pastalar_tablolar.html#s5-3">5.3</a></td></tr><tr><td><code>np.polyfit(x, y, 1)</code></td><td>Düz bir çizginin eğimi ve kesişimi</td><td><a href="bolum12_iliskiler_regresyon.html#s12-5">12.5</a></td></tr></table></section>
+<div class="chnav"><a href="ek_b_grafik_secici.html">← Ek B</a><div class="all"><a href="index.html" class="home" title="Ana sayfa">⌂ Ana sayfa</a><span class="sep">|</span>Bölümler: <a href="bolum01_ortami_kurmak.html" class="" title="Bölüm 1: Görselleştirme Ortamını Kurmak">1</a><a href="bolum02_cizmeden_once_dusunmek.html" class="" title="Bölüm 2: Çizmeden Önce Düşünmek">2</a><a href="bolum03_matplotlib_temelleri.html" class="" title="Bölüm 3: matplotlib Temelleri">3</a><a href="bolum04_cizgiler_noktalar.html" class="" title="Bölüm 4: Çizgiler ve Noktalar">4</a><a href="bolum05_cubuklar_pastalar_tablolar.html" class="" title="Bölüm 5: Çubuklar, Pastalar ve Tablolar">5</a><a href="bolum06_dagilimlar_izgaralar.html" class="" title="Bölüm 6: Dağılımlar ve Değer Izgaraları">6</a><a href="bolum07_ozellestirme.html" class="" title="Bölüm 7: Bir Grafiğin Her Parçasını Özelleştirmek">7</a><a href="bolum08_yerlesimler.html" class="" title="Bölüm 8: Yerleşimler: Bir Figürde Birçok Grafik">8</a><a href="bolum09_iletisim_kuran_tasarim.html" class="" title="Bölüm 9: İletişim Kuran Tasarım">9</a><a href="bolum10_yalan_soyleyen_grafikler.html" class="" title="Bölüm 10: Yalan Söyleyen Grafikler">10</a><a href="bolum11_seaborn_temelleri.html" class="" title="Bölüm 11: seaborn Temelleri">11</a><a href="bolum12_iliskiler_regresyon.html" class="" title="Bölüm 12: İlişkiler ve Regresyon">12</a><a href="bolum13_kategoriler.html" class="" title="Bölüm 13: Kategoriler">13</a><a href="bolum14_dagilimlar.html" class="" title="Bölüm 14: Dağılımlar">14</a><a href="bolum15_izgaralar_matrisler.html" class="" title="Bölüm 15: Izgaralar ve Matrisler">15</a><a href="bolum16_plotly_express.html" class="" title="Bölüm 16: plotly express ile Etkileşimli Grafikler">16</a><a href="bolum17_haritalar_is_grafikleri.html" class="" title="Bölüm 17: Haritalar ve İş Grafikleri">17</a><a href="bolum18_gorsel_satis_raporu.html" class="" title="Bölüm 18: Görsel Bir Satış Raporu">18</a><span class="sep">|</span>Ekler:<a href="ek_a_sinav_cevaplari.html" class="" title="Ek A: Sınav Cevapları">A</a><a href="ek_b_grafik_secici.html" class="" title="Ek B: Grafik Seçici">B</a><a href="ek_c_komut_basvurusu.html" class="cur" title="Ek C: Komut Başvurusu">C</a><a href="ek_d_kontrol_listesi.html" class="" title="Ek D: Grafiği Düzelt Kontrol Listesi">D</a><a href="ek_e_ileri_okuma.html" class="" title="Ek E: İleri Okuma">E</a></div><a href="ek_d_kontrol_listesi.html">Ek D →</a></div>
+</main>
+</div>
+<footer>Ek C · Komut Başvurusu — Master Data Visualization kitabının Türkçe etkileşimli sürümü</footer>
+<script>
+const cells=[];
+// ---------------- TOC -----------------
+const toc=document.getElementById('tocLinks');
+const heads=[...document.querySelectorAll('main h2[id], main h3[id]')];
+heads.forEach(h=>{const a=document.createElement('a');a.href='#'+h.id;a.innerHTML=h.innerHTML.replace(/<span class="num">(.*?)<\/span>/,'$1 ');if(h.tagName==='H3')a.className='sub';toc.appendChild(a);});
+const tocLinks=[...toc.querySelectorAll('a')];
+const io2=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){tocLinks.forEach(a=>a.classList.toggle('active',a.getAttribute('href')==='#'+e.target.id));}})},{rootMargin:'-80px 0px -70% 0px'});
+heads.forEach(h=>io2.observe(h));
+
+// ---------------- Search -----------------
+const norm=s=>s.toLocaleLowerCase('tr').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/ı/g,'i');
+const index=[];
+(function buildIndex(){
+  let sec='Giriş';
+  document.querySelectorAll('main h1, main h2, main h3, main p, main li, main .callout, main .ans, main tr').forEach(el=>{
+    if(el.closest('.callout')&&el.tagName!=='DIV') return; if(el.closest('.ans')&&!el.matches('.ans')) return; if(el.closest('.chnav')) return; if(el.matches('tr')&&el.querySelector('th')) return;
+    if(el.closest('#datasets')) return;
+    if(el.matches('.q')){ index.push({el,sec:'Sınav',kind:'soru',text:el.querySelector('.qt').textContent+' '+[...el.querySelectorAll('label')].map(l=>l.textContent).join(' ')}); return; }
+    if(el.closest('.q')) return;
+    if(el.matches('h2,h3')){ sec=el.textContent; }
+    let kind='metin', text=el.textContent;
+    if(el.matches('.cell')){ kind='kod'; const c=cells.find(c=>c.el===el); text=c?c.cm.getValue():text; }
+    else if(el.matches('h1,h2,h3')) kind='başlık';
+    else if(el.matches('.callout')) kind='kutu';
+    else if(el.matches('.figdesc')) kind='grafik';
+    else if(el.matches('pre.data')) kind='veri'; else if(el.matches('tr')) kind='tablo'; else if(el.matches('.ans')) kind='cevap';
+    index.push({el,sec,kind,text:text.replace(/\s+/g,' ').trim()});
+  });
+  index.forEach(x=>x.n=norm(x.text));
+})();
+const si=document.getElementById('search'), res=document.getElementById('results');
+let hits=[], act=-1;
+function esc(s){return s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+function snippet(text,terms){
+  const n=norm(text); let pos=-1;
+  for(const t of terms){const p=n.indexOf(t);if(p>=0){pos=p;break;}}
+  let s=Math.max(0,pos-60), e=Math.min(text.length,(pos<0?0:pos)+140);
+  let out=(s>0?'…':'')+text.slice(s,e)+(e<text.length?'…':'');
+  // highlight (norm keeps length for Turkish chars after NFD strip mostly; do case-insensitive regex)
+  let h=esc(out);
+  terms.forEach(t=>{ if(!t) return;
+    const re=new RegExp(t.split('').map(ch=>{const m={'i':'[iıİI]','s':'[sşŞS]','c':'[cçÇC]','g':'[gğĞG]','o':'[oöÖO]','u':'[uüÜU]'}; return m[ch]||ch.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}).join(''),'gi');
+    h=h.replace(re,m=>`<mark>${m}</mark>`); });
+  return h;
+}
+function doSearch(){
+  const q=si.value.trim();
+  if(q.length<2){res.classList.remove('open');res.innerHTML='';return;}
+  const terms=norm(q).split(/\s+/).filter(Boolean);
+  hits=index.map(x=>{let sc=0;for(const t of terms){const c=x.n.split(t).length-1;if(!c)return null;sc+=c;} if(x.kind==='başlık')sc+=5; if(x.kind==='kod')sc+=1; return {x,sc};}).filter(Boolean).sort((a,b)=>b.sc-a.sc).slice(0,40);
+  act=-1;
+  res.innerHTML=hits.length?`<div class="count">${hits.length} sonuç · <kbd>↑</kbd><kbd>↓</kbd> ile gez, <kbd>Enter</kbd> ile git</div>`+hits.map((h,i)=>`<div class="r" data-i="${i}"><div class="sec">${esc(h.x.sec)}<span class="kind">${h.x.kind}</span></div><div class="snip">${snippet(h.x.text,terms)}</div></div>`).join('')
+    :'<div class="empty">Sonuç bulunamadı.</div>';
+  res.classList.add('open');
+  res.querySelectorAll('.r').forEach(r=>r.onclick=()=>go(+r.dataset.i));
+}
+function go(i){
+  const el=hits[i].x.el; res.classList.remove('open');
+  const det=el.closest('details'); if(det) det.open=true;
+  el.scrollIntoView({behavior:'smooth',block:'center'});
+  el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
+}
+si.addEventListener('input',doSearch);
+si.addEventListener('focus',()=>{if(si.value.trim().length>=2)doSearch();});
+si.addEventListener('keydown',e=>{
+  const rs=[...res.querySelectorAll('.r')];
+  if(e.key==='ArrowDown'){act=Math.min(rs.length-1,act+1);}
+  else if(e.key==='ArrowUp'){act=Math.max(0,act-1);}
+  else if(e.key==='Enter'){ if(hits.length) go(act<0?0:act); return; }
+  else if(e.key==='Escape'){res.classList.remove('open');si.blur();return;}
+  else return;
+  e.preventDefault(); rs.forEach((r,k)=>r.classList.toggle('act',k===act)); if(rs[act]) rs[act].scrollIntoView({block:'nearest'});
+});
+document.addEventListener('keydown',e=>{ if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();si.focus();si.select();}
+  else if(e.key==='/'&&document.activeElement.tagName!=='INPUT'&&!document.activeElement.closest('.CodeMirror')){e.preventDefault();si.focus();}});
+document.addEventListener('click',e=>{if(!e.target.closest('.search-wrap'))res.classList.remove('open');});
+</script>
+</body>
+</html>

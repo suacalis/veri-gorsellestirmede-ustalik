@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bölüm 8: Yerleşimler: Bir Figürde Birçok Grafik</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+<script src="https://cdn.jsdelivr.net/pyodide/v0.27.7/full/pyodide.js"></script>
+<style>
+:root{
+  --teal:#0b3a47; --amber:#b26a00; --lteal:#6fb3c2; --sand:#f0c987;
+  --bg:#f7f6f2; --paper:#ffffff; --ink:#1f2a30; --muted:#5f6b72; --line:#e2e0d8;
+  --code-bg:#fbfaf6;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:80px}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.65 "Segoe UI",system-ui,-apple-system,Roboto,sans-serif}
+header.top{position:sticky;top:0;z-index:50;background:var(--teal);color:#fff;display:flex;align-items:center;gap:16px;padding:10px 20px;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+header.top .brand{font-weight:600;white-space:nowrap}
+header.top .brand small{opacity:.7;font-weight:400;margin-left:6px}
+.search-wrap{position:relative;flex:1;max-width:560px;margin-left:auto}
+#search{width:100%;padding:9px 14px 9px 36px;border-radius:8px;border:none;font-size:15px;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235f6b72' stroke-width='2.5'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E") no-repeat 11px center}
+#search:focus{outline:3px solid var(--sand)}
+#results{position:absolute;top:44px;left:0;right:0;background:#fff;color:var(--ink);border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,.2);max-height:70vh;overflow:auto;display:none}
+#results.open{display:block}
+#results .r{padding:10px 14px;border-bottom:1px solid var(--line);cursor:pointer}
+#results .r:hover,#results .r.act{background:#eef5f6}
+#results .r .sec{font-size:12px;color:var(--amber);font-weight:600;text-transform:uppercase;letter-spacing:.03em}
+#results .r .kind{font-size:11px;background:var(--line);border-radius:4px;padding:0 5px;margin-left:6px;color:var(--muted);text-transform:none;letter-spacing:0}
+#results .r .snip{font-size:14px}
+#results .empty,#results .count{padding:10px 14px;color:var(--muted);font-size:13px}
+mark{background:#ffe08a;color:inherit;border-radius:2px;padding:0 1px}
+#status{font-size:13px;white-space:nowrap;display:flex;align-items:center;gap:8px}
+#status .dot{width:10px;height:10px;border-radius:50%;background:#f0c987;box-shadow:0 0 0 0 rgba(240,201,135,.7);animation:pulse 1.4s infinite}
+#status.ready .dot{background:#7bd88f;animation:none}
+#status.err .dot{background:#ff6b6b;animation:none}
+@keyframes pulse{70%{box-shadow:0 0 0 8px rgba(240,201,135,0)}100%{box-shadow:0 0 0 0 rgba(240,201,135,0)}}
+.layout{display:grid;grid-template-columns:260px minmax(0,1fr);gap:28px;max-width:1240px;margin:0 auto;padding:24px 20px 80px}
+nav.toc{position:sticky;top:76px;align-self:start;max-height:calc(100vh - 96px);overflow:auto;font-size:14px}
+nav.toc h4{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+nav.toc a{display:block;color:var(--ink);text-decoration:none;padding:4px 10px;border-left:3px solid transparent;border-radius:0 4px 4px 0}
+nav.toc a.sub{padding-left:24px;font-size:13px;color:var(--muted)}
+nav.toc a:hover{background:#ece9df}
+nav.toc a.active{border-left-color:var(--amber);background:#fff;font-weight:600;color:var(--teal)}
+nav.toc .tools{margin-top:16px;display:flex;flex-direction:column;gap:6px}
+main{background:var(--paper);border-radius:12px;padding:36px 48px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+h1{font-size:2rem;color:var(--teal);margin:0 0 4px;line-height:1.25}
+.subtitle{color:var(--muted);margin:0 0 24px}
+h2{font-size:1.45rem;color:var(--teal);border-bottom:2px solid var(--sand);padding-bottom:6px;margin:48px 0 16px}
+h2 .num{color:var(--amber);margin-right:8px}
+h3{font-size:1.12rem;margin:30px 0 10px;color:var(--ink)}
+code{font-family:"JetBrains Mono",Consolas,Menlo,monospace;font-size:.88em;background:#f1efe8;padding:1px 5px;border-radius:4px;color:#7a3e00}
+.lead{font-size:1.08rem;border-left:4px solid var(--amber);padding:4px 0 4px 16px;color:#33424a}
+.goals{background:#eef5f6;border-radius:10px;padding:16px 22px}
+.goals ul{margin:6px 0 0;padding-left:20px}
+.callout{border-radius:10px;padding:12px 18px;margin:18px 0;border-left:5px solid}
+.callout .t{font-weight:700;display:block;margin-bottom:2px}
+.callout.warn{background:#fff4e5;border-color:var(--amber)}
+.callout.warn .t{color:var(--amber)}
+.callout.tip{background:#eaf6f1;border-color:#2f8f6b}
+.callout.tip .t{color:#2f8f6b}
+.callout.note{background:#eef2f7;border-color:#4b6a8a}
+.callout.note .t{color:#4b6a8a}
+pre.data{background:var(--code-bg);border:1px dashed var(--line);border-radius:8px;padding:10px 14px;font-size:13px;overflow:auto}
+/* code cells */
+.cell{border:1px solid var(--line);border-radius:10px;margin:18px 0;overflow:hidden;background:var(--code-bg)}
+.cell .bar{display:flex;align-items:center;gap:8px;padding:6px 10px;background:#f1efe8;border-bottom:1px solid var(--line);font-size:12px;color:var(--muted)}
+.cell .bar .lbl{font-family:Consolas,monospace}
+.cell .bar .sp{flex:1}
+button{font:inherit;cursor:pointer;border-radius:6px;border:1px solid transparent}
+.btn{background:var(--teal);color:#fff;padding:4px 12px;font-size:13px}
+.btn:hover{filter:brightness(1.2)}
+.btn:disabled{opacity:.5;cursor:wait}
+.btn.ghost{background:transparent;color:var(--teal);border-color:#c9d3d6}
+.btn.ghost:hover{background:#fff}
+.btn.amber{background:var(--amber)}
+.CodeMirror{height:auto;font-size:14px;background:var(--code-bg);font-family:"JetBrains Mono",Consolas,Menlo,monospace}
+.CodeMirror-scroll{min-height:30px}
+.cm-s-default .cm-keyword{color:#8a3ffc}.cm-s-default .cm-string{color:#0b7a4b}.cm-s-default .cm-number{color:#b26a00}.cm-s-default .cm-comment{color:#8a9296;font-style:italic}.cm-s-default .cm-builtin{color:#0b5f7a}
+.out{border-top:1px solid var(--line);background:#fff;padding:0;display:none}
+.out.show{display:block}
+.out .txt{margin:0;padding:10px 14px;font:13px/1.5 Consolas,Menlo,monospace;white-space:pre-wrap;color:#333}
+.out .txt.err{color:#b00020;background:#fff5f5}
+.out .plot{padding:6px;overflow-x:auto}
+.out table{border-collapse:collapse;margin:10px 14px;font-size:13px}
+.out th,.out td{border:1px solid var(--line);padding:4px 10px;text-align:right}
+.out th{background:#f1efe8}
+.out .dl{margin:10px 14px}
+.out .dl a{display:inline-block;background:var(--amber);color:#fff;text-decoration:none;padding:5px 12px;border-radius:6px;font-size:13px}
+.figdesc{font-size:14px;color:var(--muted);background:#f6f5f0;border-radius:8px;padding:8px 14px;margin:-8px 0 14px;border:1px solid var(--line)}
+.figdesc::before{content:"🖼 Beklenen grafik: ";font-weight:600;color:var(--teal)}
+.flash{animation:flash 2.2s ease}
+@keyframes flash{0%,40%{background:#fff1bf;box-shadow:0 0 0 6px #fff1bf}100%{background:transparent;box-shadow:none}}
+details.data{border:1px solid var(--line);border-radius:8px;margin:8px 0;background:#fff}
+details.data summary{cursor:pointer;padding:8px 14px;font-weight:600;color:var(--teal)}
+details.data .tbl{max-height:260px;overflow:auto;padding:0 14px 10px}
+details.data table{border-collapse:collapse;font-size:13px}
+details.data td,details.data th{border:1px solid var(--line);padding:3px 8px}
+details.data th{background:#f1efe8;position:sticky;top:0}
+/* quiz */
+.q{border:1px solid var(--line);border-radius:10px;padding:14px 18px;margin:14px 0}
+.q .qt{font-weight:600;margin-bottom:8px}
+.q label{display:block;padding:6px 10px;border-radius:6px;cursor:pointer;border:1px solid transparent}
+.q label:hover{background:#f4f2ea}
+.q label.ok{background:#e3f4ea;border-color:#2f8f6b}
+.q label.no{background:#fde8e8;border-color:#d05353}
+.q input{margin-right:8px}
+.q .fb{font-size:14px;margin-top:6px;display:none}
+.q .fb.show{display:block}
+#score{font-weight:700;color:var(--teal)}
+.out img{max-width:100%;height:auto;display:block;margin:6px auto}
+table.choose{border-collapse:collapse;width:100%;font-size:14px;margin:10px 0}table.choose th,table.choose td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}table.choose th{background:#eef5f6;color:var(--teal)}
+.chnav{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:14px;margin:0 0 18px}.chnav a{color:var(--teal);text-decoration:none;border:1px solid var(--line);border-radius:6px;padding:4px 10px}.chnav a:hover{background:#eef5f6}.chnav .all{display:flex;gap:4px;flex-wrap:wrap}.chnav .all a.cur{background:var(--teal);color:#fff}
+.summary li{margin-bottom:6px}
+footer{text-align:center;color:var(--muted);font-size:13px;padding:30px}
+kbd{border:1px solid #bbb;border-bottom-width:2px;border-radius:4px;padding:0 5px;font-size:12px;background:#fff;color:#333}
+@media (max-width:900px){.layout{grid-template-columns:1fr}nav.toc{display:none}main{padding:22px 18px}header.top .brand small{display:none}#status span{display:none}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">Bölüm 8 <small>Yerleşimler: Bir Figürde Birçok Grafik</small></div>
+  <div class="search-wrap">
+    <input id="search" type="search" placeholder="Bölümde ara… (ör. subplots, sharey, mosaic)   Ctrl+K" autocomplete="off">
+    <div id="results"></div>
+  </div>
+  <div id="status"><div class="dot"></div><span id="statusText">Python yükleniyor…</span></div>
+</header>
+
+<div class="layout">
+<nav class="toc" id="toc">
+  <h4>İçindekiler</h4>
+  <div id="tocLinks"></div>
+  <div class="tools">
+    <button class="btn" id="runAll">▶ Tüm hücreleri çalıştır</button>
+    <button class="btn ghost" id="resetNs">↺ Python ortamını sıfırla</button>
+  </div>
+</nav>
+
+<main id="content">
+<div class="chnav"><a href="bolum07_ozellestirme.html">← Bölüm 7</a><div class="all">Bölümler: <a href="bolum01_ortami_kurmak.html" class="" title="Görselleştirme Ortamını Kurmak">1</a><a href="bolum02_cizmeden_once_dusunmek.html" class="" title="Çizmeden Önce Düşünmek">2</a><a href="bolum03_matplotlib_temelleri.html" class="" title="matplotlib Temelleri">3</a><a href="bolum04_cizgiler_noktalar.html" class="" title="Çizgiler ve Noktalar">4</a><a href="bolum05_cubuklar_pastalar_tablolar.html" class="" title="Çubuklar, Pastalar ve Tablolar">5</a><a href="bolum06_dagilimlar_izgaralar.html" class="" title="Dağılımlar ve Değer Izgaraları">6</a><a href="bolum07_ozellestirme.html" class="" title="Bir Grafiğin Her Parçasını Özelleştirmek">7</a><a href="bolum08_yerlesimler.html" class="cur" title="Yerleşimler: Bir Figürde Birçok Grafik">8</a><a href="bolum09_iletisim_kuran_tasarim.html" class="" title="İletişim Kuran Tasarım">9</a><a href="bolum10_yalan_soyleyen_grafikler.html" class="" title="Yalan Söyleyen Grafikler">10</a><a href="bolum11_seaborn_temelleri.html" class="" title="seaborn Temelleri">11</a><a href="bolum12_iliskiler_regresyon.html" class="" title="İlişkiler ve Regresyon">12</a><a href="bolum13_kategoriler.html" class="" title="Kategoriler">13</a><a href="bolum14_dagilimlar.html" class="" title="Dağılımlar">14</a><a href="bolum15_izgaralar_matrisler.html" class="" title="Izgaralar ve Matrisler">15</a><a href="bolum16_plotly_express.html" class="" title="plotly express ile Etkileşimli Grafikler">16</a><a href="bolum17_haritalar_is_grafikleri.html" class="" title="Haritalar ve İş Grafikleri">17</a></div><a href="bolum09_iletisim_kuran_tasarim.html">Bölüm 9 →</a></div>
+<h1>Bölüm 8: Yerleşimler: Bir Figürde Birçok Grafik</h1>
+<p class="subtitle">Kod hücreleri tarayıcınızda <strong>Pyodide</strong> ile çalışır; Python kurmanıza gerek yok. Kodu değiştirip yeniden çalıştırabilirsiniz (<kbd>Shift</kbd>+<kbd>Enter</kbd>). Grafikler matplotlib ile resim olarak çizilir.</p>
+
+<p class="lead">Yöneticiniz mağazanın nasıl gittiğini gösteren tek bir sayfa istiyor: ürün kategorisine göre satışlar, yıllık eğilim ve hangi mağazaların en çok kazandığı; sayılar bir bakışta karşılaştırılabilsin diye hepsi yan yana. Dört ayrı grafiği bir slayta yapıştırmak işe yarar, ama eksenler eşleşmez ve boyutlar farklı olur. Tek bir figürde duran grafikler eksenleri, tek bir başlığı ve tek bir yerleşimi paylaşabilir.</p>
+
+<p>Şimdiye kadar bu kitaptaki her figür tek bir grafik tuttu. Bu bölüm bir figüre birkaç grafik koyuyor. <code>plt.subplots()</code> ile grafik ızgaraları kuracak, adil karşılaştırsınlar diye eksenlerini paylaştıracak ve bütün figür için tek bir başlık ekleyeceksiniz. Sonra boşluk sorunlarını düzeltecek, <code>plt.subplot_mosaic()</code> ile eşit olmayan yerleşimler çizecek ve <code>ax.twinx()</code> ile farklı birimlerdeki iki ölçüyü tek bir grafiğe koyacaksınız.</p>
+
+<div class="goals">
+<strong>Bu bölümün sonunda şunları yapabileceksiniz:</strong>
+<ul>
+<li><code>plt.subplots(nrows, ncols)</code> ile bir grafik ızgarası oluşturmak ve <code>axes[row, col]</code> ile birini seçmek</li>
+<li><code>sharex</code> ve <code>sharey</code> ile grafikler arasında x ya da y eksenini paylaşmak</li>
+<li><code>fig.suptitle()</code> ile bütün figür için bir başlık eklemek</li>
+<li><code>fig.tight_layout()</code> ve <code>layout='constrained'</code> ile üst üste binen başlıkları ve etiketleri düzeltmek</li>
+<li><code>plt.subplot_mosaic()</code> ile, iki küçük grafiğin üstünde geniş bir grafik gibi eşit olmayan yerleşimler çizmek</li>
+<li><code>ax.twinx()</code> ile farklı birimlerdeki iki ölçüyü tek grafiğe koymak ve ne zaman koymamak gerektiğini bilmek</li>
+</ul>
+</div>
+
+<details class="data" id="datasets">
+<summary>📁 Bu bölümün veri dosyaları (sayfaya gömülü — Python’da doğrudan <code>pd.read_csv()</code> ile okunur)</summary>
+<div id="dataList" style="padding:0 14px 10px"></div>
+</details>
+
+<section>
+<h2 id="s8-1"><span class="num">8.1</span>Grafik Izgaraları</h2>
+<p>Bölüm 3.1’in gösterdiği gibi bir figür resmin tamamı, bir axes de içinde kendi x ve y ekseni olan bir grafiktir. Bölüm 3’ten beri tek bir eksen alanlı bir figür yapan <code>fig, ax = plt.subplots()</code> yazdınız. Ona iki sayı verin, bir ızgara yapar.</p>
+<p>İçe aktarmalarla ve kitabın stiliyle başlayın:</p>
+<div class="cell"><textarea>import matplotlib.pyplot as plt
+import pandas as pd
+from matplotlib.ticker import PercentFormatter, StrMethodFormatter
+
+plt.style.use('book.mplstyle')</textarea></div>
+<p>İki biçimlendirici Bölüm 7’den geliyor. Mağazanın 2025 satışları artık her biri bir sütun olan dört ürün kategorisine bölünmüş:</p>
+<pre class="data">month,audio,displays,storage,accessories
+Jan,10100,13200,7900,7000
+Feb,10300,12400,7600,5600
+Mar,11300,16000,9300,6200
+...
+Dec,19600,26200,16100,12700</pre>
+<div class="cell"><textarea>categories = pd.read_csv('category_sales.csv')
+categories.head(3)</textarea></div>
+
+<h3 id="s8-1-grid"><code>plt.subplots(nrows, ncols)</code></h3>
+<p>İlk sayı satır sayısı, ikincisi sütun sayısıdır. Bu çağrı yan yana iki grafikli bir satır yapar. İkinci dönüş değeri artık tek bir axes değil, onlardan oluşan bir koleksiyondur; bu yüzden kitap ona s’li <code>axes</code> der. Burada <code>axes</code> “axis”in (bir sayı doğrusu) çoğulu değil, birkaç grafik demektir. Her grafiğe aynı işlemi uygulamak için üzerinde dönün:</p>
+<div class="cell"><textarea>fig, axes = plt.subplots(1, 2, figsize=(5.5, 2.6))
+for ax, name in zip(axes, ['audio', 'displays']):
+    ax.plot(categories['month'], categories[name])
+    ax.set_title(name.title())
+    ax.set_xticks([0, 3, 6, 9])
+plt.show()</textarea></div>
+<p class="figdesc">Yan yana iki çizgi grafik; solda Audio, sağda Displays. İkisi de yıl sonuna doğru yükseliyor, ama y eksenleri farklı aralıklara yayılıyor.</p>
+<p><code>zip(axes, [...])</code> grafikleri ve sütun adlarını birlikte dolaşır; böylece ilk ad ilk grafikle eşleşir. 5,5 inçlik bir figür bir sayfanın genişliğidir; bu da her grafiğe yaklaşık yarısını bırakır. On iki ay adı sığmazdı; bu yüzden <code>set_xticks([0, 3, 6, 9])</code> her üçüncüsünü tutar. Ay adları Bölüm 3.3’teki gibi 0’dan sayılır; yani 0. konum Jan, 3 Apr, 6 Jul ve 9 Oct’tur. <code>name.title()</code> başlık için adın ilk harfini büyütür. Displays işaret etiketleri Audio grafiğine de çarpıyor; Bölüm 8.2 boşluğu düzeltiyor.</p>
+<p>Grafik yanıltıcı. İki çizgi benzer görünüyor, ama her grafik kendi y eksenini seçti. Audio yaklaşık 10.000’den 20.000’e, Displays ise yaklaşık 12.000’den 26.000’e uzanıyor ve yükseklikleri karşılaştıran bir okuyucu yanılırdı. <code>axes</code>’in gerçekte ne olduğuna bakın:</p>
+<div class="cell"><textarea>print(type(axes))</textarea></div>
+<p>Bu, grafik başına bir girişi olan liste benzeri bir tablo olan bir NumPy dizisidir. Köşeli parantezlerle bir grafik seçebilirsiniz: <code>axes[0]</code> soldaki, <code>axes[1]</code> sağdaki grafiktir.</p>
+
+<h3 id="s8-1-sharey"><code>sharey</code> ile y eksenini paylaşmak</h3>
+<p>Çözüm, matplotlib’e grafiklerin bir y eksenini paylaştığını söylemektir. <code>sharey=True</code> ile figürdeki her grafik aynı sınırları ve aynı işaretleri kullanır:</p>
+<div class="cell"><textarea>fig, axes = plt.subplots(1, 2, figsize=(5.5, 2.6), sharey=True)
+for ax, name in zip(axes, ['audio', 'displays']):
+    ax.plot(categories['month'], categories[name])
+    ax.set_title(name.title())
+    ax.set_xticks([0, 3, 6, 9])
+axes[0].yaxis.set_major_formatter(StrMethodFormatter('${x:,.0f}'))
+plt.show()</textarea></div>
+<p class="figdesc">Yaklaşık 10.000 $’dan 26.000 $’a ortak bir y ekseni üzerinde aynı iki grafik. Audio’nun çizgisi artık açıkça Displays’in altında duruyor. Yalnızca sol grafik y ekseni etiketleri gösteriyor.</p>
+<p>Artık yükseklikler dürüstçe karşılaştırılıyor: Displays tüm yıl Audio’dan yüksek. Sağ grafik y ekseni etiketlerini bırakıyor, çünkü soldakileri tekrarlarlardı; bu da veriye daha çok yer bırakıyor. Biçimlendiricinin yalnızca bir kez, <code>axes[0]</code>’a ayarlanması gerekti, çünkü ortak bir eksen etiketlerini de paylaşır.</p>
+<div class="callout tip"><span class="t">💡 İpucu</span>Grafikler aynı ölçüyü aynı birimlerle gösterdiğinde bir ekseni her zaman paylaşın. y eksenlerini yalnızca grafikler farklı birimler tuttuğunda, örneğin birinde dolar diğerinde sipariş olduğunda ayrı bırakın.</div>
+
+<h3 id="s8-1-rows">Birkaç satırlı ızgaralar</h3>
+<p>İki satır ve iki sütunla <code>axes</code> bir tablo olur. Bir grafik iki sayıyla seçilir, <code>axes[row, col]</code>, ve ikisi de 0’dan sayar. <code>axes[0, 1]</code> üst satır, sağ sütundur. <code>axes[1, 0]</code> alt satır, sol sütundur.</p>
+<p>Dört grafiğin hepsi üzerinde tek bir liste gibi dönmek için 2 × 2 tabloyu dört grafiklik tek bir sıraya çeviren <code>axes.flat</code>’i kullanın. Bu kez iki eksen de paylaşılıyor:</p>
+<div class="cell"><textarea>fig, axes = plt.subplots(2, 2, figsize=(5.5, 3.8),
+                         sharex=True, sharey=True)
+names = ['audio', 'displays', 'storage', 'accessories']
+for ax, name in zip(axes.flat, names):
+    ax.plot(categories['month'], categories[name])
+    ax.set_title(name.title())
+axes[0, 0].set_xticks([0, 3, 6, 9])
+axes[0, 0].yaxis.set_major_formatter(StrMethodFormatter('${x:,.0f}'))
+plt.show()</textarea></div>
+<p class="figdesc">İkiye iki bir ızgarada dört çizgi grafik: Audio, Displays, Storage ve Accessories. Hepsi tek bir y eksenini paylaşıyor ve ay adları yalnızca alt satırın altında görünüyor.</p>
+<p><code>sharex=True</code>, <code>sharey=True</code>’nun y ekseni için yaptığını x ekseni için yapar. Ay adları yalnızca alt satırın altına, işaret etiketleri yalnızca sol sütuna yazılır; böylece etiketler dört kez tekrarlanmaz. Her şey paylaşıldığı için bir grafikteki <code>set_xticks()</code> dördünü de değiştirir. Sıra hiç değişmiyor: her ay Displays en yüksek, sonra Audio, sonra Storage ve Accessories en düşük.</p>
+<p>Bu seçenekler için bilmeye değer iki değer daha var. <code>sharex='col'</code> x eksenini yalnızca her sütun içinde, <code>sharey='row'</code> y eksenini yalnızca her satır içinde paylaştırır. Bir ızgara ölçüleri karıştırdığında, diyelim bir satır dolar diğeri sipariş olduğunda, her satır kendi ölçeğini korusun diye onları kullanın.</p>
+<div class="callout note"><span class="t">📝 Not</span>Bu şekilde yapılmış bir ızgarada her grafik aynı boyuttadır. Bir grafiğin diğerlerinden geniş olmasını istediğinizde Bölüm 8.3’te daha iyi bir araç var.</div>
+</section>
+
+<section>
+<h2 id="s8-2"><span class="num">8.2</span>Tek Başlık ve Temiz Boşluklar</h2>
+<h3 id="s8-2-suptitle"><code>fig.suptitle()</code></h3>
+<p>Her grafiğin <code>ax.set_title()</code>’dan gelen bir başlığı var. Bütün figürün de <em>üst başlık</em> (super title) denen kendi başlığı olabilir. <code>fig.suptitle()</code> onu tüm grafiklerin üstüne ortalanmış olarak yazar. Figürün ne hakkında olduğunu söylemek için onu kullanın ve her grafiğin başlığını bir ad olarak kısa tutun:</p>
+<div class="cell"><textarea>fig, axes = plt.subplots(2, 2, figsize=(5.5, 4),
+                         sharex=True, sharey=True)
+for ax, name in zip(axes.flat, names):
+    ax.plot(categories['month'], categories[name])
+    ax.set_title(name.title())
+axes[0, 0].set_xticks([0, 3, 6, 9])
+fig.suptitle('Sales by category, 2025')
+plt.show()</textarea></div>
+<p class="figdesc">Üstlerinde ortalanmış “Sales by category, 2025” figür başlığı olan dört kategori grafiği.</p>
+<p>Üst başlığın ortalandığına, bu kitabın stilinde grafik başlıklarının ise solda durduğuna dikkat edin. Bu bilinçlidir: bir figür başlığı bütün resme aittir. Onu da sola hizalamayı tercih ederseniz <code>suptitle()</code>’a <code>x=0.01, ha='left'</code> verin.</p>
+<p>Bu örnek Bölüm 8.1’deki gibi iki ekseni de paylaşıyor; böylece ay adları yalnızca bir kez görünüyor ve grafikler birbirine yer bırakıyor. Sonraki örnek paylaşımı bilerek kapalı bırakıyor, çünkü üst üste binmelere neden olan tekrarlanan işaret etiketleridir.</p>
+
+<h3 id="s8-2-overlap">Üst üste binmeleri düzeltmek</h3>
+<p>Çok grafikli figürlerin yanlış gittiği yer boşluklardır. Matplotlib figürü eşit yuvalara böler ve metnin sığıp sığmadığını kontrol etmez. Sorunu görmek için işte her grafiğin kendi işaret etiketlerini koruduğu, hiç ortak ekseni olmayan aynı ızgara:</p>
+<div class="cell"><textarea>fig, axes = plt.subplots(2, 2, figsize=(5.5, 4))
+for ax, name in zip(axes.flat, names):
+    ax.plot(categories['month'], categories[name])
+    ax.set_title(name.title())
+    ax.set_xticks([0, 3, 6, 9])
+fig.suptitle('Sales by category, 2025')
+plt.show()</textarea></div>
+<p class="figdesc">Alt grafiklerin başlıklarının üstlerindeki grafiklerin ay adlarına değdiği ikiye iki bir ızgara.</p>
+<p>Alt satırın başlıkları üstlerindeki ay adlarına çarpıyor. Matplotlib bunu kendi başına göremez, çünkü her grafiği metin eklenmeden önce yerleştirdi. Ondan yeniden bakmasını istemenin iki yolu var.</p>
+
+<h3 id="s8-2-tight"><code>fig.tight_layout()</code></h3>
+<p><code>fig.tight_layout()</code> her grafikteki tüm metni ölçer ve sonra aralarına yeterli boşluk ekler. Onu figürdeki diğer her şey çizildikten sonra, <code>plt.show()</code>’dan hemen önce çağırın:</p>
+<div class="cell"><textarea>fig, axes = plt.subplots(2, 2, figsize=(5.5, 4))
+for ax, name in zip(axes.flat, names):
+    ax.plot(categories['month'], categories[name])
+    ax.set_title(name.title())
+    ax.set_xticks([0, 3, 6, 9])
+fig.suptitle('Sales by category, 2025')
+fig.tight_layout()
+plt.show()</textarea></div>
+<p class="figdesc">Grafikleri arasında yeterli boşluk olan aynı ızgara. Hiçbir başlık ya da etiket diğerine değmiyor ve figür başlığı üst satırın üstünde duruyor.</p>
+<p>Üst üste binmeler gitti. <code>tight_layout()</code> bir kez, çağırdığınız anda çalışır. Sonrasında bir başlık ekler ya da bir etiketi değiştirirseniz onu yeniden çağırın.</p>
+
+<h3 id="s8-2-constrained">Kısıtlı yerleşim</h3>
+<p><em>Kısıtlı yerleşim</em> (constrained layout) daha yeni yanıttır. Onu figürü oluştururken <code>layout='constrained'</code> ile açarsınız ve o andan itibaren matplotlib, figürü daha sonra yeniden çizdiğinde de dahil, tüm metni diğer metinden uzak tutar:</p>
+<div class="cell"><textarea>fig, axes = plt.subplots(2, 2, figsize=(5.5, 4),
+                         layout='constrained')
+for ax, name in zip(axes.flat, names):
+    ax.plot(categories['month'], categories[name])
+    ax.set_title(name.title())
+    ax.set_xticks([0, 3, 6, 9])
+fig.suptitle('Sales by category, 2025')
+plt.show()</textarea></div>
+<p class="figdesc">Kısıtlı yerleşimle yapılmış aynı ızgara; boşluklar öncekiyle aynı temizlikte ve figür başlığı grafiklerin üstüne yerleştirilmiş.</p>
+<p>Sonuç burada aynı, bir satır daha azla. Kısıtlı yerleşim daha zor durumlarda da daha iyidir: bir renk çubuğu (Bölüm 4.5), grafiğin dışına konmuş bir gösterge ya da bir figür başlığı. Bunlarla sürekli karşılaşacaksınız. Ayrıca <code>tight_layout()</code>’u çağırırsanız figürü kısıtlıdan sıkıya geçirir (bir uyarıyla); bu yüzden her figür için birini seçin.</p>
+<p>Kitap bundan sonra <code>layout='constrained'</code> kullanıyor. Eski bir öğreticinin <code>constrained_layout=True</code> yazdığını görürseniz bu aynı şeyin eski yazımıdır. Hem <code>plt.subplots()</code> hem <code>plt.figure()</code> <code>layout=</code> kabul eder.</p>
+<div class="callout warn"><span class="t">⚠ Dikkat</span>Yerleşimler yalnızca çalıştıklarında figürünüzde olan boşlukları ele alır. <code>tight_layout()</code>’u çağırdıktan sonra bir metin, bir gösterge ya da bir not eklerseniz hâlâ taşabilir. Kısıtlı yerleşime geçin, uyum sağlar.</div>
+</section>
+
+<section>
+<h2 id="s8-3"><span class="num">8.3</span><code>plt.subplot_mosaic()</code> ile Eşit Olmayan Yerleşimler</h2>
+<p>Bir ızgarada her grafik aynı boyuttadır. Bir rapor sayfası çoğu zaman üstte geniş bir grafik ve altında iki küçük grafik ister. <code>plt.subplot_mosaic()</code> sayfa yerleşimini metin olarak çizmenizi sağlar ve her harf bir grafiktir.</p>
+
+<h3 id="s8-3-mosaic"><code>plt.subplot_mosaic()</code></h3>
+<p>Burada ilk satırda iki sütun genişliğinde bir grafik, ikinci satırda iki grafik var. Tekrarlanan bir harf birden fazla hücre alır. Satırlar noktalı virgülle ayrılır:</p>
+<div class="cell"><textarea>fig, axes = plt.subplot_mosaic('AA;BC', figsize=(5.5, 3),
+                               layout='constrained')
+for name, ax in axes.items():
+    ax.set_title(name)
+plt.show()</textarea></div>
+<p class="figdesc">Üç grafikli boş bir figür: üstte boydan boya A, altında yan yana B ve C.</p>
+<p>Bir dizi yerine <code>axes</code> artık bir <em>sözlüktür</em>: her harf bir anahtar ve değeri o grafiktir. Yukarıdaki döngüde <code>.items()</code> her adı grafiğiyle birlikte verir. İçinde ne olduğuna bakın:</p>
+<div class="cell"><textarea>list(axes)</textarea></div>
+<p>Bir grafiği adıyla, <code>axes['A']</code> ile seçersiniz; bu <code>axes[0, 1]</code>’den daha iyi okunur. Adların tek harf olması gerekmez. Gerçek adlarla bir yerleşim için satırları listelerden oluşan bir liste olarak yazın:</p>
+<div class="cell"><textarea>plan = [['trend', 'trend'],
+        ['bars', 'dots']]</textarea></div>
+<p>Mağazanın aylık sayıları ve Bölüm 7’deki mağaza istatistikleri üç grafiği dolduracak:</p>
+<pre class="data">month,revenue,orders,conversion
+Jan,38200,470,0.022
+Feb,35900,452,0.0225
+...
+Dec,74600,1370,0.031</pre>
+<div class="cell"><textarea>shop = pd.read_csv('monthly_shop.csv')
+stores = pd.read_csv('store_stats.csv')
+totals = categories.drop(columns='month').sum().sort_values()
+totals</textarea></div>
+<p><code>sum()</code> her sütunu toplar ve <code>.str.title()</code> sonradan çubuk etiketleri için <code>audio</code>’yu <code>Audio</code>’ya çevirir. <code>sort_values()</code> en küçük toplamı başa koyar; bu da yatay bir çubuk grafikte en alttaki çubuk olur (Bölüm 5.1). Şimdi her grafiği kendi adlandırılmış eksen alanına çizin:</p>
+<div class="cell"><textarea>fig, axes = plt.subplot_mosaic(plan, figsize=(5.5, 4.4),
+                               layout='constrained')
+
+axes['trend'].plot(shop['month'], shop['revenue'])
+axes['trend'].set_title('Monthly revenue, 2025')
+axes['trend'].yaxis.set_major_formatter(
+    StrMethodFormatter('${x:,.0f}'))
+
+axes['bars'].barh(totals.index.str.title(), totals)
+axes['bars'].set_title('Sales by category')
+axes['bars'].set_xticks([0, 100000, 200000])
+axes['bars'].xaxis.set_major_formatter(
+    StrMethodFormatter('${x:,.0f}'))
+
+axes['dots'].scatter(stores['visitors'], stores['daily_revenue'])
+axes['dots'].set_title('Busier stores earn more')
+axes['dots'].set_xlabel('Visitors per day')
+axes['dots'].set_ylabel('Revenue per day ($)')
+plt.show()</textarea></div>
+<p class="figdesc">Tek sayfalık bir genel bakış. Üstte Ocak’tan Aralık’a yükselen geniş bir gelir çizgisi. Altında dört kategoriyi en büyüğü Displays olacak şekilde sıralayan yatay bir çubuk grafik ve günlük gelirin günlük ziyaretçiyle yükseldiğini gösteren bir saçılım grafiği.</p>
+<p>Tek bir figür artık bağlantılı üç olguyu anlatıyor: satışların ne zaman olduğu, ne sattığı ve hangi mağazaların iyi gittiği. Üstteki geniş grafik eğilime on iki ayın hepsi için yer verir. Her grafik kendi eksenlerini koruyor ve burada doğrusu bu, çünkü farklı ölçüler gösteriyorlar. Çubuk toplamları on iki ayı topluyor; böylece yaklaşık 214.000 $ ile Displays, ilk ızgaranın da gösterdiği gibi en büyük kategori.</p>
+<p>Kaydetme Bölüm 3.5’teki gibi çalışır: <code>fig.savefig('overview.png', dpi=200, bbox_inches='tight')</code>.</p>
+<div class="callout tip"><span class="t">💡 İpucu</span>Mozaiğin yapabildiği birkaç şey daha: <code>'AA;B.'</code>’deki gibi bir nokta bir hücreyi boş bırakır. <code>width_ratios=[2, 1]</code> ve <code>height_ratios=[3, 1]</code> bazı sütunları ya da satırları diğerlerinden büyük yapar. <code>sharex=True</code> ve <code>sharey=True</code> Bölüm 8.1’deki gibi çalışır ve her adlandırılmış grafiğe uygulanır.</div>
+<div class="cell"><textarea># Deneme: boş hücre ve genişlik oranları
+fig, axes = plt.subplot_mosaic('AB;A.', figsize=(5.5, 3), layout='constrained',
+                               width_ratios=[2, 1])
+for name, ax in axes.items():
+    ax.set_title(name)
+plt.show()</textarea></div>
+<p><code>GridSpec</code>’i duyduysanız aynı işi daha çok adımla yapar. Mozaik daha kolay araçtır ve kitabın kullandığı odur.</p>
+
+<h3 id="s8-3-seaborn">seaborn nereye oturuyor?</h3>
+<p>Bölüm 11–15’teki seaborn fonksiyonları burada yaptığınız herhangi bir grafiğe çizebilir. Eksenleri <code>sns.barplot(..., ax=axes['bars'])</code>’daki gibi <code>ax=</code> ile verin; bu bölümün diğer yerleşim araçları geçerli olmaya devam eder. Bölüm 11.6 bunun seaborn’un kendi ızgaralarından nasıl farklı olduğunu açıklıyor. “Kategori başına bir grafik” gibi yaygın durum için seaborn ızgarayı kendisi yapabilir: Bölüm 15.1’deki <code>col=</code> ve <code>row=</code>, veriyi aynı eksenlere sahip bir dizi grafik olan küçük çoklulara böler.</p>
+</section>
+
+<section>
+<h2 id="s8-4"><span class="num">8.4</span><code>ax.twinx()</code> ile İki y Ekseni</h2>
+<p>Bazen iki ölçü aynı x eksenini paylaşır ama çok farklı ölçeklerde yaşar. Gelir on binlerce dolar cinsindendir, siparişle biten ziyaretlerin payı ise yaklaşık yüzde 3’tür. Tek bir y ekseninde ikinci çizgi yere yapışık yatay kalırdı.</p>
+
+<h3 id="s8-4-twinx"><code>ax.twinx()</code></h3>
+<p><code>ax.twinx()</code> birincinin üstüne ikinci bir eksen alanı yapar. x eksenini paylaşır ve sağa çizilen kendi y ekseni vardır. Her birine bir ölçü çizersiniz. Önce, hiç stil verilmemiş düz sürüm:</p>
+<div class="cell"><textarea>fig, ax = plt.subplots(layout='constrained')
+ax2 = ax.twinx()
+ax.plot(shop['month'], shop['revenue'])
+ax2.plot(shop['month'], shop['conversion'])
+ax.set_title('Revenue and conversion rate, 2025')
+ax.set_ylabel('Revenue ($)')
+ax2.set_ylabel('Conversion rate')
+plt.show()</textarea></div>
+<p class="figdesc">Aynı görünen iki çizgi, ikisi de koyu camgöbeği ve düz; solda “Revenue ($)” etiketli bir y ekseni, sağda “Conversion rate” etiketli başka bir y ekseni.</p>
+<p>Hangi çizginin hangi eksene ait olduğunu söyleyemezsiniz. Her eksen alanı stil döngüsünü baştan başlatır; bu yüzden iki çizgi de koyu camgöbeği ve düz çıkar. Siz onları ayırmadıkça bir okuyucu çizgileri ve eksenleri eşleştiremez. İkinci çizgiye kendi rengini ve stilini verin, grafiğe bir gösterge koyun ve iki ekseni Bölüm 7.1’deki biçimlendiricilerle biçimlendirin:</p>
+<div class="cell"><textarea>fig, ax = plt.subplots(layout='constrained')
+ax2 = ax.twinx()
+line1, = ax.plot(shop['month'], shop['revenue'],
+                 label='Revenue (left axis)')
+line2, = ax2.plot(shop['month'], shop['conversion'],
+                  color='#b26a00', linestyle='--',
+                  label='Conversion rate (right axis)')
+ax.set_title('Revenue and conversion rate, 2025')
+ax.yaxis.set_major_formatter(StrMethodFormatter('${x:,.0f}'))
+ax2.yaxis.set_major_formatter(PercentFormatter(xmax=1, decimals=1))
+ax.legend(handles=[line1, line2], loc='upper left')
+plt.show()</textarea></div>
+<p class="figdesc">Sol eksende dolar etiketleriyle düz koyu camgöbeği bir çizgi olarak gelir ve sağ eksende yüzde etiketleriyle kesikli kehribar bir çizgi olarak dönüşüm oranı. Sol üstteki bir gösterge iki çizgiyi ve eksenlerini adlandırıyor.</p>
+<p><code>ax.plot()</code> bir çizgi listesi döndürür ve <code>line1, =</code>’deki virgül tek çizgiyi ondan çıkarır. Buna <em>açma</em> (unpacking) denir: bir şeyler grubu ayrı adlara bölünür. <code>ax.legend()</code> ile yapılan bir gösterge yalnızca kendi eksenlerindeki çizgileri bilir; bu yüzden ikinci çizgiyi kaçırırdı. <code>handles=[line1, line2]</code> vermek ikisini de listeler. Etiketlere “left axis” ve “right axis” yazmak okuyucuya hangi ölçeği okuyacağını söyler. Bölüm 9.3 çizgileri doğrudan etiketleyip göstergeyi atmayı gösteriyor.</p>
+<p>İki çizgi de yıl sonuna doğru tırmanıyor; bu yüzden yakından bağlantılı görünüyorlar. Bu birlikte hareket ettiklerini gösterir, birinin diğerine neden olduğunu göstermez.</p>
+<div class="callout warn"><span class="t">⚠ Dikkat</span>İki y ekseni yanıltabilir. Her eksenin kendi ölçeği vardır; bu yüzden yalnızca bir eksenin sınırlarını değiştirerek ilgisiz iki çizgiyi birlikte hareket ediyormuş ya da kesişiyormuş gibi gösterebilirsiniz. Okuyucu bunu gerçek bir ilişkiden ayırt edemez. Bölüm 10.2 bir örnek gösteriyor. <code>twinx()</code>’i yalnızca ölçüler gelir ve dönüşüm gibi birbirine bağlı olduğunda kullanın ve iki ekseni de açıkça etiketleyin.</div>
+
+<h3 id="s8-4-stacked">Alternatif olarak üst üste grafikler</h3>
+<p>Çoğu zaman en açık yanıt, x eksenini paylaşan üst üste iki grafiktir. Her ölçü tam yükseklikte kendi eksenini alır ve çizgilerin kesiştiği yerden hiçbir anlam çıkarılamaz:</p>
+<div class="cell"><textarea>fig, (top, bottom) = plt.subplots(2, 1, figsize=(5.5, 3.6),
+                                  sharex=True,
+                                  layout='constrained')
+top.plot(shop['month'], shop['revenue'])
+top.set_title('Revenue ($)')
+top.yaxis.set_major_formatter(StrMethodFormatter('${x:,.0f}'))
+bottom.plot(shop['month'], shop['conversion'])
+bottom.set_title('Conversion rate')
+bottom.yaxis.set_major_formatter(PercentFormatter(xmax=1, decimals=1))
+plt.show()</textarea></div>
+<p class="figdesc">Altta aynı ay etiketleri olan, üst üste duran iki grafik. Üstteki dolar cinsinden geliri, alttaki yüzde cinsinden dönüşüm oranını gösteriyor. İkisi de yılı başladıkları yerden yüksekte bitiriyor.</p>
+<p>İki satır ve bir sütunla <code>plt.subplots()</code> iki eksen alanından oluşan bir sütun döndürür. Onları <code>line1, =</code>’deki gibi <code>(top, bottom)</code> olarak açmak her birine bir ad verir; bu <code>axes[0]</code> ve <code>axes[1]</code>’den daha kolay okunur. <code>sharex=True</code> sayesinde aylar bir kez görünür ve iki grafik tam olarak hizalanır. İkiz eksenler ile üst üste grafikler arasında karar veremiyorsanız üst üste sürümü seçin.</p>
+</section>
+
+<section>
+<h2 id="ozet">Bölüm Özeti</h2>
+<ul class="summary">
+<li><code>fig, axes = plt.subplots(nrows, ncols)</code> bir grafik ızgarası yapar. Tek satır ya da tek sütunla <code>axes</code> basit bir listedir; ikisiyle bir tablodur ve <code>axes[row, col]</code> ile seçilir. Üzerinde <code>axes.flat</code> ile dönün.</li>
+<li><code>sharex=True</code> ve <code>sharey=True</code> tüm grafiklere aynı sınırları verir ve işaret etiketlerini yalnızca bir kez basar. Grafikler aynı ölçüyü gösterdiğinde bir ekseni her zaman paylaşın.</li>
+<li><code>fig.suptitle()</code> bütün figüre bir başlık verir. Grafiklerin kendi başlıklarını kısa tutun.</li>
+<li><code>fig.tight_layout()</code> üst üste binen metni bir kez, çağırdığınızda düzeltir. <code>layout='constrained'</code> onu otomatik düzeltir ve renk çubuklarını, göstergeleri ve üst başlıkları ele alır; onu varsayılanınız yapın.</li>
+<li><code>plt.subplot_mosaic()</code> bir yerleşimi <code>'AA;BC'</code> ya da adlandırılmış satırlardan oluşan bir liste gibi metin olarak çizer. Bir eksen sözlüğü döndürür ve tekrarlanan bir ad birkaç hücreye yayılır.</li>
+<li><code>ax.twinx()</code> sağa ikinci bir y ekseni ekler. İkinci çizgiye kendi rengini ve stilini verin, iki ekseni de adlandırın ve göstergeyi <code>handles=</code> ile birleştirin.</li>
+<li>İki y ekseni yanıltabilir (Bölüm 10.2). Şüphe durumunda bunun yerine <code>sharex=True</code> ile iki grafiği üst üste koyun.</li>
+</ul>
+<p>Artık grafikleri herhangi bir yerleşimde düzenleyebilirsiniz. Bölüm 9 içlerine ne gireceğine dönüyor: neyin kesileceği, neyin vurgulanacağı ve bulguyu söyleyen bir başlığın nasıl yazılacağı.</p>
+
+<h3 id="oyun">Kendi kodunuzu deneyin</h3>
+<p>Aşağıdaki hücre bir oyun alanı. Yukarıdaki tüm değişkenler (<code>categories</code>, <code>shop</code>, <code>stores</code>, <code>totals</code>…) burada kullanılabilir (önceki hücreler otomatik çalıştırılır).</p>
+<div class="cell"><textarea># Örnek: üç ölçüyü üst üste, ortak x ekseniyle
+fig, axes = plt.subplots(3, 1, figsize=(5.5, 4.6), sharex=True, layout='constrained')
+for ax, col, fmt in zip(axes, ['revenue', 'orders', 'conversion'],
+                        [StrMethodFormatter('${x:,.0f}'), StrMethodFormatter('{x:,.0f}'),
+                         PercentFormatter(xmax=1, decimals=1)]):
+    ax.plot(shop['month'], shop[col])
+    ax.set_title(col.title())
+    ax.yaxis.set_major_formatter(fmt)
+fig.suptitle('Everything climbs toward December')
+plt.show()</textarea></div>
+</section>
+
+<section>
+<h2 id="quiz">Sınav</h2>
+<p>Bir seçeneğe tıklayın; doğru cevap ve açıklama hemen görünür. Puan: <span id="score">0 / 10</span> &nbsp;<button class="btn ghost" id="quizReset">Sıfırla</button></p>
+<div id="quizBox"></div>
+</section>
+
+<div class="chnav"><a href="bolum07_ozellestirme.html">← Bölüm 7</a><div class="all">Bölümler: <a href="bolum01_ortami_kurmak.html" class="" title="Görselleştirme Ortamını Kurmak">1</a><a href="bolum02_cizmeden_once_dusunmek.html" class="" title="Çizmeden Önce Düşünmek">2</a><a href="bolum03_matplotlib_temelleri.html" class="" title="matplotlib Temelleri">3</a><a href="bolum04_cizgiler_noktalar.html" class="" title="Çizgiler ve Noktalar">4</a><a href="bolum05_cubuklar_pastalar_tablolar.html" class="" title="Çubuklar, Pastalar ve Tablolar">5</a><a href="bolum06_dagilimlar_izgaralar.html" class="" title="Dağılımlar ve Değer Izgaraları">6</a><a href="bolum07_ozellestirme.html" class="" title="Bir Grafiğin Her Parçasını Özelleştirmek">7</a><a href="bolum08_yerlesimler.html" class="cur" title="Yerleşimler: Bir Figürde Birçok Grafik">8</a><a href="bolum09_iletisim_kuran_tasarim.html" class="" title="İletişim Kuran Tasarım">9</a><a href="bolum10_yalan_soyleyen_grafikler.html" class="" title="Yalan Söyleyen Grafikler">10</a><a href="bolum11_seaborn_temelleri.html" class="" title="seaborn Temelleri">11</a><a href="bolum12_iliskiler_regresyon.html" class="" title="İlişkiler ve Regresyon">12</a><a href="bolum13_kategoriler.html" class="" title="Kategoriler">13</a><a href="bolum14_dagilimlar.html" class="" title="Dağılımlar">14</a><a href="bolum15_izgaralar_matrisler.html" class="" title="Izgaralar ve Matrisler">15</a><a href="bolum16_plotly_express.html" class="" title="plotly express ile Etkileşimli Grafikler">16</a><a href="bolum17_haritalar_is_grafikleri.html" class="" title="Haritalar ve İş Grafikleri">17</a></div><a href="bolum09_iletisim_kuran_tasarim.html">Bölüm 9 →</a></div>
+</main>
+</div>
+<footer>Bölüm 8 · Yerleşimler: Bir Figürde Birçok Grafik — Pyodide ile etkileşimli Türkçe sürüm</footer>
+
+<script>
+
+const DATA = {"category_sales.csv": "month,audio,displays,storage,accessories\nJan,10100,13200,7900,7000\nFeb,10300,12400,7600,5600\nMar,11300,16000,9300,6200\nApr,12300,15700,9600,6500\nMay,13400,16600,10600,7000\nJun,12300,16800,10100,7100\nJul,13300,18200,11100,7200\nAug,12000,16600,9600,7000\nSep,13300,19500,10900,8000\nOct,14800,18900,11800,9400\nNov,17900,24200,14300,11900\nDec,19600,26200,16100,12700\n", "monthly_shop.csv": "month,revenue,orders,conversion\nJan,38200,470,0.022\nFeb,35900,452,0.0225\nMar,42800,547,0.023\nApr,44100,588,0.024\nMay,47600,655,0.025\nJun,46300,642,0.025\nJul,49800,725,0.026\nAug,45200,658,0.025\nSep,51700,785,0.027\nOct,54900,868,0.028\nNov,68300,1245,0.03\nDec,74600,1370,0.031\n", "store_stats.csv": "store,visitors,daily_revenue,conversion\nSeattle,310,2100,0.021\nOakland,180,1650,0.027\nSan Francisco,420,3300,0.024\nBoise,150,980,0.019\nPortland,230,2250,0.032\nDenver,260,2050,0.023\nSacramento,200,1900,0.03\nLos Angeles,480,4600,0.034\nSan Jose,350,2400,0.02\nSan Diego,170,1500,0.028\n", "book.mplstyle": "# Chart style for \"Master Data Visualization\".\n# Load it with plt.style.use('book.mplstyle') so your charts match the book.\n# Chapter 7 explains every line; delete one and see what changes.\n\n# Four colors that stay different when printed in black and white:\n# dark teal, amber, light teal, sand. Lines also change style\n# (solid, dashed, dotted, dash-dot) so they can be told apart in gray.\naxes.prop_cycle: cycler('color', ['0b3a47', 'b26a00', '6fb3c2', 'f0c987']) + cycler('linestyle', ['-', '--', ':', '-.'])\n\n# Size in inches (fits a printed book page) and text sizes in points\nfigure.figsize: 5.5, 3.4\nfont.size: 9.5\naxes.titlesize: 11\naxes.titlelocation: left\naxes.labelsize: 9.5\nlegend.fontsize: 9\n\n# Thicker lines; if you turn the grid on (ax.grid()), it is light and sits behind the data\nlines.linewidth: 2\naxes.axisbelow: True\ngrid.color: d9dde1\n"};
+</script>
+<script>
+// ---------------- Quiz -----------------
+const QUIZ = [
+ {q:"<code>plt.subplots(2, 3)</code> ne oluşturur?",
+  o:["2 satır ve 3 sütunluk bir grafik ızgarası olan bir figür","Her biri üç grafikli iki figür","İki sütun ve üç satır grafikli bir figür","Yan yana 2 grafikli ve 3 inç genişliğinde bir figür"],a:0,
+  e:"İlk sayı satır, ikincisi sütun sayısıdır (8.1)."},
+ {q:"<code>fig, axes = plt.subplots(2, 2)</code> ile yapılmış 2 × 2 bir ızgarada <code>axes[1, 0]</code> hangi grafiktir?",
+  o:["Üst satır, sağ sütun","Alt satır, sol sütun","Üst satır, sol sütun","Alt satır, sağ sütun"],a:1,
+  e:"<code>axes[row, col]</code>; ikisi de 0’dan sayar."},
+ {q:"Yan yana iki grafik iki ürün grubunun dolar cinsinden satışlarını gösteriyor ama y eksenleri farklı aralıklara yayılıyor. Hangi değişiklik yükseklikleri karşılaştırılabilir yapar?",
+  o:["<code>plt.subplots(1, 2, sharey=True)</code>","<code>plt.subplots(1, 2, sharex=True)</code>","<code>plt.subplots(1, 2, layout='constrained')</code>","<code>fig.suptitle('Sales')</code>"],a:0,
+  e:"Aynı ölçü, aynı birim → y eksenini paylaşın."},
+ {q:"<code>sharex=True</code> olan 2 × 2 bir ızgarada x ekseni işaret etiketleri nereye yazılır?",
+  o:["Her grafiğin altına","Yalnızca üst satırın altına","Yalnızca alt satırın altına","Hiçbir yere, gizlenirler"],a:2,
+  e:"Etiketler dört kez tekrarlanmaz."},
+ {q:"<code>fig.suptitle('Sales by category')</code> ne yapar?",
+  o:["<code>ax.set_title()</code> gibi yalnızca ilk grafiğin başlığını ayarlar","Bütün figür için, tüm grafiklerin üstüne tek bir başlık yazar","Her grafiğin altına bir alt başlık ekler","Figürü o adla kaydeder"],a:1,
+  e:"Grafiklerin kendi başlıklarını kısa tutun (8.2)."},
+ {q:"Izgaranızdaki alt grafiklerin başlıkları üstlerindeki grafiklerin işaret etiketlerine değiyor. En hızlı çözüm nedir?",
+  o:["Figürü <code>layout='constrained'</code> ile oluşturmak","Grafikler tek etiket kümesini paylaşsın diye <code>sharey=True</code> kullanmak","Grafikler birbirinden uzaklaşsın diye figürü daraltmak","<code>plt.show()</code>’u iki kez çağırmak"],a:0,
+  e:"Kısıtlı yerleşim metni otomatik olarak birbirinden uzak tutar."},
+ {q:"<code>fig, axes = plt.subplot_mosaic('AA;BC')</code> yerleşimi neye benzer?",
+  o:["Tek sırada üç grafik","Üstte geniş bir grafik ve altında iki küçük grafik","Üstte iki grafik ve altta geniş bir grafik","Harflerin başlık olarak yazıldığı 2 × 2 bir ızgara"],a:1,
+  e:"Tekrarlanan harf birden fazla hücre alır; noktalı virgül satırları ayırır (8.3)."},
+ {q:"<code>fig, axes = plt.subplot_mosaic([['trend', 'trend'], ['bars', 'dots']])</code> ile <code>dots</code> adlı saçılım grafiğini nasıl alırsınız?",
+  o:["<code>axes[1, 1]</code>","<code>axes.dots</code>","<code>axes['dots']</code>","<code>axes('dots')</code>"],a:2,
+  e:"Mozaik bir sözlük döndürür."},
+ {q:"Geliri ve dönüşüm oranını <code>ax</code> ve <code>ax2 = ax.twinx()</code> üzerine çiziyorsunuz. İki çizgi de koyu camgöbeği ve düz çıkıyor. Neden?",
+  o:["<code>twinx()</code> her zaman ilk çizginin rengini kopyalar","Her eksen alanı stil döngüsünü baştan başlatır","Çizgilerin verisi aynı","Kısıtlı yerleşim özel çizgi stillerini kaldırır"],a:1,
+  e:"İkinci çizgiye kendi rengini ve stilini verin (8.4)."},
+ {q:"İki ölçüyü <code>ax.twinx()</code> ile tek bir grafiğe koymanın ana riski hangisidir?",
+  o:["İkinci bir y ekseni eklenince x ekseni çalışmayı bırakır","İkinci y ekseninin kendi etiketi olamaz","Çizgilerin nerede kesiştiğine sizin eksen sınırlarınız karar verir","Figür artık kaydedilemez"],a:2,
+  e:"Sınırları değiştirerek ilgisiz çizgileri ilişkiliymiş gibi gösterebilirsiniz."}
+];
+
+function buildQuiz(){
+  const box=document.getElementById('quizBox'); box.innerHTML='';
+  const L='ABCD';
+  QUIZ.forEach((it,i)=>{
+    const d=document.createElement('div'); d.className='q'; d.id='q'+(i+1);
+    d.innerHTML=`<div class="qt">${i+1}. ${it.q}</div>`+
+      it.o.map((o,j)=>`<label><input type="radio" name="q${i}" value="${j}"><strong>${L[j]}.</strong> ${o}</label>`).join('')+
+      `<div class="fb"></div>`;
+    d.querySelectorAll('input').forEach(inp=>inp.addEventListener('change',()=>{
+      if(d.dataset.done) return; d.dataset.done=1;
+      const j=+inp.value, labs=d.querySelectorAll('label');
+      labs[it.a].classList.add('ok'); if(j!==it.a) labs[j].classList.add('no');
+      d.querySelectorAll('input').forEach(x=>x.disabled=true);
+      const fb=d.querySelector('.fb'); fb.classList.add('show');
+      fb.innerHTML=(j===it.a?'✅ <strong>Doğru.</strong> ':'❌ <strong>Doğru cevap '+L[it.a]+'.</strong> ')+it.e;
+      if(j===it.a) d.dataset.ok=1; updateScore();
+    }));
+    box.appendChild(d);
+  });
+  updateScore();
+}
+function updateScore(){
+  const ok=document.querySelectorAll('.q[data-ok]').length, done=document.querySelectorAll('.q[data-done]').length;
+  document.getElementById('score').textContent=`${ok} / ${QUIZ.length}`+(done?` (cevaplanan: ${done})`:'');
+}
+document.getElementById('quizReset').onclick=buildQuiz;
+buildQuiz();
+
+// ---------------- Data list -----------------
+function csvToTable(txt,max=200){
+  const rows=txt.trim().split(/\r?\n/).map(r=>r.split(','));
+  const h=rows.shift();
+  return '<table><thead><tr>'+h.map(x=>`<th>${x}</th>`).join('')+'</tr></thead><tbody>'+
+    rows.slice(0,max).map(r=>'<tr>'+r.map(x=>`<td>${x}</td>`).join('')+'</tr>').join('')+'</tbody></table>';
+}
+(function(){
+  const host=document.getElementById('dataList');
+  Object.entries(DATA).forEach(([name,txt])=>{
+    const n=txt.trim().split(/\r?\n/).length-1;
+    const url=URL.createObjectURL(new Blob([txt],{type:'text/csv'}));
+    const d=document.createElement('details'); d.className='data';
+    const isCsv=name.endsWith('.csv');
+    d.innerHTML=`<summary>${name} <span style="font-weight:400;color:#5f6b72">— ${isCsv?n+' satır':'stil dosyası'}</span> · <a href="${url}" download="${name}">indir</a></summary><div class="tbl">${isCsv?csvToTable(txt):'<pre style="font-size:12px;white-space:pre-wrap">'+txt.replace(/</g,'&lt;')+'</pre>'}</div>`;
+    host.appendChild(d);
+  });
+})();
+
+// ---------------- Code cells -----------------
+const cells=[];
+document.querySelectorAll('.cell').forEach((el,i)=>{
+  const ta=el.querySelector('textarea'); const src=ta.value;
+  const bar=document.createElement('div'); bar.className='bar';
+  bar.innerHTML=`<span class="lbl">In [<span class="cnt"> </span>]:</span><span class="sp"></span>
+    <button class="btn ghost reset" title="Orijinal koda dön">↺ Orijinal</button>
+    <button class="btn run" disabled>▶ Çalıştır</button>`;
+  el.insertBefore(bar,ta);
+  const cm=CodeMirror.fromTextArea(ta,{mode:'python',lineNumbers:false,indentUnit:4,viewportMargin:Infinity,
+     extraKeys:{'Shift-Enter':()=>runCell(i),'Ctrl-Enter':()=>runCell(i),Tab:c=>c.replaceSelection('    ')}});
+  const out=document.createElement('div'); out.className='out'; el.appendChild(out);
+  const c={el,cm,out,src,ran:false,idx:i,btn:bar.querySelector('.run'),cnt:bar.querySelector('.cnt')};
+  bar.querySelector('.run').onclick=()=>runCell(i);
+  bar.querySelector('.reset').onclick=()=>cm.setValue(src);
+  el.id='hucre-'+(i+1);
+  cells.push(c);
+});
+
+// ---------------- Pyodide -----------------
+let py=null, execCount=0, busy=false;
+const st=document.getElementById('status'), stT=document.getElementById('statusText');
+window.__currentOut=null;
+window.renderPlot=function(json){
+  const spec=JSON.parse(json); const div=document.createElement('div'); div.className='plot';
+  const inner=document.createElement('div'); div.appendChild(inner);
+  window.__currentOut.appendChild(div);
+  Plotly.newPlot(inner,spec.data,spec.layout||{},{responsive:true,displaylogo:false,locale:'tr'});
+};
+const PY_SETUP=`
+import os
+os.environ['MPLBACKEND'] = 'Agg'
+import matplotlib
+matplotlib.use('Agg')
+import sys, io, ast, contextlib, base64
+import pandas as pd
+import matplotlib.pyplot as plt
+_CAPTURED = []
+def _grab_figs():
+    for n in plt.get_fignums():
+        f = plt.figure(n); b = io.BytesIO()
+        f.savefig(b, format='png', dpi=120, bbox_inches='tight')
+        _CAPTURED.append(base64.b64encode(b.getvalue()).decode())
+    plt.close('all')
+plt.show = lambda *a, **k: _grab_figs()
+# matplotlib 3.8 (Pyodide) için kitap kodunun 3.10+ parametrelerine uyum katmanı
+from matplotlib.axes import Axes as _Axes
+_orig_boxplot = _Axes.boxplot
+def _boxplot(self, *a, tick_labels=None, orientation=None, **k):
+    if tick_labels is not None: k['labels'] = tick_labels
+    if orientation is not None: k['vert'] = (orientation == 'vertical')
+    return _orig_boxplot(self, *a, **k)
+_Axes.boxplot = _boxplot
+import warnings
+warnings.simplefilter('ignore', FutureWarning)
+pd.set_option('display.width', 120)
+SKIP = ('.csv', '.mplstyle')
+def _written(src):
+    import re
+    return re.findall(r"savefig\\(\\s*['\\"]([^'\\"]+)['\\"]", src)
+def __run_cell(src, ns):
+    buf = io.StringIO()
+    before = set(f for f in os.listdir('.') if not f.endswith(SKIP))
+    _CAPTURED.clear()
+    res = {'stdout':'', 'html':None, 'text':None, 'files':[], 'imgs':[]}
+    val = None
+    try:
+        with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(buf):
+            tree = ast.parse(src)
+            last = None
+            if tree.body and isinstance(tree.body[-1], ast.Expr):
+                last = ast.Expression(tree.body.pop().value)
+            exec(compile(tree, '<hücre>', 'exec'), ns)
+            val = eval(compile(last, '<hücre>', 'eval'), ns) if last is not None else None
+    finally:
+        _grab_figs()
+        res['imgs'] = list(_CAPTURED)
+        _CAPTURED.clear()
+    res['stdout'] = buf.getvalue()
+    if val is not None:
+        if isinstance(val, (pd.DataFrame, pd.Series)):
+            df = val.to_frame() if isinstance(val, pd.Series) else val
+            res['html'] = df.to_html(max_rows=30, border=0)
+        elif hasattr(val, '_repr_html_') and type(val).__name__ == 'Styler':
+            res['html'] = val._repr_html_()
+        else:
+            res['text'] = repr(val)
+    after = set(f for f in os.listdir('.') if not f.endswith(SKIP))
+    res['files'] = sorted((after - before) | (set(_written(src)) & after))
+    return res
+def __new_ns():
+    plt.close('all'); matplotlib.rcdefaults()
+    return {'__name__':'__main__'}
+`;
+async function initPy(){
+  try{
+    stT.textContent='Pyodide yükleniyor…';
+    py=await loadPyodide();
+    stT.textContent='pandas, matplotlib yükleniyor…';
+    await py.loadPackage(['pandas','matplotlib','scipy','jinja2','micropip']);
+    stT.textContent='seaborn yükleniyor…';
+    const mp=py.pyimport('micropip');
+    await mp.install(['seaborn'].concat(window.EXTRA_PKGS||[]));
+    for(const [n,t] of Object.entries(DATA)) py.FS.writeFile(n,t);
+    await py.runPythonAsync(PY_SETUP);
+    window.__ns=py.runPython('__new_ns()');
+    st.className='ready'; stT.textContent='Python hazır';
+    cells.forEach(c=>c.btn.disabled=false);
+  }catch(e){ st.className='err'; stT.textContent='Yükleme hatası'; console.error(e);
+    alert('Pyodide yüklenemedi. İnternet bağlantınızı kontrol edin.\n'+e); }
+}
+async function execOne(c){
+  c.out.innerHTML=''; c.out.classList.add('show'); window.__currentOut=c.out;
+  c.el.style.opacity=1;
+  try{
+    const fn=py.globals.get('__run_cell');
+    const r=fn(c.cm.getValue(), window.__ns).toJs({dict_converter:Object.fromEntries});
+    fn.destroy();
+    if(r.stdout){const p=document.createElement('pre');p.className='txt';p.textContent=r.stdout;c.out.prepend(p);}
+    if(r.html){const d=document.createElement('div');d.style.overflowX='auto';d.innerHTML=r.html;c.out.appendChild(d);}
+    if(r.text){const p=document.createElement('pre');p.className='txt';p.textContent=r.text;c.out.appendChild(p);}
+    for(const im of (r.imgs||[])){const d=document.createElement('div');d.className='plot';const g=document.createElement('img');g.src='data:image/png;base64,'+im;g.alt='Grafik';d.appendChild(g);c.out.appendChild(d);}
+    for(const f of (r.files||[])){
+      const bytes=py.FS.readFile(f); const url=URL.createObjectURL(new Blob([bytes],{type:f.endsWith('.html')?'text/html':'application/octet-stream'}));
+      const d=document.createElement('div');d.className='dl';
+      d.innerHTML=`<a href="${url}" download="${f}">⬇ ${f} dosyasını indir (${(bytes.length/1048576).toFixed(1)} MB)</a> &nbsp;<a href="${url}" target="_blank" style="background:#0b3a47">Yeni sekmede aç</a>`;
+      c.out.appendChild(d);
+    }
+    if(!c.out.children.length){const p=document.createElement('pre');p.className='txt';p.style.color='#8a9296';p.textContent='✓ Çalıştı (çıktı yok)';c.out.appendChild(p);}
+    c.ran=true; c.cnt.textContent=++execCount; return true;
+  }catch(e){
+    let msg=String(e.message||e); const k=msg.lastIndexOf('File "<hücre>"');
+    if(k>0) msg=msg.slice(k);
+    const p=document.createElement('pre');p.className='txt err';p.textContent=msg;c.out.appendChild(p);
+    c.cnt.textContent='!'; return false;
+  }
+}
+async function runCell(i){
+  if(!py||busy) return; busy=true;
+  const target=cells[i];
+  target.btn.disabled=true; target.btn.textContent='⏳';
+  await new Promise(r=>setTimeout(r,20));
+  for(let k=0;k<i;k++){ if(!cells[k].ran){ cells[k].btn.textContent='⏳'; await new Promise(r=>setTimeout(r,10)); await execOne(cells[k]); cells[k].btn.textContent='▶ Çalıştır'; } }
+  await execOne(target);
+  target.btn.disabled=false; target.btn.textContent='▶ Çalıştır'; busy=false;
+}
+document.getElementById('runAll').onclick=async()=>{ if(!py)return; for(let i=0;i<cells.length;i++){ cells[i].ran=false; } await runCell(cells.length-1); };
+document.getElementById('resetNs').onclick=()=>{ if(!py)return; window.__ns=py.runPython('__new_ns()'); execCount=0;
+  cells.forEach(c=>{c.ran=false;c.cnt.textContent=' ';c.out.innerHTML='';c.out.classList.remove('show');}); };
+initPy();
+
+// ---------------- TOC -----------------
+const toc=document.getElementById('tocLinks');
+const heads=[...document.querySelectorAll('main h2[id], main h3[id]')];
+heads.forEach(h=>{const a=document.createElement('a');a.href='#'+h.id;a.innerHTML=h.innerHTML.replace(/<span class="num">(.*?)<\/span>/,'$1 ');if(h.tagName==='H3')a.className='sub';toc.appendChild(a);});
+const tocLinks=[...toc.querySelectorAll('a')];
+const io2=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){tocLinks.forEach(a=>a.classList.toggle('active',a.getAttribute('href')==='#'+e.target.id));}})},{rootMargin:'-80px 0px -70% 0px'});
+heads.forEach(h=>io2.observe(h));
+
+// ---------------- Search -----------------
+const norm=s=>s.toLocaleLowerCase('tr').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/ı/g,'i');
+const index=[];
+(function buildIndex(){
+  let sec='Giriş';
+  document.querySelectorAll('main h1, main h2, main h3, main p, main li, main .callout, main .cell, main .q, main pre.data').forEach(el=>{
+    if(el.closest('.callout')&&el.tagName!=='DIV') return;
+    if(el.closest('#datasets')) return;
+    if(el.matches('.q')){ index.push({el,sec:'Sınav',kind:'soru',text:el.querySelector('.qt').textContent+' '+[...el.querySelectorAll('label')].map(l=>l.textContent).join(' ')}); return; }
+    if(el.closest('.q')) return;
+    if(el.matches('h2,h3')){ sec=el.textContent; }
+    let kind='metin', text=el.textContent;
+    if(el.matches('.cell')){ kind='kod'; const c=cells.find(c=>c.el===el); text=c?c.cm.getValue():text; }
+    else if(el.matches('h1,h2,h3')) kind='başlık';
+    else if(el.matches('.callout')) kind='kutu';
+    else if(el.matches('.figdesc')) kind='grafik';
+    else if(el.matches('pre.data')) kind='veri';
+    index.push({el,sec,kind,text:text.replace(/\s+/g,' ').trim()});
+  });
+  index.forEach(x=>x.n=norm(x.text));
+})();
+const si=document.getElementById('search'), res=document.getElementById('results');
+let hits=[], act=-1;
+function esc(s){return s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+function snippet(text,terms){
+  const n=norm(text); let pos=-1;
+  for(const t of terms){const p=n.indexOf(t);if(p>=0){pos=p;break;}}
+  let s=Math.max(0,pos-60), e=Math.min(text.length,(pos<0?0:pos)+140);
+  let out=(s>0?'…':'')+text.slice(s,e)+(e<text.length?'…':'');
+  // highlight (norm keeps length for Turkish chars after NFD strip mostly; do case-insensitive regex)
+  let h=esc(out);
+  terms.forEach(t=>{ if(!t) return;
+    const re=new RegExp(t.split('').map(ch=>{const m={'i':'[iıİI]','s':'[sşŞS]','c':'[cçÇC]','g':'[gğĞG]','o':'[oöÖO]','u':'[uüÜU]'}; return m[ch]||ch.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}).join(''),'gi');
+    h=h.replace(re,m=>`<mark>${m}</mark>`); });
+  return h;
+}
+function doSearch(){
+  const q=si.value.trim();
+  if(q.length<2){res.classList.remove('open');res.innerHTML='';return;}
+  const terms=norm(q).split(/\s+/).filter(Boolean);
+  hits=index.map(x=>{let sc=0;for(const t of terms){const c=x.n.split(t).length-1;if(!c)return null;sc+=c;} if(x.kind==='başlık')sc+=5; if(x.kind==='kod')sc+=1; return {x,sc};}).filter(Boolean).sort((a,b)=>b.sc-a.sc).slice(0,40);
+  act=-1;
+  res.innerHTML=hits.length?`<div class="count">${hits.length} sonuç · <kbd>↑</kbd><kbd>↓</kbd> ile gez, <kbd>Enter</kbd> ile git</div>`+hits.map((h,i)=>`<div class="r" data-i="${i}"><div class="sec">${esc(h.x.sec)}<span class="kind">${h.x.kind}</span></div><div class="snip">${snippet(h.x.text,terms)}</div></div>`).join('')
+    :'<div class="empty">Sonuç bulunamadı.</div>';
+  res.classList.add('open');
+  res.querySelectorAll('.r').forEach(r=>r.onclick=()=>go(+r.dataset.i));
+}
+function go(i){
+  const el=hits[i].x.el; res.classList.remove('open');
+  const det=el.closest('details'); if(det) det.open=true;
+  el.scrollIntoView({behavior:'smooth',block:'center'});
+  el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
+}
+si.addEventListener('input',doSearch);
+si.addEventListener('focus',()=>{if(si.value.trim().length>=2)doSearch();});
+si.addEventListener('keydown',e=>{
+  const rs=[...res.querySelectorAll('.r')];
+  if(e.key==='ArrowDown'){act=Math.min(rs.length-1,act+1);}
+  else if(e.key==='ArrowUp'){act=Math.max(0,act-1);}
+  else if(e.key==='Enter'){ if(hits.length) go(act<0?0:act); return; }
+  else if(e.key==='Escape'){res.classList.remove('open');si.blur();return;}
+  else return;
+  e.preventDefault(); rs.forEach((r,k)=>r.classList.toggle('act',k===act)); if(rs[act]) rs[act].scrollIntoView({block:'nearest'});
+});
+document.addEventListener('keydown',e=>{ if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();si.focus();si.select();}
+  else if(e.key==='/'&&document.activeElement.tagName!=='INPUT'&&!document.activeElement.closest('.CodeMirror')){e.preventDefault();si.focus();}});
+document.addEventListener('click',e=>{if(!e.target.closest('.search-wrap'))res.classList.remove('open');});
+</script>
+</body>
+</html>
